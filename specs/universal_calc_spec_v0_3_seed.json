@@ -41,5 +41,19 @@
     "reward_number": "Existing numeric reward definitions remain valid.",
     "constant_spec": "Constant spec is evaluated to the same numeric value before solving.",
     "future_formula_specs": "Formula/reference specs are intentionally not implemented in this step."
+  },
+  "tex_output_scope": {
+    "initial_target": [
+      "OutputResult",
+      "ContributionResult"
+    ],
+    "format": "LaTeX string output only.",
+    "does_not_include": [
+      "TeX compilation",
+      "PDF generation",
+      "proof generation",
+      "Juuou formula modeling",
+      "Seikatan reverse estimation"
+    ]
   }
 }
