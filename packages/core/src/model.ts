@@ -135,13 +135,22 @@ export function expandModel(model: DefinitionModel): ExpandedModel {
   return { ...model, stateById, transitionsByState };
 }
 
-export function evaluateModel(model: ExpandedModel): EvaluatedModel {
-  const transitions = model.transitions.map((transition) => ({
+function evaluateTransition(transition: TransitionDefinition): EvaluatedTransition {
+  const evaluated: EvaluatedTransition = {
     from: transition.from,
     to: transition.to,
-    probability: evaluateScalarSpec(transition.probability),
-    reward: transition.reward === undefined ? undefined : evaluateScalarSpec(transition.reward)
-  }));
+    probability: evaluateScalarSpec(transition.probability)
+  };
+
+  if (transition.reward !== undefined) {
+    evaluated.reward = evaluateScalarSpec(transition.reward);
+  }
+
+  return evaluated;
+}
+
+export function evaluateModel(model: ExpandedModel): EvaluatedModel {
+  const transitions = model.transitions.map(evaluateTransition);
 
   const transitionsByState = new Map<StateId, EvaluatedTransition[]>();
   for (const state of model.states) {
