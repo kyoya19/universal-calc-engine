@@ -45,6 +45,8 @@ export type StateGraphSummary = {
   edgeWithGeneratedTargetCount: number;
   explicitGeneratedMatchCount: number;
   explicitGeneratedMismatchCount: number;
+  explicitGeneratedMatchRate: number;
+  explicitGeneratedMismatchRate: number;
   edgeWithoutGeneratedTargetCount: number;
   diagnosticCount: number;
   diagnosticCountsByType: Record<StateExpansionDiagnostic['type'], number>;
@@ -115,6 +117,11 @@ export function summarizeStateGraph(graph: ExpandedStateGraph): StateGraphSummar
     }
   }
 
+  const explicitGeneratedMatchRate =
+    edgeWithGeneratedTargetCount === 0 ? 0 : explicitGeneratedMatchCount / edgeWithGeneratedTargetCount;
+  const explicitGeneratedMismatchRate =
+    edgeWithGeneratedTargetCount === 0 ? 0 : explicitGeneratedMismatchCount / edgeWithGeneratedTargetCount;
+
   return {
     stateCount: graph.states.length,
     generatedStateCount: graph.generatedStates.length,
@@ -122,6 +129,8 @@ export function summarizeStateGraph(graph: ExpandedStateGraph): StateGraphSummar
     edgeWithGeneratedTargetCount,
     explicitGeneratedMatchCount,
     explicitGeneratedMismatchCount,
+    explicitGeneratedMatchRate,
+    explicitGeneratedMismatchRate,
     edgeWithoutGeneratedTargetCount: graph.edges.length - edgeWithGeneratedTargetCount,
     diagnosticCount: graph.diagnostics.length,
     diagnosticCountsByType
