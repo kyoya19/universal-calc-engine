@@ -3,6 +3,7 @@ import {
   DefinitionModel,
   evaluateModel,
   expandModel,
+  isTerminalState,
   solveExpectedReward,
   toContributionResult,
   toOutputResult
@@ -22,6 +23,52 @@ const dicePocModel: DefinitionModel = {
     { from: 'pos_1', to: 'pos_2', probability: 0.5, reward: 1 },
     { from: 'pos_1', to: 'pos_3', probability: 0.5, reward: 1 },
     { from: 'pos_2', to: 'pos_3', probability: 1.0, reward: 1 }
+  ]
+};
+
+const dicePocModelWithConstantSpecs: DefinitionModel = {
+  startState: 'pos_0',
+  states: [
+    { id: 'pos_0', properties: { position: 0 } },
+    { id: 'pos_1', properties: { position: 1 } },
+    { id: 'pos_2', properties: { position: 2 } },
+    {
+      id: 'pos_3',
+      terminalCondition: { type: 'property_equals', property: 'position', value: 3 },
+      properties: { position: 3 }
+    }
+  ],
+  transitions: [
+    {
+      from: 'pos_0',
+      to: 'pos_1',
+      probability: { type: 'constant', value: 0.5 },
+      reward: { type: 'constant', value: 1 }
+    },
+    {
+      from: 'pos_0',
+      to: 'pos_2',
+      probability: { type: 'constant', value: 0.5 },
+      reward: { type: 'constant', value: 1 }
+    },
+    {
+      from: 'pos_1',
+      to: 'pos_2',
+      probability: { type: 'constant', value: 0.5 },
+      reward: { type: 'constant', value: 1 }
+    },
+    {
+      from: 'pos_1',
+      to: 'pos_3',
+      probability: { type: 'constant', value: 0.5 },
+      reward: { type: 'constant', value: 1 }
+    },
+    {
+      from: 'pos_2',
+      to: 'pos_3',
+      probability: { type: 'constant', value: 1.0 },
+      reward: { type: 'constant', value: 1 }
+    }
   ]
 };
 
@@ -48,5 +95,19 @@ describe('sugoroku/dice PoC v0.3', () => {
     expect(contribution.transitionContributionsByState.pos_0).toHaveLength(2);
     expect(contribution.transitionContributionsByState.pos_0?.[0]?.contribution).toBeCloseTo(1.25);
     expect(contribution.transitionContributionsByState.pos_0?.[1]?.contribution).toBeCloseTo(1.0);
+  });
+
+  test('supports constant ProbabilitySpec, RewardSpec, and TerminalCondition without changing the result', () => {
+    const expanded = expandModel(dicePocModelWithConstantSpecs);
+    const evaluated = evaluateModel(expanded);
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(dicePocModelWithConstantSpecs, solved);
+
+    expect(isTerminalState(dicePocModelWithConstantSpecs.states[3])).toBe(true);
+    expect(output.expectedReward).toBeCloseTo(2.25);
+    expect(output.expectedRewardByState.pos_0).toBeCloseTo(2.25);
+    expect(output.expectedRewardByState.pos_1).toBeCloseTo(1.5);
+    expect(output.expectedRewardByState.pos_2).toBeCloseTo(1);
+    expect(output.expectedRewardByState.pos_3).toBeCloseTo(0);
   });
 });
