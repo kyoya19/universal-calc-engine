@@ -259,4 +259,22 @@ describe('state generation helpers', () => {
     expect(graph.edges).toHaveLength(1);
     expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'depth_limit_reached')).toBe(true);
   });
+
+  test('reports max state count separately from depth limit', () => {
+    const seedStates: StateDefinition[] = [{ id: 'pos_0', properties: { position: 0 } }];
+    const transitions: TransitionDefinition[] = [
+      {
+        from: 'pos_0',
+        to: 'state:{position=1}',
+        probability: 1,
+        effects: [{ type: 'set_property', property: 'position', value: 1 }]
+      }
+    ];
+
+    const graph = expandStateSpace(seedStates, transitions, { maxStates: 1 });
+
+    expect(graph.states.map((state) => state.id)).toEqual(['pos_0']);
+    expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'max_states_reached')).toBe(true);
+    expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'depth_limit_reached')).toBe(false);
+  });
 });
