@@ -1,0 +1,27 @@
+{
+  "spec_version": "0.3-seed",
+  "project": "universal-calc-engine",
+  "priority": "dice_poc_first",
+  "pipeline": [
+    "DefinitionModel",
+    "ExpandedModel",
+    "EvaluatedModel",
+    "SolvedModel",
+    "OutputResult",
+    "ContributionResult"
+  ],
+  "core_requirements": [
+    "Do not mix domain-specific logic into the solver.",
+    "Represent states, transitions, probabilities, rewards, and terminal conditions explicitly.",
+    "Separate output formatting from contribution analysis.",
+    "Keep estimated, assumed, unknown values out of confirmed values."
+  ],
+  "model_layers": {
+    "DefinitionModel": "User-facing or source-facing model definition.",
+    "ExpandedModel": "Transition-expanded model with state/action/terminal structure.",
+    "EvaluatedModel": "Probability and formula evaluated model.",
+    "SolvedModel": "Computed expectation and distribution results.",
+    "OutputResult": "Result object for display or downstream use.",
+    "ContributionResult": "Contribution and sensitivity object kept separate from output."
+  }
+}

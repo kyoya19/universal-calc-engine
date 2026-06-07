@@ -1,0 +1,27 @@
+{
+  "example_id": "sugoroku_v0_3_poc_seed",
+  "description": "Minimal dice/sugoroku PoC for the universal probability state transition engine.",
+  "start_state": "pos_0",
+  "terminal_states": ["pos_3"],
+  "states": [
+    { "id": "pos_0", "properties": { "position": 0 } },
+    { "id": "pos_1", "properties": { "position": 1 } },
+    { "id": "pos_2", "properties": { "position": 2 } },
+    { "id": "pos_3", "properties": { "position": 3, "terminal": true } }
+  ],
+  "dice": {
+    "sides": [1, 2],
+    "probabilities": [0.5, 0.5]
+  },
+  "rule": {
+    "type": "move_forward_capped",
+    "cap_position": 3,
+    "step_cost": 1
+  },
+  "expected_solution": {
+    "expected_turns_from_pos_0": 2.25,
+    "expected_turns_from_pos_1": 1.5,
+    "expected_turns_from_pos_2": 1,
+    "expected_turns_from_pos_3": 0
+  }
+}
