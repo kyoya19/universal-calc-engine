@@ -52,6 +52,10 @@ export type StateGraphSummary = {
   diagnosticCountsByType: Record<StateExpansionDiagnostic['type'], number>;
 };
 
+export type SerializedStateGraphSummary = StateGraphSummary & {
+  summaryVersion: 1;
+};
+
 export type GraphTargetPolicy = 'explicit_only';
 
 export type StateSpaceExpansionOptions = {
@@ -145,6 +149,18 @@ export function summarizeStateGraph(graph: ExpandedStateGraph): StateGraphSummar
     diagnosticCount: graph.diagnostics.length,
     diagnosticCountsByType
   };
+}
+
+export function serializeStateGraphSummary(summary: StateGraphSummary): SerializedStateGraphSummary {
+  return {
+    summaryVersion: 1,
+    ...summary,
+    diagnosticCountsByType: { ...summary.diagnosticCountsByType }
+  };
+}
+
+export function stateGraphSummaryToJson(summary: StateGraphSummary): string {
+  return JSON.stringify(serializeStateGraphSummary(summary), null, 2);
 }
 
 export function generateNextStateCandidate(
