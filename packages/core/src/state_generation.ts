@@ -66,6 +66,13 @@ export function seedStatesFromModel(model: DefinitionModel): StateDefinition[] {
   return [startState];
 }
 
+export function expandGraphFromModel(
+  model: DefinitionModel,
+  options: StateSpaceExpansionOptions = {}
+): ExpandedStateGraph {
+  return expandStateSpace(seedStatesFromModel(model), model.transitions, options);
+}
+
 export function generateNextStateCandidate(
   currentState: StateDefinition,
   transition: TransitionDefinition
