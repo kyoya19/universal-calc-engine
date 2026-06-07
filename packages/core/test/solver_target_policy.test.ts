@@ -1,12 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import {
-  DefinitionModel,
   evaluateModel,
   expandModel,
   selectSolverTransitionTarget,
   solveExpectedReward,
   toContributionResult
 } from '../src/model';
+import type { DefinitionModel } from '../src/model';
 
 describe('solver target policy', () => {
   test('selects transition.to for the explicit-only solver policy', () => {
@@ -38,7 +38,7 @@ describe('solver target policy', () => {
     const contributions = toContributionResult(evaluated, solved);
 
     expect(solved.expectedRewardByState.get('start')).toBe(7);
-    expect(contributions.transitionContributionsByState.start).toEqual([
+    expect(contributions.transitionContributionsByState['start']).toEqual([
       {
         to: 'legacy_win',
         probability: 1,
