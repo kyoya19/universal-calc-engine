@@ -88,6 +88,8 @@ export type ContributionResult = {
   }>>;
 };
 
+export type SolverTargetPolicy = 'explicit_only';
+
 export function evaluateScalarSpec(spec: ScalarSpec): number {
   if (typeof spec === 'number') {
     return spec;
@@ -107,6 +109,17 @@ export function applyTransitionEffects(
   }
 
   return nextProperties;
+}
+
+export function selectSolverTransitionTarget(
+  transition: Pick<EvaluatedTransition, 'to'>,
+  policy: SolverTargetPolicy = 'explicit_only'
+): StateId {
+  if (policy === 'explicit_only') {
+    return transition.to;
+  }
+
+  return transition.to;
 }
 
 export function isTerminalState(state: StateDefinition): boolean {
@@ -218,7 +231,8 @@ export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
       const transitions = model.transitionsByState.get(state.id) ?? [];
       const nextValue = transitions.reduce((sum, transition) => {
         const reward = transition.reward ?? 0;
-        const downstream = expectedRewardByState.get(transition.to) ?? 0;
+        const target = selectSolverTransitionTarget(transition, 'explicit_only');
+        const downstream = expectedRewardByState.get(target) ?? 0;
         return sum + transition.probability * (reward + downstream);
       }, 0);
 
@@ -256,9 +270,10 @@ export function toContributionResult(model: EvaluatedModel, solved: SolvedModel)
     const transitions = model.transitionsByState.get(state.id) ?? [];
     transitionContributionsByState[state.id] = transitions.map((transition) => {
       const reward = transition.reward ?? 0;
-      const downstreamExpectedReward = solved.expectedRewardByState.get(transition.to) ?? 0;
+      const target = selectSolverTransitionTarget(transition, 'explicit_only');
+      const downstreamExpectedReward = solved.expectedRewardByState.get(target) ?? 0;
       return {
-        to: transition.to,
+        to: target,
         probability: transition.probability,
         reward,
         downstreamExpectedReward,
