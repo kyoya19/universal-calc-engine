@@ -52,6 +52,7 @@
       "OutputResult",
       "ContributionResult"
     ],
+    "value_function_format": "V(state) is available through outputResultToValueFunctionTex().",
     "format": "LaTeX string output only.",
     "does_not_include": [
       "TeX compilation",

@@ -26,6 +26,10 @@ function stateLabel(stateId: StateId): string {
   return `\\mathrm{${escapeTexText(stateId)}}`;
 }
 
+function valueFunction(stateId: StateId): string {
+  return `V(${stateLabel(stateId)})`;
+}
+
 export function outputResultToTex(result: OutputResult): string {
   const rows = Object.entries(result.expectedRewardByState)
     .sort(([left], [right]) => left.localeCompare(right))
@@ -42,6 +46,20 @@ export function outputResultToTex(result: OutputResult): string {
     '\\hline',
     rows,
     '\\end{array}'
+  ].join('\n');
+}
+
+export function outputResultToValueFunctionTex(result: OutputResult): string {
+  const rows = Object.entries(result.expectedRewardByState)
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([stateId, expectedReward]) => `${valueFunction(stateId)} &= ${formatNumber(expectedReward)} \\\\`)
+    .join('\n');
+
+  return [
+    '\\begin{aligned}',
+    `${valueFunction(result.startState)} &= ${formatNumber(result.expectedReward)} \\\\`,
+    rows,
+    '\\end{aligned}'
   ].join('\n');
 }
 

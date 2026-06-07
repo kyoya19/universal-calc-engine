@@ -4,7 +4,8 @@ import {
   OutputResult,
   contributionResultToTex,
   escapeTexText,
-  outputResultToTex
+  outputResultToTex,
+  outputResultToValueFunctionTex
 } from '../src';
 
 const outputResult: OutputResult = {
@@ -50,6 +51,15 @@ describe('TeX output helpers', () => {
     expect(tex).toContain('E[\\mathrm{pos\\_0}] &= 2.25');
     expect(tex).toContain('\\mathrm{pos\\_1} & 1.5');
     expect(tex).toContain('\\begin{array}{c|r}');
+  });
+
+  test('converts OutputResult to value-function TeX', () => {
+    const tex = outputResultToValueFunctionTex(outputResult);
+
+    expect(tex).toContain('V(\\mathrm{pos\\_0}) &= 2.25');
+    expect(tex).toContain('V(\\mathrm{pos\\_1}) &= 1.5');
+    expect(tex).toContain('V(\\mathrm{pos\\_2}) &= 1');
+    expect(tex).toContain('V(\\mathrm{pos\\_3}) &= 0');
   });
 
   test('converts ContributionResult to TeX', () => {
