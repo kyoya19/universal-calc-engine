@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { StateDefinition, TransitionDefinition } from '../src/model';
 import {
   generateNextStateCandidate,
+  generateNextStateCandidates,
   stateIdFromProperties,
   uniqueStateCandidates
 } from '../src/state_generation';
@@ -76,6 +77,39 @@ describe('state generation helpers', () => {
     ]);
 
     expect(candidates).toEqual([
+      { id: 'state:{position=1}', properties: { position: 1 } },
+      { id: 'state:{position=2}', properties: { position: 2 } }
+    ]);
+  });
+
+  test('generates unique next state candidates from multiple transitions', () => {
+    const currentState: StateDefinition = {
+      id: 'pos_0',
+      properties: { position: 0 }
+    };
+
+    const transitions: TransitionDefinition[] = [
+      {
+        from: 'pos_0',
+        to: 'pos_1',
+        probability: 0.5,
+        effects: [{ type: 'set_property', property: 'position', value: 1 }]
+      },
+      {
+        from: 'pos_0',
+        to: 'pos_2',
+        probability: 0.5,
+        effects: [{ type: 'set_property', property: 'position', value: 2 }]
+      },
+      {
+        from: 'pos_0',
+        to: 'pos_2_alt',
+        probability: 0,
+        effects: [{ type: 'set_property', property: 'position', value: 2 }]
+      }
+    ];
+
+    expect(generateNextStateCandidates(currentState, transitions)).toEqual([
       { id: 'state:{position=1}', properties: { position: 1 } },
       { id: 'state:{position=2}', properties: { position: 2 } }
     ]);
