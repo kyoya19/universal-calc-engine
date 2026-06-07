@@ -197,7 +197,7 @@ export function expandStateSpace(
   }
 
   for (let index = 0; index < queue.length; index += 1) {
-    const { state, depth } = queue[index];
+    const { state, depth } = queue[index]!;
 
     if (depth >= maxDepth) {
       diagnostics.push({
