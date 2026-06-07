@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import { StateDefinition, TransitionDefinition } from '../src/model';
+import { DefinitionModel, StateDefinition, TransitionDefinition } from '../src/model';
 import {
   expandOneStateStep,
   expandStateSpace,
   generateNextStateCandidate,
   generateNextStateCandidates,
+  seedStatesFromModel,
   stateIdFromProperties,
   uniqueStateCandidates
 } from '../src/state_generation';
@@ -24,6 +25,29 @@ describe('state generation helpers', () => {
 
     expect(left).toBe('state:{active=true,label=start,position=0}');
     expect(right).toBe(left);
+  });
+
+  test('returns the model start state as the seed state', () => {
+    const model: DefinitionModel = {
+      startState: 'pos_0',
+      states: [
+        { id: 'pos_0', properties: { position: 0 } },
+        { id: 'pos_1', properties: { position: 1 } }
+      ],
+      transitions: []
+    };
+
+    expect(seedStatesFromModel(model)).toEqual([{ id: 'pos_0', properties: { position: 0 } }]);
+  });
+
+  test('throws when the model start state is missing', () => {
+    const model: DefinitionModel = {
+      startState: 'missing',
+      states: [{ id: 'pos_0', properties: { position: 0 } }],
+      transitions: []
+    };
+
+    expect(() => seedStatesFromModel(model)).toThrow('Unknown start state: missing');
   });
 
   test('generates next state candidates from transition effects', () => {

@@ -1,5 +1,6 @@
 import {
   applyTransitionEffects,
+  DefinitionModel,
   StateDefinition,
   StateId,
   StateProperties,
@@ -53,6 +54,16 @@ export function stateIdFromProperties(properties: StateProperties): string {
     .join(',');
 
   return `state:{${normalized}}`;
+}
+
+export function seedStatesFromModel(model: DefinitionModel): StateDefinition[] {
+  const startState = model.states.find((state) => state.id === model.startState);
+
+  if (!startState) {
+    throw new Error(`Unknown start state: ${model.startState}`);
+  }
+
+  return [startState];
 }
 
 export function generateNextStateCandidate(
