@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { DefinitionModel, StateDefinition, TransitionDefinition } from '../src/model';
 import {
+  expandGraphFromModel,
   expandOneStateStep,
   expandStateSpace,
   generateNextStateCandidate,
@@ -48,6 +49,48 @@ describe('state generation helpers', () => {
     };
 
     expect(() => seedStatesFromModel(model)).toThrow('Unknown start state: missing');
+  });
+
+  test('expands graph directly from a definition model', () => {
+    const model: DefinitionModel = {
+      startState: 'pos_0',
+      states: [{ id: 'pos_0', properties: { position: 0 } }],
+      transitions: [
+        {
+          from: 'pos_0',
+          to: 'state:{position=1}',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'position', value: 1 }]
+        }
+      ]
+    };
+
+    const graph = expandGraphFromModel(model);
+
+    expect(graph.states.map((state) => state.id)).toEqual(['pos_0', 'state:{position=1}']);
+    expect(graph.edges.map((edge) => ({ from: edge.from, explicitTo: edge.explicitTo, generatedTo: edge.generatedTo }))).toEqual([
+      { from: 'pos_0', explicitTo: 'state:{position=1}', generatedTo: 'state:{position=1}' }
+    ]);
+  });
+
+  test('passes expansion options through the model graph helper', () => {
+    const model: DefinitionModel = {
+      startState: 'pos_0',
+      states: [{ id: 'pos_0', properties: { position: 0 } }],
+      transitions: [
+        {
+          from: 'pos_0',
+          to: 'state:{position=1}',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'position', value: 1 }]
+        }
+      ]
+    };
+
+    const graph = expandGraphFromModel(model, { maxStates: 1 });
+
+    expect(graph.states.map((state) => state.id)).toEqual(['pos_0']);
+    expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'max_states_reached')).toBe(true);
   });
 
   test('generates next state candidates from transition effects', () => {
