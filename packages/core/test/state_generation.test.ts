@@ -7,6 +7,7 @@ import {
   generateNextStateCandidate,
   generateNextStateCandidates,
   seedStatesFromModel,
+  selectGraphTarget,
   stateIdFromProperties,
   summarizeStateGraph,
   uniqueStateCandidates
@@ -92,6 +93,23 @@ describe('state generation helpers', () => {
 
     expect(graph.states.map((state) => state.id)).toEqual(['pos_0']);
     expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'max_states_reached')).toBe(true);
+  });
+
+  test('selects explicit graph targets for explicit-only policy', () => {
+    const edge = {
+      from: 'pos_0',
+      explicitTo: 'legacy_pos_1',
+      generatedTo: 'state:{position=1}',
+      transition: {
+        from: 'pos_0',
+        to: 'legacy_pos_1',
+        probability: 1,
+        effects: [{ type: 'set_property' as const, property: 'position', value: 1 }]
+      }
+    };
+
+    expect(selectGraphTarget(edge)).toBe('legacy_pos_1');
+    expect(selectGraphTarget(edge, 'explicit_only')).toBe('legacy_pos_1');
   });
 
   test('summarizes graph counts, target counts, and target rates', () => {

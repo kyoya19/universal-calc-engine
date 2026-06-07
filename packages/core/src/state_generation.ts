@@ -52,6 +52,8 @@ export type StateGraphSummary = {
   diagnosticCountsByType: Record<StateExpansionDiagnostic['type'], number>;
 };
 
+export type GraphTargetPolicy = 'explicit_only';
+
 export type StateSpaceExpansionOptions = {
   maxDepth?: number;
   maxStates?: number;
@@ -85,6 +87,14 @@ export function expandGraphFromModel(
   options: StateSpaceExpansionOptions = {}
 ): ExpandedStateGraph {
   return expandStateSpace(seedStatesFromModel(model), model.transitions, options);
+}
+
+export function selectGraphTarget(edge: ExpandedStateEdge, policy: GraphTargetPolicy = 'explicit_only'): StateId {
+  if (policy === 'explicit_only') {
+    return edge.explicitTo;
+  }
+
+  return edge.explicitTo;
 }
 
 export function summarizeStateGraph(graph: ExpandedStateGraph): StateGraphSummary {
