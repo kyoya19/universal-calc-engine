@@ -35,6 +35,15 @@ export function generateNextStateCandidate(
   };
 }
 
+export function generateNextStateCandidates(
+  currentState: StateDefinition,
+  transitions: TransitionDefinition[]
+): StateCandidate[] {
+  return uniqueStateCandidates(
+    transitions.map((transition) => generateNextStateCandidate(currentState, transition))
+  );
+}
+
 export function uniqueStateCandidates(candidates: StateCandidate[]): StateCandidate[] {
   const seen = new Set<string>();
   const unique: StateCandidate[] = [];
