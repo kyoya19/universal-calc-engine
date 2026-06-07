@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
+  applyTransitionEffects,
   DefinitionModel,
   evaluateModel,
   expandModel,
@@ -46,13 +47,21 @@ const dicePocModelWithConstantSpecs: DefinitionModel = {
       from: 'pos_0',
       to: 'pos_1',
       probability: { type: 'constant', value: 0.5 },
-      reward: { type: 'constant', value: 1 }
+      reward: { type: 'constant', value: 1 },
+      effects: [
+        { type: 'set_property', property: 'position', value: 1 },
+        { type: 'set_property', property: 'last_roll', value: 1 }
+      ]
     },
     {
       from: 'pos_0',
       to: 'pos_2',
       probability: { type: 'constant', value: 0.5 },
-      reward: { type: 'constant', value: 1 }
+      reward: { type: 'constant', value: 1 },
+      effects: [
+        { type: 'set_property', property: 'position', value: 2 },
+        { type: 'set_property', property: 'last_roll', value: 2 }
+      ]
     },
     {
       from: 'pos_1',
@@ -112,5 +121,27 @@ describe('sugoroku/dice PoC v0.3', () => {
     expect(output.expectedRewardByState.pos_1).toBeCloseTo(1.5);
     expect(output.expectedRewardByState.pos_2).toBeCloseTo(1);
     expect(output.expectedRewardByState.pos_3).toBeCloseTo(0);
+  });
+
+  test('applies multiple transition effects without mutating the original properties', () => {
+    const currentProperties = { position: 0, label: 'start' };
+    const nextProperties = applyTransitionEffects(currentProperties, [
+      { type: 'set_property', property: 'position', value: 2 },
+      { type: 'set_property', property: 'last_roll', value: 2 }
+    ]);
+
+    expect(currentProperties).toEqual({ position: 0, label: 'start' });
+    expect(nextProperties).toEqual({ position: 2, label: 'start', last_roll: 2 });
+  });
+
+  test('keeps transition effects after evaluation', () => {
+    const expanded = expandModel(dicePocModelWithConstantSpecs);
+    const evaluated = evaluateModel(expanded);
+    const transition = evaluated.transitionsByState.get('pos_0')?.[0];
+
+    expect(transition?.effects).toEqual([
+      { type: 'set_property', property: 'position', value: 1 },
+      { type: 'set_property', property: 'last_roll', value: 1 }
+    ]);
   });
 });

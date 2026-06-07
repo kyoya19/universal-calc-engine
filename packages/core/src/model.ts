@@ -1,4 +1,6 @@
 export type StateId = string;
+export type PropertyValue = number | string | boolean;
+export type StateProperties = Record<string, PropertyValue>;
 
 export type ScalarSpec =
   | number
@@ -18,14 +20,20 @@ export type TerminalCondition =
   | {
       type: 'property_equals';
       property: string;
-      value: number | string | boolean;
+      value: PropertyValue;
     };
+
+export type TransitionEffect = {
+  type: 'set_property';
+  property: string;
+  value: PropertyValue;
+};
 
 export type StateDefinition = {
   id: StateId;
   terminal?: boolean;
   terminalCondition?: TerminalCondition;
-  properties?: Record<string, number | string | boolean>;
+  properties?: StateProperties;
 };
 
 export type TransitionDefinition = {
@@ -33,6 +41,7 @@ export type TransitionDefinition = {
   to: StateId;
   probability: ProbabilitySpec;
   reward?: RewardSpec;
+  effects?: TransitionEffect[];
 };
 
 export type EvaluatedTransition = {
@@ -40,6 +49,7 @@ export type EvaluatedTransition = {
   to: StateId;
   probability: number;
   reward?: number;
+  effects?: TransitionEffect[];
 };
 
 export type DefinitionModel = {
@@ -84,6 +94,19 @@ export function evaluateScalarSpec(spec: ScalarSpec): number {
   }
 
   return spec.value;
+}
+
+export function applyTransitionEffects(
+  properties: StateProperties | undefined,
+  effects: TransitionEffect[] | undefined
+): StateProperties {
+  const nextProperties: StateProperties = { ...(properties ?? {}) };
+
+  for (const effect of effects ?? []) {
+    nextProperties[effect.property] = effect.value;
+  }
+
+  return nextProperties;
 }
 
 export function isTerminalState(state: StateDefinition): boolean {
@@ -134,6 +157,10 @@ function evaluateTransition(transition: TransitionDefinition): EvaluatedTransiti
 
   if (transition.reward !== undefined) {
     evaluated.reward = evaluateScalarSpec(transition.reward);
+  }
+
+  if (transition.effects !== undefined) {
+    evaluated.effects = transition.effects;
   }
 
   return evaluated;
