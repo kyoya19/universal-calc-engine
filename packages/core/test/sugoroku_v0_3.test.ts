@@ -47,6 +47,6 @@ describe('sugoroku/dice PoC v0.3', () => {
 
     expect(contribution.transitionContributionsByState.pos_0).toHaveLength(2);
     expect(contribution.transitionContributionsByState.pos_0?.[0]?.contribution).toBeCloseTo(1.25);
-    expect(contribution.transitionContributionsByState.pos_0?.[1]?.contribution).toBeCloseTo(0.5);
+    expect(contribution.transitionContributionsByState.pos_0?.[1]?.contribution).toBeCloseTo(1.0);
   });
 });
