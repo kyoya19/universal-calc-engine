@@ -11,6 +11,14 @@ describe('state generation helpers', () => {
     expect(right).toBe(left);
   });
 
+  test('creates stable state ids with mixed property value types', () => {
+    const left = stateIdFromProperties({ active: true, label: 'start', position: 0 });
+    const right = stateIdFromProperties({ position: 0, active: true, label: 'start' });
+
+    expect(left).toBe('state:{active=true,label=start,position=0}');
+    expect(right).toBe(left);
+  });
+
   test('generates next state candidates from transition effects', () => {
     const currentState: StateDefinition = {
       id: 'pos_0',
