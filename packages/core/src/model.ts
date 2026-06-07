@@ -109,7 +109,7 @@ export function applyTransitionEffects(
   return nextProperties;
 }
 
-export function selectExplicitSolverTransitionTarget(transition: { to: StateId }): StateId {
+function selectExplicitSolverTransitionTarget(transition: EvaluatedTransition): StateId {
   return transition.to;
 }
 
