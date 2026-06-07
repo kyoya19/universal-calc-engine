@@ -18,6 +18,7 @@ The current solver continues to use explicit `transition.to` semantics. The new 
 - `expandStateSpace()` creates an inspectable generated graph without changing solver behavior.
 - `expandGraphFromModel()` derives the seed state from `DefinitionModel.startState` and expands an inspectable generated graph.
 - `summarizeStateGraph()` reports graph counts, diagnostic counts, and explicit/generated target match rates.
+- `selectGraphTarget()` currently supports only `explicit_only` and returns `explicitTo`.
 
 ## Non-goals for the next implementation step
 
@@ -66,6 +67,8 @@ export type StateExpansionDiagnostic = {
   stateId?: string;
   message: string;
 };
+
+export type GraphTargetPolicy = 'explicit_only';
 ```
 
 ## Expansion algorithm
@@ -111,6 +114,19 @@ Generated targets may be used only as validation and inspection data until all o
 
 The immediate safe mode is explicit-only solver execution plus graph summary diagnostics.
 
+## Target policy helper
+
+`selectGraphTarget(edge, policy)` is the code-level boundary for future solver-facing target selection.
+
+Current behavior:
+
+- accepted policy: `explicit_only`,
+- selected target: `edge.explicitTo`,
+- `edge.generatedTo` never overrides `edge.explicitTo`,
+- this preserves current solver behavior and keeps generated targets diagnostic-only.
+
+Any future policy that uses `generatedTo` must be introduced in a separate PR with tests that prove existing explicit-only behavior is unchanged.
+
 ## Minimum test cases for graph expansion
 
 The implementation should keep tests for:
@@ -121,7 +137,8 @@ The implementation should keep tests for:
 4. retaining both `explicitTo` and `generatedTo`,
 5. reporting explicit/generated mismatch without changing solver behavior,
 6. stopping at a configured depth or state limit,
-7. summarizing diagnostic counts and explicit/generated target match rates.
+7. summarizing diagnostic counts and explicit/generated target match rates,
+8. selecting explicit targets under the `explicit_only` policy.
 
 ## Safe PR sequence
 
@@ -130,7 +147,8 @@ The implementation should keep tests for:
 3. Add bounded breadth-first expansion tests.
 4. Add diagnostics for explicit/generated mismatch.
 5. Add summary helpers for graph inspection.
-6. Only after those are stable, design solver integration priority.
+6. Add explicit-only target policy helper.
+7. Only after those are stable, design solver integration priority.
 
 ## Acceptance criteria before solver integration
 
@@ -140,5 +158,6 @@ Solver integration should not start until:
 - generated states are deterministic and deduplicated,
 - explicit/generated mismatches are visible in diagnostics,
 - explicit/generated match rates are visible in summary output,
+- explicit-only target selection is represented by `selectGraphTarget()`,
 - current solver tests still pass unchanged,
 - the next PR explicitly defines whether solver edges use `transition.to`, generated candidate ids, or a compatibility mode.
