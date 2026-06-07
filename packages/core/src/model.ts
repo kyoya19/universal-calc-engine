@@ -112,13 +112,9 @@ export function applyTransitionEffects(
 }
 
 export function selectSolverTransitionTarget(
-  transition: Pick<EvaluatedTransition, 'to'>,
-  policy: SolverTargetPolicy = 'explicit_only'
+  transition: { to: StateId },
+  _policy: SolverTargetPolicy = 'explicit_only'
 ): StateId {
-  if (policy === 'explicit_only') {
-    return transition.to;
-  }
-
   return transition.to;
 }
 
