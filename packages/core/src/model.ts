@@ -1,12 +1,41 @@
 export type StateId = string;
 
+export type ScalarSpec =
+  | number
+  | {
+      type: 'constant';
+      value: number;
+    };
+
+export type ProbabilitySpec = ScalarSpec;
+export type RewardSpec = ScalarSpec;
+
+export type TerminalCondition =
+  | {
+      type: 'explicit';
+      value: boolean;
+    }
+  | {
+      type: 'property_equals';
+      property: string;
+      value: number | string | boolean;
+    };
+
 export type StateDefinition = {
   id: StateId;
   terminal?: boolean;
+  terminalCondition?: TerminalCondition;
   properties?: Record<string, number | string | boolean>;
 };
 
 export type TransitionDefinition = {
+  from: StateId;
+  to: StateId;
+  probability: ProbabilitySpec;
+  reward?: RewardSpec;
+};
+
+export type EvaluatedTransition = {
   from: StateId;
   to: StateId;
   probability: number;
@@ -24,7 +53,10 @@ export type ExpandedModel = DefinitionModel & {
   transitionsByState: Map<StateId, TransitionDefinition[]>;
 };
 
-export type EvaluatedModel = ExpandedModel;
+export type EvaluatedModel = Omit<ExpandedModel, 'transitions' | 'transitionsByState'> & {
+  transitions: EvaluatedTransition[];
+  transitionsByState: Map<StateId, EvaluatedTransition[]>;
+};
 
 export type SolvedModel = {
   expectedRewardByState: Map<StateId, number>;
@@ -45,6 +77,41 @@ export type ContributionResult = {
     contribution: number;
   }>>;
 };
+
+export function evaluateScalarSpec(spec: ScalarSpec): number {
+  if (typeof spec === 'number') {
+    return spec;
+  }
+
+  if (spec.type === 'constant') {
+    return spec.value;
+  }
+
+  const unreachable: never = spec;
+  throw new Error(`Unsupported scalar spec: ${JSON.stringify(unreachable)}`);
+}
+
+export function isTerminalState(state: StateDefinition): boolean {
+  if (typeof state.terminal === 'boolean') {
+    return state.terminal;
+  }
+
+  const condition = state.terminalCondition;
+  if (!condition) {
+    return false;
+  }
+
+  if (condition.type === 'explicit') {
+    return condition.value;
+  }
+
+  if (condition.type === 'property_equals') {
+    return state.properties?.[condition.property] === condition.value;
+  }
+
+  const unreachable: never = condition;
+  throw new Error(`Unsupported terminal condition: ${JSON.stringify(unreachable)}`);
+}
 
 export function expandModel(model: DefinitionModel): ExpandedModel {
   const stateById = new Map<StateId, StateDefinition>();
@@ -69,18 +136,40 @@ export function expandModel(model: DefinitionModel): ExpandedModel {
 }
 
 export function evaluateModel(model: ExpandedModel): EvaluatedModel {
-  for (const [stateId, transitions] of model.transitionsByState) {
-    const state = model.stateById.get(stateId);
-    if (state?.terminal) {
+  const transitions = model.transitions.map((transition) => ({
+    from: transition.from,
+    to: transition.to,
+    probability: evaluateScalarSpec(transition.probability),
+    reward: transition.reward === undefined ? undefined : evaluateScalarSpec(transition.reward)
+  }));
+
+  const transitionsByState = new Map<StateId, EvaluatedTransition[]>();
+  for (const state of model.states) {
+    transitionsByState.set(state.id, []);
+  }
+
+  for (const transition of transitions) {
+    transitionsByState.get(transition.from)?.push(transition);
+  }
+
+  const evaluated: EvaluatedModel = {
+    ...model,
+    transitions,
+    transitionsByState
+  };
+
+  for (const [stateId, stateTransitions] of evaluated.transitionsByState) {
+    const state = evaluated.stateById.get(stateId);
+    if (state && isTerminalState(state)) {
       continue;
     }
-    const total = transitions.reduce((sum, transition) => sum + transition.probability, 0);
+    const total = stateTransitions.reduce((sum, transition) => sum + transition.probability, 0);
     if (Math.abs(total - 1) > 1e-9) {
       throw new Error(`Transition probabilities from ${stateId} sum to ${total}, not 1`);
     }
   }
 
-  return model;
+  return evaluated;
 }
 
 export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
@@ -95,7 +184,7 @@ export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
     let maxDelta = 0;
 
     for (const state of model.states) {
-      if (state.terminal) {
+      if (isTerminalState(state)) {
         expectedRewardByState.set(state.id, 0);
         continue;
       }
