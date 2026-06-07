@@ -8,6 +8,7 @@ import {
   generateNextStateCandidates,
   seedStatesFromModel,
   stateIdFromProperties,
+  summarizeStateGraph,
   uniqueStateCandidates
 } from '../src/state_generation';
 
@@ -91,6 +92,34 @@ describe('state generation helpers', () => {
 
     expect(graph.states.map((state) => state.id)).toEqual(['pos_0']);
     expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'max_states_reached')).toBe(true);
+  });
+
+  test('summarizes graph counts and diagnostic counts', () => {
+    const graph = expandStateSpace(
+      [{ id: 'pos_0', properties: { position: 0 } }],
+      [
+        {
+          from: 'pos_0',
+          to: 'legacy_pos_1',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'position', value: 1 }]
+        }
+      ]
+    );
+
+    expect(summarizeStateGraph(graph)).toEqual({
+      stateCount: 2,
+      generatedStateCount: 1,
+      edgeCount: 1,
+      diagnosticCount: 1,
+      diagnosticCountsByType: {
+        missing_generated_candidate: 0,
+        explicit_generated_mismatch: 1,
+        duplicate_state_ignored: 0,
+        depth_limit_reached: 0,
+        max_states_reached: 0
+      }
+    });
   });
 
   test('generates next state candidates from transition effects', () => {

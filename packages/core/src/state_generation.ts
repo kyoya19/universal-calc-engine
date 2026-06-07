@@ -38,6 +38,14 @@ export type ExpandedStateGraph = {
   diagnostics: StateExpansionDiagnostic[];
 };
 
+export type StateGraphSummary = {
+  stateCount: number;
+  generatedStateCount: number;
+  edgeCount: number;
+  diagnosticCount: number;
+  diagnosticCountsByType: Record<StateExpansionDiagnostic['type'], number>;
+};
+
 export type StateSpaceExpansionOptions = {
   maxDepth?: number;
   maxStates?: number;
@@ -71,6 +79,28 @@ export function expandGraphFromModel(
   options: StateSpaceExpansionOptions = {}
 ): ExpandedStateGraph {
   return expandStateSpace(seedStatesFromModel(model), model.transitions, options);
+}
+
+export function summarizeStateGraph(graph: ExpandedStateGraph): StateGraphSummary {
+  const diagnosticCountsByType: StateGraphSummary['diagnosticCountsByType'] = {
+    missing_generated_candidate: 0,
+    explicit_generated_mismatch: 0,
+    duplicate_state_ignored: 0,
+    depth_limit_reached: 0,
+    max_states_reached: 0
+  };
+
+  for (const diagnostic of graph.diagnostics) {
+    diagnosticCountsByType[diagnostic.type] += 1;
+  }
+
+  return {
+    stateCount: graph.states.length,
+    generatedStateCount: graph.generatedStates.length,
+    edgeCount: graph.edges.length,
+    diagnosticCount: graph.diagnostics.length,
+    diagnosticCountsByType
+  };
 }
 
 export function generateNextStateCandidate(
