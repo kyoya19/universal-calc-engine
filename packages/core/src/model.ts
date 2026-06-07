@@ -83,12 +83,7 @@ export function evaluateScalarSpec(spec: ScalarSpec): number {
     return spec;
   }
 
-  if (spec.type === 'constant') {
-    return spec.value;
-  }
-
-  const unreachable: never = spec;
-  throw new Error(`Unsupported scalar spec: ${JSON.stringify(unreachable)}`);
+  return spec.value;
 }
 
 export function isTerminalState(state: StateDefinition): boolean {
@@ -105,12 +100,7 @@ export function isTerminalState(state: StateDefinition): boolean {
     return condition.value;
   }
 
-  if (condition.type === 'property_equals') {
-    return state.properties?.[condition.property] === condition.value;
-  }
-
-  const unreachable: never = condition;
-  throw new Error(`Unsupported terminal condition: ${JSON.stringify(unreachable)}`);
+  return state.properties?.[condition.property] === condition.value;
 }
 
 export function expandModel(model: DefinitionModel): ExpandedModel {
