@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { StateDefinition, TransitionDefinition } from '../src/model';
 import {
+  expandOneStateStep,
   generateNextStateCandidate,
   generateNextStateCandidates,
   stateIdFromProperties,
@@ -110,6 +111,39 @@ describe('state generation helpers', () => {
     ];
 
     expect(generateNextStateCandidates(currentState, transitions)).toEqual([
+      { id: 'state:{position=1}', properties: { position: 1 } },
+      { id: 'state:{position=2}', properties: { position: 2 } }
+    ]);
+  });
+
+  test('expands one state step using only outgoing transitions', () => {
+    const state: StateDefinition = {
+      id: 'pos_0',
+      properties: { position: 0 }
+    };
+
+    const transitions: TransitionDefinition[] = [
+      {
+        from: 'pos_0',
+        to: 'pos_1',
+        probability: 0.5,
+        effects: [{ type: 'set_property', property: 'position', value: 1 }]
+      },
+      {
+        from: 'pos_0',
+        to: 'pos_2',
+        probability: 0.5,
+        effects: [{ type: 'set_property', property: 'position', value: 2 }]
+      },
+      {
+        from: 'pos_1',
+        to: 'pos_3',
+        probability: 1,
+        effects: [{ type: 'set_property', property: 'position', value: 3 }]
+      }
+    ];
+
+    expect(expandOneStateStep(state, transitions)).toEqual([
       { id: 'state:{position=1}', properties: { position: 1 } },
       { id: 'state:{position=2}', properties: { position: 2 } }
     ]);
