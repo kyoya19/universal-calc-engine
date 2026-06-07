@@ -23,7 +23,8 @@ export type StateExpansionDiagnostic = {
     | 'missing_generated_candidate'
     | 'explicit_generated_mismatch'
     | 'duplicate_state_ignored'
-    | 'depth_limit_reached';
+    | 'depth_limit_reached'
+    | 'max_states_reached';
   transition?: TransitionDefinition;
   stateId?: StateId;
   message: string;
@@ -160,10 +161,10 @@ export function expandStateSpace(
 
       if (stateById.size >= maxStates) {
         diagnostics.push({
-          type: 'depth_limit_reached',
+          type: 'max_states_reached',
           transition,
           stateId: candidate.id,
-          message: `State limit reached before adding generated state: ${candidate.id}`
+          message: `Max states reached before adding generated state: ${candidate.id}`
         });
         continue;
       }
