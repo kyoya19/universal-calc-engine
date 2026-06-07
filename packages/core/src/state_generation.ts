@@ -42,6 +42,10 @@ export type StateGraphSummary = {
   stateCount: number;
   generatedStateCount: number;
   edgeCount: number;
+  edgeWithGeneratedTargetCount: number;
+  explicitGeneratedMatchCount: number;
+  explicitGeneratedMismatchCount: number;
+  edgeWithoutGeneratedTargetCount: number;
   diagnosticCount: number;
   diagnosticCountsByType: Record<StateExpansionDiagnostic['type'], number>;
 };
@@ -89,15 +93,36 @@ export function summarizeStateGraph(graph: ExpandedStateGraph): StateGraphSummar
     depth_limit_reached: 0,
     max_states_reached: 0
   };
+  let edgeWithGeneratedTargetCount = 0;
+  let explicitGeneratedMatchCount = 0;
+  let explicitGeneratedMismatchCount = 0;
 
   for (const diagnostic of graph.diagnostics) {
     diagnosticCountsByType[diagnostic.type] += 1;
+  }
+
+  for (const edge of graph.edges) {
+    if (edge.generatedTo === undefined) {
+      continue;
+    }
+
+    edgeWithGeneratedTargetCount += 1;
+
+    if (edge.explicitTo === edge.generatedTo) {
+      explicitGeneratedMatchCount += 1;
+    } else {
+      explicitGeneratedMismatchCount += 1;
+    }
   }
 
   return {
     stateCount: graph.states.length,
     generatedStateCount: graph.generatedStates.length,
     edgeCount: graph.edges.length,
+    edgeWithGeneratedTargetCount,
+    explicitGeneratedMatchCount,
+    explicitGeneratedMismatchCount,
+    edgeWithoutGeneratedTargetCount: graph.edges.length - edgeWithGeneratedTargetCount,
     diagnosticCount: graph.diagnostics.length,
     diagnosticCountsByType
   };
