@@ -34,12 +34,17 @@
     "TerminalCondition": [
       { "type": "explicit", "value": "boolean" },
       { "type": "property_equals", "property": "string", "value": "number|string|boolean" }
+    ],
+    "TransitionEffect": [
+      { "type": "set_property", "property": "string", "value": "number|string|boolean" }
     ]
   },
   "compatibility_policy": {
     "probability_number": "Existing numeric probability definitions remain valid.",
     "reward_number": "Existing numeric reward definitions remain valid.",
+    "to_state_id": "Existing explicit to-state transitions remain valid and are still used by the current solver.",
     "constant_spec": "Constant spec is evaluated to the same numeric value before solving.",
+    "transition_effects": "Transition effects are preserved and can be applied by helper functions, but automatic state-space generation is intentionally not implemented in this step.",
     "future_formula_specs": "Formula/reference specs are intentionally not implemented in this step."
   },
   "tex_output_scope": {
