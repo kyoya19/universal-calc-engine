@@ -94,23 +94,33 @@ describe('state generation helpers', () => {
     expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'max_states_reached')).toBe(true);
   });
 
-  test('summarizes graph counts and diagnostic counts', () => {
+  test('summarizes graph counts and target counts', () => {
     const graph = expandStateSpace(
       [{ id: 'pos_0', properties: { position: 0 } }],
       [
         {
           from: 'pos_0',
           to: 'legacy_pos_1',
-          probability: 1,
+          probability: 0.5,
           effects: [{ type: 'set_property', property: 'position', value: 1 }]
+        },
+        {
+          from: 'pos_0',
+          to: 'state:{position=2}',
+          probability: 0.5,
+          effects: [{ type: 'set_property', property: 'position', value: 2 }]
         }
       ]
     );
 
     expect(summarizeStateGraph(graph)).toEqual({
-      stateCount: 2,
-      generatedStateCount: 1,
-      edgeCount: 1,
+      stateCount: 3,
+      generatedStateCount: 2,
+      edgeCount: 2,
+      edgeWithGeneratedTargetCount: 2,
+      explicitGeneratedMatchCount: 1,
+      explicitGeneratedMismatchCount: 1,
+      edgeWithoutGeneratedTargetCount: 0,
       diagnosticCount: 1,
       diagnosticCountsByType: {
         missing_generated_candidate: 0,
