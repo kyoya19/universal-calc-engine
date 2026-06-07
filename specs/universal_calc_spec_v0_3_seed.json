@@ -23,5 +23,23 @@
     "SolvedModel": "Computed expectation and distribution results.",
     "OutputResult": "Result object for display or downstream use.",
     "ContributionResult": "Contribution and sensitivity object kept separate from output."
+  },
+  "primitive_specs": {
+    "ScalarSpec": [
+      "number",
+      { "type": "constant", "value": "number" }
+    ],
+    "ProbabilitySpec": "ScalarSpec used for transition probability.",
+    "RewardSpec": "ScalarSpec used for transition reward or cost.",
+    "TerminalCondition": [
+      { "type": "explicit", "value": "boolean" },
+      { "type": "property_equals", "property": "string", "value": "number|string|boolean" }
+    ]
+  },
+  "compatibility_policy": {
+    "probability_number": "Existing numeric probability definitions remain valid.",
+    "reward_number": "Existing numeric reward definitions remain valid.",
+    "constant_spec": "Constant spec is evaluated to the same numeric value before solving.",
+    "future_formula_specs": "Formula/reference specs are intentionally not implemented in this step."
   }
 }
