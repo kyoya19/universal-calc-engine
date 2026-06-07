@@ -44,6 +44,14 @@ export function generateNextStateCandidates(
   );
 }
 
+export function expandOneStateStep(
+  state: StateDefinition,
+  transitions: TransitionDefinition[]
+): StateCandidate[] {
+  const outgoingTransitions = transitions.filter((transition) => transition.from === state.id);
+  return generateNextStateCandidates(state, outgoingTransitions);
+}
+
 export function uniqueStateCandidates(candidates: StateCandidate[]): StateCandidate[] {
   const seen = new Set<string>();
   const unique: StateCandidate[] = [];
