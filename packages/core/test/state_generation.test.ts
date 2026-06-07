@@ -1,6 +1,10 @@
 import { describe, expect, test } from 'vitest';
 import { StateDefinition, TransitionDefinition } from '../src/model';
-import { generateNextStateCandidate, stateIdFromProperties } from '../src/state_generation';
+import {
+  generateNextStateCandidate,
+  stateIdFromProperties,
+  uniqueStateCandidates
+} from '../src/state_generation';
 
 describe('state generation helpers', () => {
   test('creates stable state ids by sorting property keys', () => {
@@ -62,5 +66,18 @@ describe('state generation helpers', () => {
 
     expect(transition.to).toBe('pos_1');
     expect(candidate.id).toBe('state:{position=2}');
+  });
+
+  test('keeps one state candidate for each id and sorts by id', () => {
+    const candidates = uniqueStateCandidates([
+      { id: 'state:{position=2}', properties: { position: 2 } },
+      { id: 'state:{position=1}', properties: { position: 1 } },
+      { id: 'state:{position=2}', properties: { position: 2, label: 'duplicate' } }
+    ]);
+
+    expect(candidates).toEqual([
+      { id: 'state:{position=1}', properties: { position: 1 } },
+      { id: 'state:{position=2}', properties: { position: 2 } }
+    ]);
   });
 });

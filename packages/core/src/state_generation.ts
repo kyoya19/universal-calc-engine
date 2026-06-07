@@ -34,3 +34,17 @@ export function generateNextStateCandidate(
     properties
   };
 }
+
+export function uniqueStateCandidates(candidates: StateCandidate[]): StateCandidate[] {
+  const seen = new Set<string>();
+  const unique: StateCandidate[] = [];
+
+  for (const candidate of candidates) {
+    if (!seen.has(candidate.id)) {
+      seen.add(candidate.id);
+      unique.push(candidate);
+    }
+  }
+
+  return unique.sort((left, right) => left.id.localeCompare(right.id));
+}
