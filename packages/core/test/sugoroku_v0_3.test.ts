@@ -4,6 +4,7 @@ import {
   evaluateModel,
   expandModel,
   isTerminalState,
+  StateDefinition,
   solveExpectedReward,
   toContributionResult,
   toOutputResult
@@ -26,17 +27,19 @@ const dicePocModel: DefinitionModel = {
   ]
 };
 
+const terminalStateWithCondition: StateDefinition = {
+  id: 'pos_3',
+  terminalCondition: { type: 'property_equals', property: 'position', value: 3 },
+  properties: { position: 3 }
+};
+
 const dicePocModelWithConstantSpecs: DefinitionModel = {
   startState: 'pos_0',
   states: [
     { id: 'pos_0', properties: { position: 0 } },
     { id: 'pos_1', properties: { position: 1 } },
     { id: 'pos_2', properties: { position: 2 } },
-    {
-      id: 'pos_3',
-      terminalCondition: { type: 'property_equals', property: 'position', value: 3 },
-      properties: { position: 3 }
-    }
+    terminalStateWithCondition
   ],
   transitions: [
     {
@@ -103,7 +106,7 @@ describe('sugoroku/dice PoC v0.3', () => {
     const solved = solveExpectedReward(evaluated);
     const output = toOutputResult(dicePocModelWithConstantSpecs, solved);
 
-    expect(isTerminalState(dicePocModelWithConstantSpecs.states[3])).toBe(true);
+    expect(isTerminalState(terminalStateWithCondition)).toBe(true);
     expect(output.expectedReward).toBeCloseTo(2.25);
     expect(output.expectedRewardByState.pos_0).toBeCloseTo(2.25);
     expect(output.expectedRewardByState.pos_1).toBeCloseTo(1.5);
