@@ -94,7 +94,7 @@ describe('state generation helpers', () => {
     expect(graph.diagnostics.some((diagnostic) => diagnostic.type === 'max_states_reached')).toBe(true);
   });
 
-  test('summarizes graph counts and target counts', () => {
+  test('summarizes graph counts, target counts, and target rates', () => {
     const graph = expandStateSpace(
       [{ id: 'pos_0', properties: { position: 0 } }],
       [
@@ -120,6 +120,8 @@ describe('state generation helpers', () => {
       edgeWithGeneratedTargetCount: 2,
       explicitGeneratedMatchCount: 1,
       explicitGeneratedMismatchCount: 1,
+      explicitGeneratedMatchRate: 0.5,
+      explicitGeneratedMismatchRate: 0.5,
       edgeWithoutGeneratedTargetCount: 0,
       diagnosticCount: 1,
       diagnosticCountsByType: {
