@@ -19,6 +19,31 @@ The current solver continues to use explicit `transition.to` semantics. The new 
 - `expandGraphFromModel()` derives the seed state from `DefinitionModel.startState` and expands an inspectable generated graph.
 - `summarizeStateGraph()` reports graph counts, diagnostic counts, and explicit/generated target match rates.
 - `selectGraphTarget()` currently supports only `explicit_only` and returns `explicitTo`.
+- `solveExpectedReward()` uses an explicit-only internal target helper and still resolves downstream states from `transition.to`.
+- `toContributionResult()` uses the same explicit-only target boundary and still reports explicit `transition.to` targets.
+
+## Sugoroku PoC v0.3 completion boundary
+
+The Sugoroku PoC v0.3 completion target is not generated-target solver execution. The v0.3 completion target is an explicit-only solver PoC with state generation and graph diagnostics available beside the solver.
+
+A minimal v0.3 completion should satisfy all of the following:
+
+1. The existing Sugoroku expected reward calculation remains unchanged.
+2. State, transition, probability, reward, and terminal condition definitions remain separated.
+3. `effects[]` can derive generated successor candidates.
+4. Generated candidates can be expanded into an inspectable graph.
+5. The graph summary reports explicit/generated match and mismatch counts.
+6. The solver continues to execute in explicit-only mode using `transition.to`.
+7. A regression test proves that `effects[]` does not override explicit solver targets.
+8. Typecheck and test both pass.
+
+The following are intentionally outside v0.3 completion:
+
+- using `generatedTo` as the solver target,
+- auto-rewriting explicit targets from generated candidates,
+- inferring rewards, probabilities, or terminal behavior from generated states,
+- introducing Seikatan reverse estimation,
+- adding non-constant formula effects.
 
 ## Non-goals for the next implementation step
 
@@ -148,11 +173,13 @@ The implementation should keep tests for:
 4. Add diagnostics for explicit/generated mismatch.
 5. Add summary helpers for graph inspection.
 6. Add explicit-only target policy helper.
-7. Only after those are stable, design solver integration priority.
+7. Add regression tests for explicit-only solver behavior.
+8. Document the v0.3 completion boundary.
+9. Only after those are stable, design generated-target solver integration priority.
 
-## Acceptance criteria before solver integration
+## Acceptance criteria before generated-target solver integration
 
-Solver integration should not start until:
+Generated-target solver integration should not start until:
 
 - the generated graph can be produced from seed states and transitions,
 - generated states are deterministic and deduplicated,
@@ -160,4 +187,5 @@ Solver integration should not start until:
 - explicit/generated match rates are visible in summary output,
 - explicit-only target selection is represented by `selectGraphTarget()`,
 - current solver tests still pass unchanged,
+- explicit-only solver target behavior is covered by regression tests,
 - the next PR explicitly defines whether solver edges use `transition.to`, generated candidate ids, or a compatibility mode.
