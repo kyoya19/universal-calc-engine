@@ -1,7 +1,6 @@
 import { describe, expect, test } from 'vitest';
 import {
   ContributionResult,
-  DefinitionModel,
   contributionResultToTex,
   evaluateModel,
   expandGraphFromModel,
@@ -9,73 +8,16 @@ import {
   outputResultToTex,
   outputResultToValueFunctionTex,
   solveExpectedReward,
-  stateIdFromProperties,
   summarizeStateGraph,
   toContributionResult,
   toOutputResult
 } from '../src';
-
-function positionStateId(position: number): string {
-  return stateIdFromProperties({ position });
-}
-
-const representativeSugorokuModel: DefinitionModel = {
-  startState: positionStateId(0),
-  states: [
-    { id: positionStateId(0), properties: { position: 0 } },
-    { id: positionStateId(1), properties: { position: 1 } },
-    { id: positionStateId(2), properties: { position: 2 } },
-    {
-      id: positionStateId(3),
-      properties: { position: 3 },
-      terminalCondition: { type: 'property_equals', property: 'position', value: 3 }
-    }
-  ],
-  transitions: [
-    {
-      from: positionStateId(0),
-      to: positionStateId(1),
-      probability: 0.5,
-      reward: 1,
-      effects: [{ type: 'set_property', property: 'position', value: 1 }]
-    },
-    {
-      from: positionStateId(0),
-      to: positionStateId(2),
-      probability: 0.5,
-      reward: 1,
-      effects: [{ type: 'set_property', property: 'position', value: 2 }]
-    },
-    {
-      from: positionStateId(1),
-      to: positionStateId(2),
-      probability: 0.5,
-      reward: 1,
-      effects: [{ type: 'set_property', property: 'position', value: 2 }]
-    },
-    {
-      from: positionStateId(1),
-      to: positionStateId(3),
-      probability: 0.5,
-      reward: 1,
-      effects: [{ type: 'set_property', property: 'position', value: 3 }]
-    },
-    {
-      from: positionStateId(2),
-      to: positionStateId(3),
-      probability: 0.5,
-      reward: 1,
-      effects: [{ type: 'set_property', property: 'position', value: 3 }]
-    },
-    {
-      from: positionStateId(2),
-      to: positionStateId(3),
-      probability: 0.5,
-      reward: 1,
-      effects: [{ type: 'set_property', property: 'position', value: 3 }]
-    }
-  ]
-};
+import {
+  positionStateId,
+  representativeSugorokuExpectedRewardByState,
+  representativeSugorokuModel,
+  representativeSugorokuStartExpectedReward
+} from './fixtures/sugoroku';
 
 describe('Sugoroku PoC v0.3 completion checklist', () => {
   test('keeps the representative explicit-only solver pipeline complete', () => {
@@ -87,25 +29,25 @@ describe('Sugoroku PoC v0.3 completion checklist', () => {
     const graph = expandGraphFromModel(representativeSugorokuModel);
     const summary = summarizeStateGraph(graph);
 
-    expect(output.expectedReward).toBe(2.25);
-    expect(output.expectedRewardByState[positionStateId(0)]).toBe(2.25);
-    expect(output.expectedRewardByState[positionStateId(1)]).toBe(1.5);
-    expect(output.expectedRewardByState[positionStateId(2)]).toBe(1);
-    expect(output.expectedRewardByState[positionStateId(3)]).toBe(0);
+    expect(output.expectedReward).toBe(representativeSugorokuStartExpectedReward);
+    expect(output.expectedRewardByState[positionStateId(0)]).toBe(representativeSugorokuExpectedRewardByState[positionStateId(0)]);
+    expect(output.expectedRewardByState[positionStateId(1)]).toBe(representativeSugorokuExpectedRewardByState[positionStateId(1)]);
+    expect(output.expectedRewardByState[positionStateId(2)]).toBe(representativeSugorokuExpectedRewardByState[positionStateId(2)]);
+    expect(output.expectedRewardByState[positionStateId(3)]).toBe(representativeSugorokuExpectedRewardByState[positionStateId(3)]);
 
     expect(contributions.transitionContributionsByState[positionStateId(0)]).toEqual([
       {
         to: positionStateId(1),
         probability: 0.5,
         reward: 1,
-        downstreamExpectedReward: 1.5,
+        downstreamExpectedReward: representativeSugorokuExpectedRewardByState[positionStateId(1)],
         contribution: 1.25
       },
       {
         to: positionStateId(2),
         probability: 0.5,
         reward: 1,
-        downstreamExpectedReward: 1,
+        downstreamExpectedReward: representativeSugorokuExpectedRewardByState[positionStateId(2)],
         contribution: 1
       }
     ]);
