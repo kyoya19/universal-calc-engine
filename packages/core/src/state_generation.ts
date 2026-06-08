@@ -56,7 +56,7 @@ export type SerializedStateGraphSummary = StateGraphSummary & {
   summaryVersion: 1;
 };
 
-export type GraphTargetPolicy = 'explicit_only';
+export type GraphTargetPolicy = 'explicit_only' | 'diagnostics_only';
 
 export type StateSpaceExpansionOptions = {
   maxDepth?: number;
@@ -94,7 +94,7 @@ export function expandGraphFromModel(
 }
 
 export function selectGraphTarget(edge: ExpandedStateEdge, policy: GraphTargetPolicy = 'explicit_only'): StateId {
-  if (policy === 'explicit_only') {
+  if (policy === 'explicit_only' || policy === 'diagnostics_only') {
     return edge.explicitTo;
   }
 
