@@ -31,8 +31,7 @@ describe('generated target solver planning boundary', () => {
         type: 'missing_generated_target',
         edge: {
           from: positionStateId(0),
-          explicitTo: positionStateId(1),
-          generatedTo: undefined
+          explicitTo: positionStateId(1)
         }
       }
     });
