@@ -19,12 +19,10 @@ describe('generated target solver planning boundary', () => {
   });
 
   test('rejects a missing generated target before solver runtime integration', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const graph = expandGraphFromModel({
       ...representativeSugorokuModel,
-      transitions: [
-        { ...representativeSugorokuModel.transitions[0]!, effects: undefined },
-        ...representativeSugorokuModel.transitions.slice(1)
-      ]
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
     });
 
     expect(validateGeneratedTargetSolverPlanningBoundary(graph)).toMatchObject({
