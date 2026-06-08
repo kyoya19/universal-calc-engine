@@ -20,15 +20,15 @@ v0.3 is treated as complete when the following remain true:
 
 ## v0.4 scope
 
-v0.4 should focus on stabilizing the inputs and diagnostics around the completed v0.3 pipeline.
+v0.4 focuses on stabilizing the inputs and diagnostics around the completed v0.3 pipeline.
 
-Recommended v0.4 work items:
+Implemented v0.4 work items:
 
-1. Move the representative Sugoroku model into a reusable fixture.
-2. Reuse the fixture from solver, contribution, TeX, and graph diagnostics tests.
-3. Add graph summary serialization helpers when needed for inspection output.
-4. Add explicit/generated mismatch examples that remain diagnostics-only.
-5. Keep README and docs aligned with the new fixture and diagnostics path.
+1. The representative Sugoroku model is available as a reusable test fixture.
+2. The v0.3 completion regression test uses the shared fixture without changing expected values.
+3. Graph summary diagnostics have versioned serialization and JSON output helpers.
+4. An explicit/generated mismatch fixture proves mismatch handling remains diagnostics-only.
+5. README and docs keep generated-target solver integration outside the current boundary.
 
 ## Non-goals
 
@@ -61,21 +61,35 @@ Any generated-target solver integration must be introduced in a later dedicated 
 4. documented handling of explicit/generated mismatches,
 5. typecheck and test success.
 
-## Suggested PR sequence
+## Completed PR sequence
 
-1. Add this v0.4 boundary document.
-2. Extract the representative Sugoroku model into a fixture.
-3. Refactor v0.3 completion tests to use the fixture without changing expected values.
-4. Add graph diagnostics serialization or reporting helpers.
-5. Add mismatch fixture/tests that prove diagnostics do not mutate solver targets.
+1. Added this v0.4 boundary document.
+2. Extracted the representative Sugoroku model into a fixture.
+3. Refactored the v0.3 completion test to use the fixture without changing expected values.
+4. Added graph diagnostics serialization and JSON reporting helpers.
+5. Added mismatch fixture/tests that prove diagnostics do not mutate solver targets.
 
-## Completion criteria for v0.4
+## Completion checklist for v0.4
 
-Sugoroku PoC v0.4 is complete when:
+Sugoroku PoC v0.4 is complete when all of the following remain true:
 
-1. the representative Sugoroku fixture is shared across the relevant tests,
-2. the v0.3 expected reward baseline remains unchanged,
-3. graph diagnostics are inspectable without changing solver behavior,
-4. explicit/generated mismatch handling is tested as diagnostics-only,
-5. docs clearly state that generated-target solver integration is still outside the current boundary,
-6. typecheck and tests pass.
+1. The representative Sugoroku fixture is shared across the relevant tests.
+2. The v0.3 expected reward baseline remains unchanged.
+3. Graph diagnostics are inspectable through versioned summary serialization and JSON output.
+4. Explicit/generated mismatch handling is tested as diagnostics-only.
+5. Solver and contribution calculations still use explicit `transition.to` targets.
+6. Generated-target solver integration is still outside the current boundary.
+7. Typecheck and tests pass.
+
+## Current completion status
+
+The v0.4 completion checklist is satisfied by the current test suite when:
+
+```bash
+npm run typecheck
+npm test
+```
+
+both pass.
+
+This completion status does not approve generated-target solver integration. The next phase must start from a new boundary document or a dedicated policy PR.
