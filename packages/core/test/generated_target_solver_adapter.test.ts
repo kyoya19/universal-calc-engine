@@ -89,6 +89,28 @@ describe('generated target solver gated wrapper', () => {
     });
   });
 
+  test('rejects before evaluating probabilities when explicit/generated targets mismatch', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1', probability: 0.25 },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+
+    expect(result).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'explicit_generated_mismatch',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: 'legacy_pos_1',
+          generatedTo: positionStateId(1)
+        }
+      }
+    });
+  });
+
   test('keeps contribution output explicit-target based after the gate accepts', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
 
