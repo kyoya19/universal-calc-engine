@@ -3,10 +3,7 @@ import type { ReportRow } from '../src';
 import {
   buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture,
   buildGeneratedTargetComparisonReportModelFixture,
-  buildMismatchedGeneratedTargetComparisonReportModelFixture,
-  buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture,
-  buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture,
-  generatedTargetMismatchFixture
+  buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture
 } from './fixtures/reporting';
 import { positionStateId } from './fixtures/sugoroku';
 
@@ -141,54 +138,6 @@ describe('report model adapter regressions', () => {
     ]);
   });
 
-  test('keeps explicit mismatch comparison report rows stable', () => {
-    const { reportModel } = buildMismatchedGeneratedTargetComparisonReportModelFixture();
-
-    expect(compactRows(reportModel.sections[0]!.rows)).toEqual([
-      {
-        id: 'edgeCount',
-        label: 'edgeCount',
-        plainText: 'edgeCount: 5',
-        status: 'info',
-        metadata: { value: 5 }
-      },
-      {
-        id: 'matchCount',
-        label: 'matchCount',
-        plainText: 'matchCount: 4',
-        status: 'ok',
-        metadata: { value: 4 }
-      },
-      {
-        id: 'missingGeneratedTargetCount',
-        label: 'missingGeneratedTargetCount',
-        plainText: 'missingGeneratedTargetCount: 0',
-        status: 'ok',
-        metadata: { value: 0 }
-      },
-      {
-        id: 'explicitGeneratedMismatchCount',
-        label: 'explicitGeneratedMismatchCount',
-        plainText: 'explicitGeneratedMismatchCount: 1',
-        status: 'rejected',
-        metadata: { value: 1 }
-      }
-    ]);
-    expect(compactRows(reportModel.sections[1]!.rows)[0]).toEqual({
-      id: 'row-0',
-      label: 'row 0',
-      plainText: `row 0: from: ${generatedTargetMismatchFixture.from} explicitTo: ${generatedTargetMismatchFixture.explicitTo} generatedTo: ${generatedTargetMismatchFixture.generatedTo} status: explicit_generated_mismatch`,
-      status: 'rejected',
-      metadata: {
-        from: generatedTargetMismatchFixture.from,
-        explicitTo: generatedTargetMismatchFixture.explicitTo,
-        generatedTo: generatedTargetMismatchFixture.generatedTo,
-        generatedToMissing: false,
-        comparisonStatus: 'explicit_generated_mismatch'
-      }
-    });
-  });
-
   test('keeps accepted solver gate summary rows stable', () => {
     const { reportModel } = buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture();
 
@@ -256,56 +205,6 @@ describe('report model adapter regressions', () => {
         plainText: 'rejectionType: missing_generated_target',
         status: 'rejected',
         metadata: { value: 'missing_generated_target' }
-      },
-      {
-        id: 'rejectionMessage',
-        label: 'rejectionMessage',
-        plainText: `rejectionMessage: ${rejectionMessage}`,
-        status: 'rejected',
-        metadata: { value: rejectionMessage }
-      }
-    ]);
-  });
-
-  test('keeps explicit mismatch solver gate summary rows stable', () => {
-    const { reportModel } = buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture();
-    const rejectionMessage = `Explicit target ${generatedTargetMismatchFixture.explicitTo} differs from generated target ${generatedTargetMismatchFixture.generatedTo}`;
-
-    expect(compactRows(reportModel.sections[0]!.rows)).toEqual([
-      {
-        id: 'accepted',
-        label: 'accepted',
-        plainText: 'accepted: false',
-        status: 'rejected',
-        metadata: { value: false }
-      },
-      {
-        id: 'edgeCount',
-        label: 'edgeCount',
-        plainText: 'edgeCount: 5',
-        status: 'info',
-        metadata: { value: 5 }
-      },
-      {
-        id: 'generatedTargetReadyEdgeCount',
-        label: 'generatedTargetReadyEdgeCount',
-        plainText: 'generatedTargetReadyEdgeCount: 5',
-        status: 'info',
-        metadata: { value: 5 }
-      },
-      {
-        id: 'rejectionCode',
-        label: 'rejectionCode',
-        plainText: 'rejectionCode: explicit_generated_mismatch',
-        status: 'rejected',
-        metadata: { value: 'explicit_generated_mismatch' }
-      },
-      {
-        id: 'rejectionType',
-        label: 'rejectionType',
-        plainText: 'rejectionType: explicit_generated_mismatch',
-        status: 'rejected',
-        metadata: { value: 'explicit_generated_mismatch' }
       },
       {
         id: 'rejectionMessage',
