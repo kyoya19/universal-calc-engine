@@ -47,4 +47,23 @@ describe('Juo PoC fixture stub', () => {
     expect(juoPocUnknowns).toContain('Machine-specific reward values');
     expect(juoPocUnknowns).toContain('Machine-specific expected values');
   });
+
+  test('keeps metadata complete enough to block accidental production interpretation', () => {
+    expect([...juoPocAssumptions]).toEqual([
+      'This fixture is a machine-specific PoC stub only.',
+      'State labels are placeholders until confirmed Juo inputs are available.',
+      'Transition probabilities are placeholders and must not be treated as production values.',
+      'Rewards are placeholders and must not be treated as production values.'
+    ]);
+    expect([...juoPocUnknowns]).toEqual([
+      'Machine-specific state list',
+      'Machine-specific terminal conditions',
+      'Machine-specific transition graph',
+      'Machine-specific probability values',
+      'Machine-specific reward values',
+      'Machine-specific validation rules',
+      'Machine-specific expected report rows',
+      'Machine-specific expected values'
+    ]);
+  });
 });
