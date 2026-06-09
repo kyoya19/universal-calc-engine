@@ -1,4 +1,8 @@
-import type { GeneratedTargetComparisonReport, GeneratedTargetComparisonReportRowStatus } from './generated_target_solver_adapter';
+import type {
+  GeneratedTargetComparisonReport,
+  GeneratedTargetComparisonReportRowStatus,
+  GeneratedTargetSolverGateResultSummary
+} from './generated_target_solver_adapter';
 
 export type ReportRowStatus = 'ok' | 'warning' | 'rejected' | 'info';
 
@@ -41,6 +45,72 @@ export function formatReportModelPlainText(report: ReportModel): string {
       ...section.rows.map((row) => row.plainText)
     ])
   ].join('\n');
+}
+
+export function generatedTargetSolverGateResultSummaryToReportModel(
+  summary: GeneratedTargetSolverGateResultSummary
+): ReportModel {
+  const summaryRows: ReportRow[] = [
+    {
+      id: 'accepted',
+      label: 'accepted',
+      plainText: `accepted: ${summary.accepted}`,
+      status: summary.accepted ? 'ok' : 'rejected',
+      metadata: { value: summary.accepted }
+    },
+    {
+      id: 'edgeCount',
+      label: 'edgeCount',
+      plainText: `edgeCount: ${summary.edgeCount}`,
+      status: 'info',
+      metadata: { value: summary.edgeCount }
+    },
+    {
+      id: 'generatedTargetReadyEdgeCount',
+      label: 'generatedTargetReadyEdgeCount',
+      plainText: `generatedTargetReadyEdgeCount: ${summary.generatedTargetReadyEdgeCount}`,
+      status: 'info',
+      metadata: { value: summary.generatedTargetReadyEdgeCount }
+    }
+  ];
+
+  if (!summary.accepted) {
+    summaryRows.push(
+      {
+        id: 'rejectionCode',
+        label: 'rejectionCode',
+        plainText: `rejectionCode: ${summary.rejectionCode}`,
+        status: 'rejected',
+        metadata: { value: summary.rejectionCode }
+      },
+      {
+        id: 'rejectionType',
+        label: 'rejectionType',
+        plainText: `rejectionType: ${summary.rejectionType}`,
+        status: 'rejected',
+        metadata: { value: summary.rejectionType }
+      },
+      {
+        id: 'rejectionMessage',
+        label: 'rejectionMessage',
+        plainText: `rejectionMessage: ${summary.rejectionMessage}`,
+        status: 'rejected',
+        metadata: { value: summary.rejectionMessage }
+      }
+    );
+  }
+
+  return {
+    kind: 'generated_target_solver_gate_summary',
+    title: 'Generated Target Solver Gate Summary',
+    sections: [
+      {
+        id: 'summary',
+        title: 'Summary',
+        rows: summaryRows
+      }
+    ]
+  };
 }
 
 export function generatedTargetComparisonReportToReportModel(
