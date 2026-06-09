@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest';
-import { OutputResult } from '../src';
-import { outputResultToValueFunctionDisplayRows } from '../src/android_tex_display';
+import type { OutputResult } from '../src';
+import { outputResultToValueFunctionDisplayRows } from '../src';
 
 const outputResult: OutputResult = {
   startState: 'position_0',
@@ -29,7 +29,7 @@ describe('Android-oriented TeX display rows', () => {
   test('keeps the start state first without duplicating it', () => {
     const rows = outputResultToValueFunctionDisplayRows(outputResult);
 
-    expect(rows[0]).toMatchObject({
+    expect(rows[0]!).toMatchObject({
       stateId: 'position_0',
       value: 2.25,
       isStartState: true
@@ -40,9 +40,16 @@ describe('Android-oriented TeX display rows', () => {
   test('keeps row-level TeX compact for narrow displays', () => {
     const rows = outputResultToValueFunctionDisplayRows(outputResult);
 
-    expect(rows[0].tex).toBe('V(\\mathrm{position\\_0}) &= 2.25');
+    expect(rows[0]!.tex).toBe('V(\\mathrm{position\\_0}) &= 2.25');
     expect(rows.every((row) => !row.tex.includes('\\begin{aligned}'))).toBe(true);
     expect(rows.every((row) => !row.tex.includes('\\end{aligned}'))).toBe(true);
     expect(rows.every((row) => !row.tex.includes('\n'))).toBe(true);
+  });
+
+  test('provides CSS class metadata without embedding CSS in core', () => {
+    const rows = outputResultToValueFunctionDisplayRows(outputResult);
+
+    expect(rows[0]!.className).toBe('value-function-row value-function-row--start');
+    expect(rows.slice(1).every((row) => row.className === 'value-function-row')).toBe(true);
   });
 });
