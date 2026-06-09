@@ -128,13 +128,31 @@ function statusForGeneratedTargetComparisonRow(
   return 'match';
 }
 
+function buildGeneratedTargetComparisonReportRow(
+  from: StateId,
+  explicitTo: StateId,
+  generatedTo: StateId | undefined
+): GeneratedTargetComparisonReportRow {
+  const baseRow = {
+    from,
+    explicitTo,
+    status: statusForGeneratedTargetComparisonRow(explicitTo, generatedTo)
+  };
+
+  if (generatedTo === undefined) {
+    return baseRow;
+  }
+
+  return {
+    ...baseRow,
+    generatedTo
+  };
+}
+
 export function buildGeneratedTargetComparisonReport(graph: ExpandedStateGraph): GeneratedTargetComparisonReport {
-  const rows = graph.edges.map((edge): GeneratedTargetComparisonReportRow => ({
-    from: edge.from,
-    explicitTo: edge.explicitTo,
-    generatedTo: edge.generatedTo,
-    status: statusForGeneratedTargetComparisonRow(edge.explicitTo, edge.generatedTo)
-  }));
+  const rows = graph.edges.map((edge): GeneratedTargetComparisonReportRow =>
+    buildGeneratedTargetComparisonReportRow(edge.from, edge.explicitTo, edge.generatedTo)
+  );
 
   return {
     edgeCount: rows.length,
