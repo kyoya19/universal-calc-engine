@@ -93,6 +93,39 @@ describe('Juo PoC fixture stub', () => {
     expect(isTerminalState(terminalState!)).toBe(true);
   });
 
+  test('keeps named-state references closed over the placeholder state set', () => {
+    const stateIds = new Set(juoPocNamedStateModel.states.map((state) => state.id));
+    const stageIds = new Set(juoPocNamedStages.map((stage) => juoStateId(stage)));
+
+    expect(stateIds).toEqual(stageIds);
+    expect(stateIds.size).toBe(juoPocNamedStages.length);
+
+    for (const transition of juoPocNamedStateModel.transitions) {
+      expect(stateIds.has(transition.from)).toBe(true);
+      expect(stateIds.has(transition.to)).toBe(true);
+    }
+  });
+
+  test('keeps exactly one named-state terminal and no outgoing terminal transitions', () => {
+    const terminalStates = juoPocNamedStateModel.states.filter((state) => isTerminalState(state));
+
+    expect(terminalStates.map((state) => state.id)).toEqual([juoStateId('terminal')]);
+    expect(juoPocNamedStateModel.transitions.some((transition) => transition.from === juoStateId('terminal'))).toBe(false);
+    expect(juoPocNamedStateModel.transitions.some((transition) => transition.to === juoStateId('terminal'))).toBe(true);
+  });
+
+  test('keeps all named-state transitions as placeholder probability and reward values', () => {
+    expect(
+      juoPocNamedStateModel.transitions.every((transition) => transition.probability === 1 && transition.reward === 0)
+    ).toBe(true);
+  });
+
+  test('keeps all named-state transitions free of generated target substitution data', () => {
+    for (const transition of juoPocNamedStateModel.transitions) {
+      expect('generatedTo' in transition).toBe(false);
+    }
+  });
+
   test('solves the named-state fixture through the generic expected reward pipeline as zero placeholder reward', () => {
     const expanded = expandModel(juoPocNamedStateModel);
     const evaluated = evaluateModel(expanded);
