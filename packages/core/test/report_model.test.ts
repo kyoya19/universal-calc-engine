@@ -2,7 +2,8 @@ import { describe, expect, test } from 'vitest';
 import {
   buildGeneratedTargetComparisonReport,
   generatedTargetComparisonReportToReportModel,
-  solveExpectedRewardWithGeneratedTargetGate
+  solveExpectedRewardWithGeneratedTargetGate,
+  toOutputResult
 } from '../src';
 import { positionStateId, representativeSugorokuModel } from './fixtures/sugoroku';
 
@@ -83,9 +84,11 @@ describe('UI consumable report model', () => {
       throw new Error('Expected generated-target gate to accept the representative Sugoroku model');
     }
 
-    expect(result.solvedModel.expectedRewardByState[positionStateId(0)]).toBe(2.25);
-    expect(result.solvedModel.expectedRewardByState[positionStateId(1)]).toBe(1.5);
-    expect(result.solvedModel.expectedRewardByState[positionStateId(2)]).toBe(1);
-    expect(result.solvedModel.expectedRewardByState[positionStateId(3)]).toBe(0);
+    const output = toOutputResult(representativeSugorokuModel, result.solvedModel);
+
+    expect(output.expectedRewardByState[positionStateId(0)]).toBe(2.25);
+    expect(output.expectedRewardByState[positionStateId(1)]).toBe(1.5);
+    expect(output.expectedRewardByState[positionStateId(2)]).toBe(1);
+    expect(output.expectedRewardByState[positionStateId(3)]).toBe(0);
   });
 });
