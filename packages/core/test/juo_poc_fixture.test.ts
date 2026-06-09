@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { evaluateModel, expandModel, isTerminalState, solveExpectedReward, toOutputResult } from '../src';
+import {
+  evaluateModel,
+  expandGraphFromModel,
+  expandModel,
+  isTerminalState,
+  solveExpectedReward,
+  summarizeStateGraph,
+  toOutputResult
+} from '../src';
 import {
   juoPocAssumptions,
   juoPocNamedStages,
@@ -154,6 +162,36 @@ describe('Juo PoC fixture stub', () => {
     for (const transition of juoPocNamedStateModel.transitions) {
       expect(stageOrder.get(transition.to)).toBe((stageOrder.get(transition.from) ?? -1) + 1);
     }
+  });
+
+  test('keeps named-state graph diagnostics compatible with generated target summaries', () => {
+    const graph = expandGraphFromModel(juoPocNamedStateModel);
+    const summary = summarizeStateGraph(graph);
+    const expectedStateIds = juoPocNamedStages.map((stage) => juoStateId(stage));
+
+    expect(graph.states.map((state) => state.id).sort()).toEqual([...expectedStateIds].sort());
+    expect(graph.edges.map((edge) => edge.explicitTo)).toEqual(juoPocNamedStages.slice(1).map((stage) => juoStateId(stage)));
+    expect(graph.edges.map((edge) => edge.generatedTo)).toEqual(graph.edges.map((edge) => edge.explicitTo));
+    expect(graph.diagnostics).toEqual([]);
+    expect(summary).toMatchObject({
+      stateCount: juoPocNamedStages.length,
+      generatedStateCount: juoPocNamedStages.length - 1,
+      edgeCount: juoPocNamedStages.length - 1,
+      edgeWithGeneratedTargetCount: juoPocNamedStages.length - 1,
+      explicitGeneratedMatchCount: juoPocNamedStages.length - 1,
+      explicitGeneratedMismatchCount: 0,
+      explicitGeneratedMatchRate: 1,
+      explicitGeneratedMismatchRate: 0,
+      edgeWithoutGeneratedTargetCount: 0,
+      diagnosticCount: 0
+    });
+    expect(summary.diagnosticCountsByType).toEqual({
+      missing_generated_candidate: 0,
+      explicit_generated_mismatch: 0,
+      duplicate_state_ignored: 0,
+      depth_limit_reached: 0,
+      max_states_reached: 0
+    });
   });
 
   test('keeps exactly one named-state terminal and no outgoing terminal transitions', () => {
