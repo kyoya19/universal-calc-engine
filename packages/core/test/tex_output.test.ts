@@ -53,13 +53,14 @@ describe('TeX output helpers', () => {
     expect(tex).toContain('\\begin{array}{c|r}');
   });
 
-  test('converts OutputResult to value-function TeX', () => {
+  test('converts OutputResult to value-function TeX without duplicate start state', () => {
     const tex = outputResultToValueFunctionTex(outputResult);
 
     expect(tex).toContain('V(\\mathrm{pos\\_0}) &= 2.25');
     expect(tex).toContain('V(\\mathrm{pos\\_1}) &= 1.5');
     expect(tex).toContain('V(\\mathrm{pos\\_2}) &= 1');
     expect(tex).toContain('V(\\mathrm{pos\\_3}) &= 0');
+    expect(tex.match(/V\(\\mathrm\{pos\\_0\}\)/g)).toHaveLength(1);
   });
 
   test('converts ContributionResult to TeX', () => {
