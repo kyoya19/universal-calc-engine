@@ -216,6 +216,22 @@ describe('Juo PoC fixture stub', () => {
     }
   });
 
+  test('keeps named-state generic output shape fixed to the placeholder state set', () => {
+    const expanded = expandModel(juoPocNamedStateModel);
+    const evaluated = evaluateModel(expanded);
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(juoPocNamedStateModel, solved);
+    const expectedStateIds = juoPocNamedStages.map((stage) => juoStateId(stage));
+
+    expect(Object.keys(output).sort()).toEqual(['expectedReward', 'expectedRewardByState', 'startState']);
+    expect(output.startState).toBe(juoPocNamedStateModel.startState);
+    expect(output.expectedReward).toBe(0);
+    expect(Object.keys(output.expectedRewardByState).sort()).toEqual([...expectedStateIds].sort());
+    expect(output.expectedRewardByState).toEqual(
+      Object.fromEntries(expectedStateIds.map((stateId) => [stateId, 0]))
+    );
+  });
+
   test('keeps placeholder assumptions explicit and machine-specific inputs unresolved', () => {
     expect(juoPocAssumptions).toContain('This fixture is a machine-specific PoC stub only.');
     expect(juoPocAssumptions).toContain(
