@@ -1,14 +1,11 @@
 import { describe, expect, test } from 'vitest';
 import type { ReportModel, ReportRowStatus } from '../src';
+import { formatReportModelPlainText } from '../src';
 import {
-  buildGeneratedTargetComparisonReport,
-  formatReportModelPlainText,
-  generatedTargetComparisonReportToReportModel,
-  generatedTargetSolverGateResultSummaryToReportModel,
-  solveExpectedRewardWithGeneratedTargetGate,
-  summarizeGeneratedTargetSolverGateResult
-} from '../src';
-import { representativeSugorokuModel } from './fixtures/sugoroku';
+  buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture,
+  buildGeneratedTargetComparisonReportModelFixture,
+  buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture
+} from './fixtures/reporting';
 
 const reportRowStatuses = new Set<ReportRowStatus>(['ok', 'warning', 'rejected', 'info']);
 
@@ -54,9 +51,7 @@ function expectPlainTextFallbackShape(reportModel: ReportModel): void {
 
 describe('report model shape invariants', () => {
   test('keeps generated-target comparison report model shape stable', () => {
-    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
-    const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
-    const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
+    const { comparisonReport, reportModel } = buildGeneratedTargetComparisonReportModelFixture();
 
     expectReportModelShape(reportModel);
     expect(reportModel.sections.map((section) => section.id)).toEqual(['summary', 'rows']);
@@ -73,9 +68,7 @@ describe('report model shape invariants', () => {
   });
 
   test('keeps accepted solver gate summary report model shape stable', () => {
-    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
-    const summary = summarizeGeneratedTargetSolverGateResult(result);
-    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+    const { reportModel } = buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture();
 
     expectReportModelShape(reportModel);
     expect(reportModel.sections.map((section) => section.id)).toEqual(['summary']);
@@ -88,13 +81,7 @@ describe('report model shape invariants', () => {
   });
 
   test('keeps rejected solver gate summary report model shape stable', () => {
-    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
-    const result = solveExpectedRewardWithGeneratedTargetGate({
-      ...representativeSugorokuModel,
-      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
-    });
-    const summary = summarizeGeneratedTargetSolverGateResult(result);
-    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+    const { summary, reportModel } = buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture();
 
     expect(summary.accepted).toBe(false);
     expectReportModelShape(reportModel);
