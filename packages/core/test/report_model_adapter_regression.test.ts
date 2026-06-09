@@ -181,16 +181,16 @@ describe('report model adapter regressions', () => {
       {
         id: 'edgeCount',
         label: 'edgeCount',
-        plainText: 'edgeCount: 3',
+        plainText: 'edgeCount: 4',
         status: 'info',
-        metadata: { value: 3 }
+        metadata: { value: 4 }
       },
       {
         id: 'generatedTargetReadyEdgeCount',
         label: 'generatedTargetReadyEdgeCount',
-        plainText: 'generatedTargetReadyEdgeCount: 2',
+        plainText: 'generatedTargetReadyEdgeCount: 3',
         status: 'info',
-        metadata: { value: 2 }
+        metadata: { value: 3 }
       },
       {
         id: 'rejectionCode',
