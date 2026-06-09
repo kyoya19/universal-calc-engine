@@ -28,6 +28,14 @@ function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
   }
 }
 
+function expectUniqueIds(ids: readonly string[]): void {
+  expect(new Set(ids).size).toBe(ids.length);
+}
+
+function expectReadinessStatus(status: string): void {
+  expect(['not_started', 'not_applicable', 'excluded']).toContain(status);
+}
+
 describe('Juo production value placeholder inventory', () => {
   test('preserves one probability placeholder row per probability draft metadata row', () => {
     const draftIds = juoProbabilityProductionValueDraftMetadataInventory.map((row) => row.draftMetadataId).sort();
@@ -101,6 +109,57 @@ describe('Juo production value placeholder inventory', () => {
       expect(row.sourceId).toBe(draft?.sourceId);
       expect(row.sourceType).toBe(draft?.sourceType);
       expect(row.promotionEligibility).toBe(draft?.promotionEligibility);
+    }
+  });
+
+  test('keeps placeholder ids unique and domain-separated', () => {
+    const probabilityPlaceholderIds = juoProbabilityProductionValuePlaceholderInventory.map(
+      (row) => row.productionValuePlaceholderId
+    );
+    const rewardPlaceholderIds = juoRewardProductionValuePlaceholderInventory.map((row) => row.productionValuePlaceholderId);
+
+    expectUniqueIds(probabilityPlaceholderIds);
+    expectUniqueIds(rewardPlaceholderIds);
+
+    for (const id of probabilityPlaceholderIds) {
+      expect(rewardPlaceholderIds).not.toContain(id);
+      expect(id.endsWith('_probability_production_value_placeholder')).toBe(true);
+    }
+
+    for (const id of rewardPlaceholderIds) {
+      expect(id.endsWith('_reward_production_value_placeholder')).toBe(true);
+    }
+  });
+
+  test('keeps placeholder readiness statuses bounded and non-executable', () => {
+    for (const row of juoProbabilityProductionValuePlaceholderInventory) {
+      expectReadinessStatus(row.valueReadinessStatus);
+      expectReadinessStatus(row.normalizationReadinessStatus);
+      expect(row.valueReadinessStatus).toBe('not_started');
+      expect(row.normalizationReadinessStatus).toBe(row.valueReadinessStatus);
+      expect(row.placeholderStatus).toBe('placeholder');
+      expect(row.promotionEligibility).toBe('no');
+      expect(row.executionEligibility).toBe('no');
+    }
+
+    for (const row of juoRewardProductionValuePlaceholderInventory) {
+      expectReadinessStatus(row.valueReadinessStatus);
+      expectReadinessStatus(row.accountingReadinessStatus);
+      expectReadinessStatus(row.normalizationReadinessStatus);
+      expect(row.valueReadinessStatus).toBe('not_started');
+      expect(row.accountingReadinessStatus).toBe(row.valueReadinessStatus);
+      expect(row.normalizationReadinessStatus).toBe(row.valueReadinessStatus);
+      expect(row.placeholderStatus).toBe('placeholder');
+      expect(row.promotionEligibility).toBe('no');
+      expect(row.executionEligibility).toBe('no');
+    }
+  });
+
+  test('keeps placeholder naming distinct from source-backed production values and executable values', () => {
+    for (const row of [...juoProbabilityProductionValuePlaceholderInventory, ...juoRewardProductionValuePlaceholderInventory]) {
+      expect(row.productionValuePlaceholderId.endsWith('_production_value_placeholder')).toBe(true);
+      expect(row.productionValuePlaceholderId.endsWith('_production_value')).toBe(false);
+      expect(row.productionValuePlaceholderId.endsWith('_executable_value')).toBe(false);
     }
   });
 });
