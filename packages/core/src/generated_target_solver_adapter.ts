@@ -27,6 +27,45 @@ export type GeneratedTargetSolverGateResult =
       rejection: GeneratedTargetSolverPlanningRejection;
     };
 
+export type GeneratedTargetSolverGateResultSummary =
+  | {
+      accepted: true;
+      edgeCount: number;
+      generatedTargetReadyEdgeCount: number;
+      rejectionType?: never;
+      rejectionMessage?: never;
+    }
+  | {
+      accepted: false;
+      edgeCount: number;
+      generatedTargetReadyEdgeCount: number;
+      rejectionType: GeneratedTargetSolverPlanningRejection['type'];
+      rejectionMessage: string;
+    };
+
+export function summarizeGeneratedTargetSolverGateResult(
+  result: GeneratedTargetSolverGateResult
+): GeneratedTargetSolverGateResultSummary {
+  const edgeCount = result.graph.edges.length;
+  const generatedTargetReadyEdgeCount = result.graph.edges.filter((edge) => edge.generatedTo !== undefined).length;
+
+  if (!result.accepted) {
+    return {
+      accepted: false,
+      edgeCount,
+      generatedTargetReadyEdgeCount,
+      rejectionType: result.rejection.type,
+      rejectionMessage: result.rejection.message
+    };
+  }
+
+  return {
+    accepted: true,
+    edgeCount,
+    generatedTargetReadyEdgeCount
+  };
+}
+
 export function solveExpectedRewardWithGeneratedTargetGate(
   model: DefinitionModel,
   decision: GeneratedTargetSolverPlanningDecision = requireGeneratedMatchPlanningDecision
