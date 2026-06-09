@@ -69,6 +69,7 @@ describe('generated target solver gated wrapper', () => {
       accepted: false,
       edgeCount: result.graph.edges.length,
       generatedTargetReadyEdgeCount: result.graph.edges.filter((edge) => edge.generatedTo !== undefined).length,
+      rejectionCode: 'missing_generated_target',
       rejectionType: 'missing_generated_target',
       rejectionMessage: `Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`
     });

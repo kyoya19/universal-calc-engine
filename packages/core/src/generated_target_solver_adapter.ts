@@ -27,11 +27,14 @@ export type GeneratedTargetSolverGateResult =
       rejection: GeneratedTargetSolverPlanningRejection;
     };
 
+export type GeneratedTargetSolverGateFailureCode = GeneratedTargetSolverPlanningRejection['type'];
+
 export type GeneratedTargetSolverGateResultSummary =
   | {
       accepted: true;
       edgeCount: number;
       generatedTargetReadyEdgeCount: number;
+      rejectionCode?: never;
       rejectionType?: never;
       rejectionMessage?: never;
     }
@@ -39,6 +42,7 @@ export type GeneratedTargetSolverGateResultSummary =
       accepted: false;
       edgeCount: number;
       generatedTargetReadyEdgeCount: number;
+      rejectionCode: GeneratedTargetSolverGateFailureCode;
       rejectionType: GeneratedTargetSolverPlanningRejection['type'];
       rejectionMessage: string;
     };
@@ -54,6 +58,7 @@ export function summarizeGeneratedTargetSolverGateResult(
       accepted: false,
       edgeCount,
       generatedTargetReadyEdgeCount,
+      rejectionCode: result.rejection.type,
       rejectionType: result.rejection.type,
       rejectionMessage: result.rejection.message
     };
