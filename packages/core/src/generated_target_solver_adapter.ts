@@ -71,6 +71,27 @@ export function summarizeGeneratedTargetSolverGateResult(
   };
 }
 
+export function formatGeneratedTargetSolverGateResultSummary(
+  summary: GeneratedTargetSolverGateResultSummary
+): string {
+  const baseLines = [
+    `accepted: ${summary.accepted}`,
+    `edgeCount: ${summary.edgeCount}`,
+    `generatedTargetReadyEdgeCount: ${summary.generatedTargetReadyEdgeCount}`
+  ];
+
+  if (summary.accepted) {
+    return baseLines.join('\n');
+  }
+
+  return [
+    ...baseLines,
+    `rejectionCode: ${summary.rejectionCode}`,
+    `rejectionType: ${summary.rejectionType}`,
+    `rejectionMessage: ${summary.rejectionMessage}`
+  ].join('\n');
+}
+
 export function solveExpectedRewardWithGeneratedTargetGate(
   model: DefinitionModel,
   decision: GeneratedTargetSolverPlanningDecision = requireGeneratedMatchPlanningDecision
