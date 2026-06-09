@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import {
-  buildMismatchedGeneratedTargetComparisonReportModelFixture,
-  buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture,
-  generatedTargetMismatchFixture
+  buildExplicitGeneratedMismatchComparisonReportModelFixture,
+  buildExplicitGeneratedMismatchSolverGateSummaryReportModelFixture,
+  explicitGeneratedMismatchFixture
 } from './fixtures/reporting';
 import { compactRows } from './fixtures/report_rows';
 
 describe('report model mismatch adapter regressions', () => {
   test('keeps explicit mismatch comparison report rows stable', () => {
-    const { reportModel } = buildMismatchedGeneratedTargetComparisonReportModelFixture();
+    const { reportModel } = buildExplicitGeneratedMismatchComparisonReportModelFixture();
 
     expect(compactRows(reportModel.sections[0]!.rows)).toEqual([
       {
@@ -44,12 +44,12 @@ describe('report model mismatch adapter regressions', () => {
     expect(compactRows(reportModel.sections[1]!.rows)[0]).toEqual({
       id: 'row-0',
       label: 'row 0',
-      plainText: `row 0: from: ${generatedTargetMismatchFixture.from} explicitTo: ${generatedTargetMismatchFixture.explicitTo} generatedTo: ${generatedTargetMismatchFixture.generatedTo} status: explicit_generated_mismatch`,
+      plainText: `row 0: from: ${explicitGeneratedMismatchFixture.from} explicitTo: ${explicitGeneratedMismatchFixture.explicitTo} generatedTo: ${explicitGeneratedMismatchFixture.generatedTo} status: explicit_generated_mismatch`,
       status: 'rejected',
       metadata: {
-        from: generatedTargetMismatchFixture.from,
-        explicitTo: generatedTargetMismatchFixture.explicitTo,
-        generatedTo: generatedTargetMismatchFixture.generatedTo,
+        from: explicitGeneratedMismatchFixture.from,
+        explicitTo: explicitGeneratedMismatchFixture.explicitTo,
+        generatedTo: explicitGeneratedMismatchFixture.generatedTo,
         generatedToMissing: false,
         comparisonStatus: 'explicit_generated_mismatch'
       }
@@ -57,8 +57,8 @@ describe('report model mismatch adapter regressions', () => {
   });
 
   test('keeps explicit mismatch solver gate summary rows stable', () => {
-    const { reportModel } = buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture();
-    const rejectionMessage = `Explicit target ${generatedTargetMismatchFixture.explicitTo} differs from generated target ${generatedTargetMismatchFixture.generatedTo}`;
+    const { reportModel } = buildExplicitGeneratedMismatchSolverGateSummaryReportModelFixture();
+    const rejectionMessage = `Explicit target ${explicitGeneratedMismatchFixture.explicitTo} differs from generated target ${explicitGeneratedMismatchFixture.generatedTo}`;
 
     expect(compactRows(reportModel.sections[0]!.rows)).toEqual([
       {
