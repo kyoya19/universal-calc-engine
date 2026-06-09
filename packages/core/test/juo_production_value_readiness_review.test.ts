@@ -229,27 +229,28 @@ describe('Juo production value readiness review inventory', () => {
     }
   });
 
-  test('keeps probability and reward review inventories aligned only through shared source lineage', () => {
-    const probabilityBySource = new Map(
-      juoProbabilityProductionValueReadinessReviewInventory.map((row) => [row.sourceId, row])
+  test('keeps probability and reward review inventories domain-separated', () => {
+    const probabilityReviewIds = juoProbabilityProductionValueReadinessReviewInventory.map((row) => row.readinessReviewId);
+    const rewardReviewIds = juoRewardProductionValueReadinessReviewInventory.map((row) => row.readinessReviewId);
+    const probabilityPlaceholderIds = juoProbabilityProductionValueReadinessReviewInventory.map(
+      (row) => row.productionValuePlaceholderId
     );
-    const rewardBySource = new Map(juoRewardProductionValueReadinessReviewInventory.map((row) => [row.sourceId, row]));
+    const rewardPlaceholderIds = juoRewardProductionValueReadinessReviewInventory.map((row) => row.productionValuePlaceholderId);
 
-    expect([...probabilityBySource.keys()].sort()).toEqual([...rewardBySource.keys()].sort());
+    for (const row of juoProbabilityProductionValueReadinessReviewInventory) {
+      expect(row.valueDomain).toBe('probability');
+      expect(row.readinessReviewId).toContain('_probability_');
+      expect(row.productionValuePlaceholderId).toContain('_probability_');
+      expect(rewardReviewIds).not.toContain(row.readinessReviewId);
+      expect(rewardPlaceholderIds).not.toContain(row.productionValuePlaceholderId);
+    }
 
-    for (const [sourceId, probabilityRow] of probabilityBySource) {
-      const rewardRow = rewardBySource.get(sourceId);
-
-      expect(rewardRow).toBeDefined();
-      expect(probabilityRow.readinessReviewId).not.toBe(rewardRow?.readinessReviewId);
-      expect(probabilityRow.productionValuePlaceholderId).not.toBe(rewardRow?.productionValuePlaceholderId);
-      expect(probabilityRow.draftMetadataId).not.toBe(rewardRow?.draftMetadataId);
-      expect(probabilityRow.promotionGateId).not.toBe(rewardRow?.promotionGateId);
-      expect(probabilityRow.extractedValueMetadataId).not.toBe(rewardRow?.extractedValueMetadataId);
-      expect(probabilityRow.unitMetadataId).not.toBe(rewardRow?.unitMetadataId);
-      expect(probabilityRow.citationId).not.toBe(rewardRow?.citationId);
-      expect(probabilityRow.valueDomain).toBe('probability');
-      expect(rewardRow?.valueDomain).toBe('reward');
+    for (const row of juoRewardProductionValueReadinessReviewInventory) {
+      expect(row.valueDomain).toBe('reward');
+      expect(row.readinessReviewId).toContain('_reward_');
+      expect(row.productionValuePlaceholderId).toContain('_reward_');
+      expect(probabilityReviewIds).not.toContain(row.readinessReviewId);
+      expect(probabilityPlaceholderIds).not.toContain(row.productionValuePlaceholderId);
     }
   });
 });
