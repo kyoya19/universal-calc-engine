@@ -28,10 +28,14 @@ const forbiddenExecutableKeys = new Set([
   'sourceBackedValue',
   'sourceBackedProbability',
   'sourceBackedReward',
+  'sourceBackedProductionValue',
   'productionGraphBinding',
+  'runtimeTargetSubstitution',
   'targetSubstitution',
   'expectedRewardAssertion',
-  'expectedValueAssertion'
+  'expectedValueAssertion',
+  'sourceBackedNumericValue',
+  'sourceBackedDecimalValue'
 ]);
 
 function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
@@ -42,6 +46,18 @@ function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
 
 function expectUniqueIds(ids: readonly string[]): void {
   expect(new Set(ids).size).toBe(ids.length);
+}
+
+function expectNoReadyOrPromotingStatuses(row: Record<string, unknown>): void {
+  for (const value of Object.values(row)) {
+    expect(value).not.toBe('ready');
+    expect(value).not.toBe('approved');
+    expect(value).not.toBe('promoted');
+    expect(value).not.toBe('eligible');
+    expect(value).not.toBe('executable');
+    expect(value).not.toBe('created');
+    expect(value).not.toBe('yes');
+  }
 }
 
 describe('Juo source-backed production value preflight inventory', () => {
@@ -161,6 +177,65 @@ describe('Juo source-backed production value preflight inventory', () => {
       expect(row.preflightId.endsWith('_production_value')).toBe(false);
       expect(row.preflightId.endsWith('_executable_value')).toBe(false);
       expect(row.preflightId.endsWith('_expected_value')).toBe(false);
+    }
+  });
+
+  test('keeps preflight rows free of source-backed production value and execution binding fields', () => {
+    for (const row of [
+      ...juoProbabilitySourceBackedProductionValuePreflightInventory,
+      ...juoRewardSourceBackedProductionValuePreflightInventory
+    ]) {
+      expectNoExecutableValueKeys({ ...row });
+      expect(Object.keys(row)).not.toContain('sourceBackedProductionValue');
+      expect(Object.keys(row)).not.toContain('sourceBackedNumericValue');
+      expect(Object.keys(row)).not.toContain('sourceBackedDecimalValue');
+      expect(Object.keys(row)).not.toContain('productionGraphBinding');
+      expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
+      expect(Object.keys(row)).not.toContain('expectedValueAssertion');
+      expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
+    }
+  });
+
+  test('keeps preflight statuses bounded to blocked pre-production states', () => {
+    for (const row of [
+      ...juoProbabilitySourceBackedProductionValuePreflightInventory,
+      ...juoRewardSourceBackedProductionValuePreflightInventory
+    ]) {
+      expect(row.preflightStatus).toBe('blocked');
+      expect(row.sourceBackedValueReadinessStatus).toBe('not_ready');
+      expect(row.promotionDecisionStatus).toBe('not_promoted');
+      expect(row.sourceBackedValueCreationEligibility).toBe('no');
+      expect(row.executionEligibility).toBe('no');
+      expectNoReadyOrPromotingStatuses({ ...row });
+    }
+  });
+
+  test('keeps probability and reward preflight inventories domain-separated', () => {
+    const probabilityPreflightIds = juoProbabilitySourceBackedProductionValuePreflightInventory.map(
+      (row) => row.preflightId
+    );
+    const rewardPreflightIds = juoRewardSourceBackedProductionValuePreflightInventory.map((row) => row.preflightId);
+    const probabilityPlaceholderIds = juoProbabilitySourceBackedProductionValuePreflightInventory.map(
+      (row) => row.productionValuePlaceholderId
+    );
+    const rewardPlaceholderIds = juoRewardSourceBackedProductionValuePreflightInventory.map(
+      (row) => row.productionValuePlaceholderId
+    );
+
+    for (const row of juoProbabilitySourceBackedProductionValuePreflightInventory) {
+      expect(row.valueDomain).toBe('probability');
+      expect(row.preflightId).toContain('_probability_');
+      expect(row.productionValuePlaceholderId).toContain('_probability_');
+      expect(rewardPreflightIds).not.toContain(row.preflightId);
+      expect(rewardPlaceholderIds).not.toContain(row.productionValuePlaceholderId);
+    }
+
+    for (const row of juoRewardSourceBackedProductionValuePreflightInventory) {
+      expect(row.valueDomain).toBe('reward');
+      expect(row.preflightId).toContain('_reward_');
+      expect(row.productionValuePlaceholderId).toContain('_reward_');
+      expect(probabilityPreflightIds).not.toContain(row.preflightId);
+      expect(probabilityPlaceholderIds).not.toContain(row.productionValuePlaceholderId);
     }
   });
 });
