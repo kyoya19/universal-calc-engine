@@ -5,9 +5,29 @@ const allowedStatuses = new Set(['required', 'stub', 'deferred', 'excluded']);
 const allowedStateKinds = new Set(['start', 'terminal', 'transient', 'helper']);
 const allowedProbabilityValueTypes = new Set(['fraction', 'decimal', 'formula', 'placeholder']);
 const allowedRewardValueTypes = new Set(['literal', 'formula', 'placeholder']);
+const forbiddenProductionValueKeys = new Set([
+  'value',
+  'numerator',
+  'denominator',
+  'decimalValue',
+  'decimal_value',
+  'formula',
+  'payout',
+  'netPayout',
+  'expectedCoins',
+  'expectedValue',
+  'probability',
+  'reward'
+]);
 
 function expectUnique(values: readonly string[]): void {
   expect(new Set(values).size).toBe(values.length);
+}
+
+function expectNoProductionValueKeys(candidate: object): void {
+  for (const key of Object.keys(candidate)) {
+    expect(forbiddenProductionValueKeys.has(key)).toBe(false);
+  }
 }
 
 describe('Juo production input stub validation', () => {
@@ -87,6 +107,47 @@ describe('Juo production input stub validation', () => {
       expect(reward.sourceNote).toContain('Unresolved placeholder');
       expect(reward.sourceNote).toContain('no real Beast King / Juo reward value');
       expect(reward.accountingExclusions).toEqual(['time', 'exchange_rate', 'cost']);
+    }
+  });
+
+  test('rejects accidental executable production-value fields in probability and reward rows', () => {
+    for (const probability of juoProductionInputFixtureStub.probabilities) {
+      expectNoProductionValueKeys(probability);
+      expect(Object.keys(probability).sort()).toEqual([
+        'normalizationGroup',
+        'probabilityId',
+        'sourceNote',
+        'valueStatus',
+        'valueType'
+      ]);
+    }
+
+    for (const reward of juoProductionInputFixtureStub.rewards) {
+      expectNoProductionValueKeys(reward);
+      expect(Object.keys(reward).sort()).toEqual([
+        'accountingExclusions',
+        'rewardId',
+        'rewardUnit',
+        'sourceNote',
+        'valueStatus',
+        'valueType'
+      ]);
+    }
+  });
+
+  test('rejects accidental executable production-value fields in transitions', () => {
+    for (const transition of juoProductionInputFixtureStub.transitions) {
+      expectNoProductionValueKeys(transition);
+      expect(Object.keys(transition).sort()).toEqual([
+        'displayLabel',
+        'fromStateId',
+        'generatedTo',
+        'generatedToStatus',
+        'probabilityRef',
+        'rewardRef',
+        'toStateId',
+        'transitionId'
+      ]);
     }
   });
 
