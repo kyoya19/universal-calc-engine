@@ -27,6 +27,10 @@ function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
   }
 }
 
+function expectUniqueIds(ids: readonly string[]): void {
+  expect(new Set(ids).size).toBe(ids.length);
+}
+
 function expectStatusForApplicability(row: {
   readonly extractionApplicability: string;
   readonly extractionStatus: string;
@@ -91,6 +95,7 @@ describe('Juo extracted value metadata inventory', () => {
       expect(row.sourceId).toBe(unit?.sourceId);
       expect(row.sourceType).toBe(unit?.sourceType);
       expect(row.reviewStatus).toBe(unit?.reviewStatus);
+      expect(row.extractionApplicability).toBe(unit?.unitApplicability);
     }
 
     for (const row of juoRewardExtractedValueMetadataInventory) {
@@ -101,6 +106,7 @@ describe('Juo extracted value metadata inventory', () => {
       expect(row.sourceId).toBe(unit?.sourceId);
       expect(row.sourceType).toBe(unit?.sourceType);
       expect(row.reviewStatus).toBe(unit?.reviewStatus);
+      expect(row.extractionApplicability).toBe(unit?.unitApplicability);
     }
   });
 
@@ -116,6 +122,50 @@ describe('Juo extracted value metadata inventory', () => {
       expect(row.executionEligibility).toBe('no');
       expectStatusForApplicability(row);
       expectNoExecutableValueKeys({ ...row });
+    }
+  });
+
+  test('keeps probability and reward extracted metadata ids unique and disjoint', () => {
+    const probabilityIds = juoProbabilityExtractedValueMetadataInventory.map((row) => row.extractedValueMetadataId);
+    const rewardIds = juoRewardExtractedValueMetadataInventory.map((row) => row.extractedValueMetadataId);
+
+    expectUniqueIds(probabilityIds);
+    expectUniqueIds(rewardIds);
+
+    for (const id of probabilityIds) {
+      expect(rewardIds).not.toContain(id);
+    }
+  });
+
+  test('keeps probability extraction statuses internally aligned', () => {
+    for (const row of juoProbabilityExtractedValueMetadataInventory) {
+      expectStatusForApplicability(row);
+      expect(row.extractedExpressionStatus).toBe(row.extractionStatus);
+      expect(row.numeratorStatus).toBe(row.extractionStatus);
+      expect(row.denominatorStatus).toBe(row.extractionStatus);
+      expect(row.decimalStatus).toBe(row.extractionStatus);
+      expect(row.normalizationStatus).toBe(row.extractionStatus);
+      expect(row.executionEligibility).toBe('no');
+    }
+  });
+
+  test('keeps reward extraction statuses internally aligned', () => {
+    for (const row of juoRewardExtractedValueMetadataInventory) {
+      expectStatusForApplicability(row);
+      expect(row.extractedExpressionStatus).toBe(row.extractionStatus);
+      expect(row.payoutAmountStatus).toBe(row.extractionStatus);
+      expect(row.rewardUnitStatus).toBe(row.extractionStatus);
+      expect(row.accountingBasisStatus).toBe(row.extractionStatus);
+      expect(row.normalizationStatus).toBe(row.extractionStatus);
+      expect(row.executionEligibility).toBe('no');
+    }
+  });
+
+  test('keeps extraction metadata out of production value naming', () => {
+    for (const row of [...juoProbabilityExtractedValueMetadataInventory, ...juoRewardExtractedValueMetadataInventory]) {
+      expect(row.extractedValueMetadataId.endsWith('_extracted_value_metadata')).toBe(true);
+      expect(row.extractedValueMetadataId.endsWith('_production_value')).toBe(false);
+      expect(row.extractedValueMetadataId.endsWith('_executable_value')).toBe(false);
     }
   });
 });
