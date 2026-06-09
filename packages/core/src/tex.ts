@@ -33,16 +33,16 @@ function valueFunction(stateId: StateId): string {
 export function outputResultToTex(result: OutputResult): string {
   const rows = Object.entries(result.expectedRewardByState)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([stateId, expectedReward]) => `${stateLabel(stateId)} & ${formatNumber(expectedReward)} \\\\`)
+    .map(([stateId, expectedReward]) => `${stateLabel(stateId)} & ${formatNumber(expectedReward)} \\`)
     .join('\n');
 
   return [
     '\\begin{aligned}',
-    `E[${stateLabel(result.startState)}] &= ${formatNumber(result.expectedReward)} \\\\`,
+    `E[${stateLabel(result.startState)}] &= ${formatNumber(result.expectedReward)} \\`,
     '\\end{aligned}',
     '',
     '\\begin{array}{c|r}',
-    '\\text{state} & \\text{expected reward} \\\\',
+    '\\text{state} & \\text{expected reward} \\',
     '\\hline',
     rows,
     '\\end{array}'
@@ -51,13 +51,14 @@ export function outputResultToTex(result: OutputResult): string {
 
 export function outputResultToValueFunctionTex(result: OutputResult): string {
   const rows = Object.entries(result.expectedRewardByState)
+    .filter(([stateId]) => stateId !== result.startState)
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([stateId, expectedReward]) => `${valueFunction(stateId)} &= ${formatNumber(expectedReward)} \\\\`)
+    .map(([stateId, expectedReward]) => `${valueFunction(stateId)} &= ${formatNumber(expectedReward)} \\`)
     .join('\n');
 
   return [
     '\\begin{aligned}',
-    `${valueFunction(result.startState)} &= ${formatNumber(result.expectedReward)} \\\\`,
+    `${valueFunction(result.startState)} &= ${formatNumber(result.expectedReward)} \\`,
     rows,
     '\\end{aligned}'
   ].join('\n');
@@ -68,14 +69,14 @@ export function contributionResultToTex(result: ContributionResult): string {
     .sort(([left], [right]) => left.localeCompare(right))
     .flatMap(([fromStateId, contributions]) =>
       contributions.map((entry) =>
-        `${stateLabel(fromStateId)} & ${stateLabel(entry.to)} & ${formatNumber(entry.probability)} & ${formatNumber(entry.reward)} & ${formatNumber(entry.downstreamExpectedReward)} & ${formatNumber(entry.contribution)} \\\\`
+        `${stateLabel(fromStateId)} & ${stateLabel(entry.to)} & ${formatNumber(entry.probability)} & ${formatNumber(entry.reward)} & ${formatNumber(entry.downstreamExpectedReward)} & ${formatNumber(entry.contribution)} \\`
       )
     )
     .join('\n');
 
   return [
     '\\begin{array}{c|c|r|r|r|r}',
-    '\\text{from} & \\text{to} & p & r & E[\\text{to}] & \\text{contribution} \\\\',
+    '\\text{from} & \\text{to} & p & r & E[\\text{to}] & \\text{contribution} \\',
     '\\hline',
     rows,
     '\\end{array}'
