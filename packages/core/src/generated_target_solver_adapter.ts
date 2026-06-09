@@ -145,6 +145,26 @@ export function buildGeneratedTargetComparisonReport(graph: ExpandedStateGraph):
   };
 }
 
+function formatGeneratedTargetComparisonReportRow(row: GeneratedTargetComparisonReportRow, index: number): string {
+  return [
+    `row ${index}:`,
+    `  from: ${row.from}`,
+    `  explicitTo: ${row.explicitTo}`,
+    `  generatedTo: ${row.generatedTo ?? '<missing>'}`,
+    `  status: ${row.status}`
+  ].join('\n');
+}
+
+export function formatGeneratedTargetComparisonReport(report: GeneratedTargetComparisonReport): string {
+  return [
+    `edgeCount: ${report.edgeCount}`,
+    `matchCount: ${report.matchCount}`,
+    `missingGeneratedTargetCount: ${report.missingGeneratedTargetCount}`,
+    `explicitGeneratedMismatchCount: ${report.explicitGeneratedMismatchCount}`,
+    ...report.rows.map((row, index) => formatGeneratedTargetComparisonReportRow(row, index))
+  ].join('\n');
+}
+
 export function solveExpectedRewardWithGeneratedTargetGate(
   model: DefinitionModel,
   decision: GeneratedTargetSolverPlanningDecision = requireGeneratedMatchPlanningDecision
