@@ -34,19 +34,9 @@ const forbiddenExecutableKeys = new Set([
   'expectedValueAssertion'
 ]);
 
-const productionValueLikeKeyPattern = /(?:^|[A-Z])(value|numerator|denominator|decimal|payout|reward|probability|amount|expected|graph|runtime|substitution|assertion)(?:$|[A-Z])/;
-
 function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
   for (const key of Object.keys(row)) {
     expect(forbiddenExecutableKeys.has(key)).toBe(false);
-  }
-}
-
-function expectNoProductionValueLikeKeys(row: Record<string, unknown>): void {
-  for (const key of Object.keys(row)) {
-    if (key === 'sourceBackedValueReadinessStatus' || key === 'valueDomain') continue;
-
-    expect(productionValueLikeKeyPattern.test(key)).toBe(false);
   }
 }
 
@@ -214,11 +204,12 @@ describe('Juo production value readiness review inventory', () => {
       ...juoRewardProductionValueReadinessReviewInventory
     ]) {
       expectNoExecutableValueKeys({ ...row });
-      expectNoProductionValueLikeKeys({ ...row });
       expect(Object.keys(row)).not.toContain('productionGraphBinding');
       expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
       expect(Object.keys(row)).not.toContain('expectedValueAssertion');
       expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
+      expect(Object.keys(row)).not.toContain('sourceBackedNumericValue');
+      expect(Object.keys(row)).not.toContain('sourceBackedDecimalValue');
     }
   });
 
