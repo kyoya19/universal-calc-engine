@@ -56,6 +56,27 @@ describe('Juo PoC fixture stub', () => {
     ]);
   });
 
+  test('keeps named-state metadata aligned with declared placeholder stages', () => {
+    for (const stage of juoPocNamedStages) {
+      const state = juoPocNamedStateModel.states.find((candidate) => candidate.id === juoStateId(stage));
+
+      expect(state).toBeDefined();
+      expect(state).toMatchObject({
+        id: juoStateId(stage),
+        properties: { machine: 'juo', stage }
+      });
+    }
+  });
+
+  test('keeps named-state transition effects aligned with transition targets', () => {
+    for (const transition of juoPocNamedStateModel.transitions) {
+      const targetStage = juoPocNamedStages.find((stage) => juoStateId(stage) === transition.to);
+
+      expect(targetStage).toBeDefined();
+      expect(transition.effects).toEqual([{ type: 'set_property', property: 'stage', value: targetStage }]);
+    }
+  });
+
   test('keeps the named-state fixture placeholder-only while preserving solver target semantics', () => {
     expect(juoPocNamedStateModel.transitions).toEqual([
       {
