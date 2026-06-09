@@ -2,6 +2,7 @@ import { describe, expect, test } from 'vitest';
 import { toContributionResult, toOutputResult } from '../src';
 import {
   buildGeneratedTargetComparisonReport,
+  formatGeneratedTargetComparisonReport,
   formatGeneratedTargetSolverGateResultSummary,
   solveExpectedRewardWithGeneratedTargetGate,
   summarizeGeneratedTargetSolverGateResult
@@ -70,6 +71,16 @@ describe('generated target solver gated wrapper', () => {
         status: 'match'
       }))
     });
+  });
+
+  test('formats a matching generated-target comparison report', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+    const report = buildGeneratedTargetComparisonReport(result.graph);
+
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('matchCount: 4');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('missingGeneratedTargetCount: 0');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('explicitGeneratedMismatchCount: 0');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('status: match');
   });
 
   test('rejects before solving when a generated target is missing', () => {
@@ -148,6 +159,19 @@ describe('generated target solver gated wrapper', () => {
     });
   });
 
+  test('formats a missing generated target comparison report', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const report = buildGeneratedTargetComparisonReport(result.graph);
+
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('missingGeneratedTargetCount: 1');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('generatedTo: <missing>');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('status: missing_generated_target');
+  });
+
   test('rejects before evaluating probabilities when a generated target is missing', () => {
     const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const result = solveExpectedRewardWithGeneratedTargetGate({
@@ -212,6 +236,22 @@ describe('generated target solver gated wrapper', () => {
       generatedTo: positionStateId(1),
       status: 'explicit_generated_mismatch'
     });
+  });
+
+  test('formats an explicit/generated mismatch comparison report', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const report = buildGeneratedTargetComparisonReport(result.graph);
+
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('explicitGeneratedMismatchCount: 1');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('explicitTo: legacy_pos_1');
+    expect(formatGeneratedTargetComparisonReport(report)).toContain(`generatedTo: ${positionStateId(1)}`);
+    expect(formatGeneratedTargetComparisonReport(report)).toContain('status: explicit_generated_mismatch');
   });
 
   test('rejects before evaluating probabilities when explicit/generated targets mismatch', () => {
