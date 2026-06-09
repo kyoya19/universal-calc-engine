@@ -3,23 +3,23 @@ import {
   generatedTargetComparisonReportToReportModel,
   generatedTargetSolverGateResultSummaryToReportModel,
   solveExpectedRewardWithGeneratedTargetGate,
-  summarizeGeneratedTargetSolverGateResult
+  summarizeGeneratedTargetSolverGateResult,
+  type GeneratedTargetSolverGateResult
 } from '../../src';
 import { positionStateId, representativeSugorokuModel } from './sugoroku';
 
-export function buildGeneratedTargetComparisonReportModelFixture() {
-  const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+function buildGeneratedTargetComparisonReportModelFromResult(result: GeneratedTargetSolverGateResult) {
   const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
   const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
 
   return {
+    result,
     comparisonReport,
     reportModel
   };
 }
 
-export function buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture() {
-  const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+function buildGeneratedTargetSolverGateSummaryReportModelFromResult(result: GeneratedTargetSolverGateResult) {
   const summary = summarizeGeneratedTargetSolverGateResult(result);
   const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
 
@@ -28,6 +28,16 @@ export function buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture(
     summary,
     reportModel
   };
+}
+
+export function buildGeneratedTargetComparisonReportModelFixture() {
+  const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+  return buildGeneratedTargetComparisonReportModelFromResult(result);
+}
+
+export function buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture() {
+  const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+  return buildGeneratedTargetSolverGateSummaryReportModelFromResult(result);
 }
 
 export function buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture() {
@@ -36,14 +46,8 @@ export function buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture(
     ...representativeSugorokuModel,
     transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
   });
-  const summary = summarizeGeneratedTargetSolverGateResult(result);
-  const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
 
-  return {
-    result,
-    summary,
-    reportModel
-  };
+  return buildGeneratedTargetSolverGateSummaryReportModelFromResult(result);
 }
 
 export function buildExplicitGeneratedMismatchSolverGateResultFixture() {
@@ -60,26 +64,12 @@ export function buildExplicitGeneratedMismatchSolverGateResultFixture() {
 
 export function buildExplicitGeneratedMismatchComparisonReportModelFixture() {
   const result = buildExplicitGeneratedMismatchSolverGateResultFixture();
-  const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
-  const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
-
-  return {
-    result,
-    comparisonReport,
-    reportModel
-  };
+  return buildGeneratedTargetComparisonReportModelFromResult(result);
 }
 
 export function buildExplicitGeneratedMismatchSolverGateSummaryReportModelFixture() {
   const result = buildExplicitGeneratedMismatchSolverGateResultFixture();
-  const summary = summarizeGeneratedTargetSolverGateResult(result);
-  const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
-
-  return {
-    result,
-    summary,
-    reportModel
-  };
+  return buildGeneratedTargetSolverGateSummaryReportModelFromResult(result);
 }
 
 export const explicitGeneratedMismatchFixture = {
