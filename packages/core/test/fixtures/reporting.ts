@@ -46,20 +46,20 @@ export function buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture(
   };
 }
 
-export function buildMismatchedGeneratedTargetSolverGateResultFixture() {
-  const mismatchedTransition = {
+export function buildExplicitGeneratedMismatchSolverGateResultFixture() {
+  const explicitGeneratedMismatchTransition = {
     ...representativeSugorokuModel.transitions[0]!,
     effects: [{ type: 'set_property' as const, property: 'position', value: 2 }]
   };
 
   return solveExpectedRewardWithGeneratedTargetGate({
     ...representativeSugorokuModel,
-    transitions: [mismatchedTransition, ...representativeSugorokuModel.transitions.slice(1)]
+    transitions: [explicitGeneratedMismatchTransition, ...representativeSugorokuModel.transitions.slice(1)]
   });
 }
 
-export function buildMismatchedGeneratedTargetComparisonReportModelFixture() {
-  const result = buildMismatchedGeneratedTargetSolverGateResultFixture();
+export function buildExplicitGeneratedMismatchComparisonReportModelFixture() {
+  const result = buildExplicitGeneratedMismatchSolverGateResultFixture();
   const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
   const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
 
@@ -70,8 +70,8 @@ export function buildMismatchedGeneratedTargetComparisonReportModelFixture() {
   };
 }
 
-export function buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture() {
-  const result = buildMismatchedGeneratedTargetSolverGateResultFixture();
+export function buildExplicitGeneratedMismatchSolverGateSummaryReportModelFixture() {
+  const result = buildExplicitGeneratedMismatchSolverGateResultFixture();
   const summary = summarizeGeneratedTargetSolverGateResult(result);
   const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
 
@@ -82,7 +82,7 @@ export function buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixtur
   };
 }
 
-export const generatedTargetMismatchFixture = {
+export const explicitGeneratedMismatchFixture = {
   from: positionStateId(0),
   explicitTo: positionStateId(1),
   generatedTo: positionStateId(2)
