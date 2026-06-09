@@ -4,7 +4,8 @@ import {
   EvaluatedModel,
   evaluateModel,
   solveExpectedReward,
-  SolvedModel
+  SolvedModel,
+  StateId
 } from './model';
 import { expandGraphFromModel, ExpandedStateGraph } from './state_generation';
 import {
@@ -46,6 +47,26 @@ export type GeneratedTargetSolverGateResultSummary =
       rejectionType: GeneratedTargetSolverPlanningRejection['type'];
       rejectionMessage: string;
     };
+
+export type GeneratedTargetComparisonReportRowStatus =
+  | 'match'
+  | 'missing_generated_target'
+  | 'explicit_generated_mismatch';
+
+export type GeneratedTargetComparisonReportRow = {
+  from: StateId;
+  explicitTo: StateId;
+  generatedTo?: StateId;
+  status: GeneratedTargetComparisonReportRowStatus;
+};
+
+export type GeneratedTargetComparisonReport = {
+  edgeCount: number;
+  matchCount: number;
+  missingGeneratedTargetCount: number;
+  explicitGeneratedMismatchCount: number;
+  rows: GeneratedTargetComparisonReportRow[];
+};
 
 export function summarizeGeneratedTargetSolverGateResult(
   result: GeneratedTargetSolverGateResult
@@ -90,6 +111,38 @@ export function formatGeneratedTargetSolverGateResultSummary(
     `rejectionType: ${summary.rejectionType}`,
     `rejectionMessage: ${summary.rejectionMessage}`
   ].join('\n');
+}
+
+function statusForGeneratedTargetComparisonRow(
+  explicitTo: StateId,
+  generatedTo: StateId | undefined
+): GeneratedTargetComparisonReportRowStatus {
+  if (generatedTo === undefined) {
+    return 'missing_generated_target';
+  }
+
+  if (explicitTo !== generatedTo) {
+    return 'explicit_generated_mismatch';
+  }
+
+  return 'match';
+}
+
+export function buildGeneratedTargetComparisonReport(graph: ExpandedStateGraph): GeneratedTargetComparisonReport {
+  const rows = graph.edges.map((edge): GeneratedTargetComparisonReportRow => ({
+    from: edge.from,
+    explicitTo: edge.explicitTo,
+    generatedTo: edge.generatedTo,
+    status: statusForGeneratedTargetComparisonRow(edge.explicitTo, edge.generatedTo)
+  }));
+
+  return {
+    edgeCount: rows.length,
+    matchCount: rows.filter((row) => row.status === 'match').length,
+    missingGeneratedTargetCount: rows.filter((row) => row.status === 'missing_generated_target').length,
+    explicitGeneratedMismatchCount: rows.filter((row) => row.status === 'explicit_generated_mismatch').length,
+    rows
+  };
 }
 
 export function solveExpectedRewardWithGeneratedTargetGate(
