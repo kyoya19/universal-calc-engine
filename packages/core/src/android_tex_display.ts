@@ -1,4 +1,4 @@
-import { OutputResult, StateId } from './model';
+import type { OutputResult, StateId } from './model';
 import { escapeTexText } from './tex';
 
 export type ValueFunctionDisplayRow = {
@@ -6,6 +6,7 @@ export type ValueFunctionDisplayRow = {
   value: number;
   plainText: string;
   tex: string;
+  className: string;
   isStartState: boolean;
 };
 
@@ -37,11 +38,18 @@ export function outputResultToValueFunctionDisplayRows(result: OutputResult): Va
   const startRow: Array<[StateId, number]> = [[result.startState, result.expectedReward]];
   const remainingRows = sortedRows.filter(([stateId]) => stateId !== result.startState);
 
-  return [...startRow, ...remainingRows].map(([stateId, value]) => ({
-    stateId,
-    value,
-    plainText: `${valueFunctionPlainText(stateId)} = ${formatNumber(value)}`,
-    tex: `${valueFunctionTex(stateId)} &= ${formatNumber(value)}`,
-    isStartState: stateId === result.startState
-  }));
+  return [...startRow, ...remainingRows].map(([stateId, value]) => {
+    const isStartState = stateId === result.startState;
+
+    return {
+      stateId,
+      value,
+      plainText: `${valueFunctionPlainText(stateId)} = ${formatNumber(value)}`,
+      tex: `${valueFunctionTex(stateId)} &= ${formatNumber(value)}`,
+      className: isStartState
+        ? 'value-function-row value-function-row--start'
+        : 'value-function-row',
+      isStartState
+    };
+  });
 }
