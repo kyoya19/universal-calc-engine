@@ -1,21 +1,11 @@
 import { describe, expect, test } from 'vitest';
-import type { ReportRow } from '../src';
 import {
   buildAcceptedGeneratedTargetSolverGateSummaryReportModelFixture,
   buildGeneratedTargetComparisonReportModelFixture,
   buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture
 } from './fixtures/reporting';
+import { compactRows } from './fixtures/report_rows';
 import { positionStateId } from './fixtures/sugoroku';
-
-function compactRows(rows: ReportRow[]) {
-  return rows.map((row) => ({
-    id: row.id,
-    label: row.label,
-    plainText: row.plainText,
-    status: row.status,
-    metadata: row.metadata
-  }));
-}
 
 describe('report model adapter regressions', () => {
   test('keeps generated-target comparison summary rows stable', () => {
