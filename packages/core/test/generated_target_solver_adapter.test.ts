@@ -45,6 +45,28 @@ describe('generated target solver gated wrapper', () => {
     });
   });
 
+  test('rejects before evaluating probabilities when a generated target is missing', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...transitionWithoutEffects, probability: 0.25 },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+
+    expect(result).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'missing_generated_target',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: positionStateId(1)
+        }
+      }
+    });
+  });
+
   test('rejects before solving when explicit/generated targets mismatch', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate({
       ...representativeSugorokuModel,
