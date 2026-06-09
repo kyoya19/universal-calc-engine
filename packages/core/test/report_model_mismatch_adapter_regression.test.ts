@@ -1,20 +1,10 @@
 import { describe, expect, test } from 'vitest';
-import type { ReportRow } from '../src';
 import {
   buildMismatchedGeneratedTargetComparisonReportModelFixture,
   buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture,
   generatedTargetMismatchFixture
 } from './fixtures/reporting';
-
-function compactRows(rows: ReportRow[]) {
-  return rows.map((row) => ({
-    id: row.id,
-    label: row.label,
-    plainText: row.plainText,
-    status: row.status,
-    metadata: row.metadata
-  }));
-}
+import { compactRows } from './fixtures/report_rows';
 
 describe('report model mismatch adapter regressions', () => {
   test('keeps explicit mismatch comparison report rows stable', () => {
