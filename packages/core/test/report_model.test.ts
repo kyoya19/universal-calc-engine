@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import {
   buildGeneratedTargetComparisonReport,
+  formatReportModelPlainText,
   generatedTargetComparisonReportToReportModel,
   solveExpectedRewardWithGeneratedTargetGate,
   toOutputResult
@@ -23,6 +24,30 @@ describe('UI consumable report model', () => {
       'explicitGeneratedMismatchCount'
     ]);
     expect(reportModel.sections[1]!.rows).toHaveLength(comparisonReport.rows.length);
+  });
+
+  test('formats a report model as plain text without reparsing metadata', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+    const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
+    const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
+
+    expect(formatReportModelPlainText(reportModel)).toBe(
+      [
+        'Generated Target Comparison Report',
+        '',
+        '## Summary',
+        `edgeCount: ${comparisonReport.edgeCount}`,
+        `matchCount: ${comparisonReport.matchCount}`,
+        'missingGeneratedTargetCount: 0',
+        'explicitGeneratedMismatchCount: 0',
+        '',
+        '## Rows',
+        ...comparisonReport.rows.map(
+          (row, index) =>
+            `row ${index}: from: ${row.from} explicitTo: ${row.explicitTo} generatedTo: ${row.generatedTo ?? '<missing>'} status: ${row.status}`
+        )
+      ].join('\n')
+    );
   });
 
   test('preserves generated-target comparison metadata without reparsing text', () => {
