@@ -4,11 +4,28 @@ import {
   generatedTargetSolverGateResultSummaryToReportModel,
   solveExpectedRewardWithGeneratedTargetGate,
   summarizeGeneratedTargetSolverGateResult,
-  type GeneratedTargetSolverGateResult
+  type GeneratedTargetComparisonReport,
+  type GeneratedTargetSolverGateResult,
+  type GeneratedTargetSolverGateResultSummary,
+  type ReportModel
 } from '../../src';
 import { positionStateId, representativeSugorokuModel } from './sugoroku';
 
-function buildGeneratedTargetComparisonReportModelFromResult(result: GeneratedTargetSolverGateResult) {
+type GeneratedTargetComparisonReportModelFixture = {
+  result: GeneratedTargetSolverGateResult;
+  comparisonReport: GeneratedTargetComparisonReport;
+  reportModel: ReportModel;
+};
+
+type GeneratedTargetSolverGateSummaryReportModelFixture = {
+  result: GeneratedTargetSolverGateResult;
+  summary: GeneratedTargetSolverGateResultSummary;
+  reportModel: ReportModel;
+};
+
+function buildGeneratedTargetComparisonReportModelFromResult(
+  result: GeneratedTargetSolverGateResult
+): GeneratedTargetComparisonReportModelFixture {
   const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
   const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
 
@@ -19,7 +36,9 @@ function buildGeneratedTargetComparisonReportModelFromResult(result: GeneratedTa
   };
 }
 
-function buildGeneratedTargetSolverGateSummaryReportModelFromResult(result: GeneratedTargetSolverGateResult) {
+function buildGeneratedTargetSolverGateSummaryReportModelFromResult(
+  result: GeneratedTargetSolverGateResult
+): GeneratedTargetSolverGateSummaryReportModelFixture {
   const summary = summarizeGeneratedTargetSolverGateResult(result);
   const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
 
