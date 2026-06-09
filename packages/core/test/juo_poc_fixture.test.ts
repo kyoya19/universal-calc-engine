@@ -232,6 +232,19 @@ describe('Juo PoC fixture stub', () => {
     );
   });
 
+  test('keeps named-state reporting readiness metadata unresolved without report wiring', () => {
+    expect(juoPocAssumptions).toContain('This fixture is a machine-specific PoC stub only.');
+    expect(juoPocUnknowns).toContain('Machine-specific validation rules');
+    expect(juoPocUnknowns).toContain('Machine-specific expected report rows');
+
+    expect(juoPocNamedStateModel.states.map((state) => Object.keys(state.properties ?? {}).sort())).toEqual(
+      juoPocNamedStages.map(() => ['machine', 'stage'])
+    );
+    expect(juoPocNamedStateModel.transitions.map((transition) => Object.keys(transition).sort())).toEqual(
+      juoPocNamedStateModel.transitions.map(() => ['effects', 'from', 'probability', 'reward', 'to'])
+    );
+  });
+
   test('keeps placeholder assumptions explicit and machine-specific inputs unresolved', () => {
     expect(juoPocAssumptions).toContain('This fixture is a machine-specific PoC stub only.');
     expect(juoPocAssumptions).toContain(
