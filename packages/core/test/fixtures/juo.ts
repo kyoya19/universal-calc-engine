@@ -249,3 +249,125 @@ export const juoProductionInputFixtureStub: JuoProductionInputFixtureStub = {
     formatterBranchStatus: 'deferred'
   }
 };
+
+export type JuoSourceCandidateType =
+  | 'primary'
+  | 'secondary'
+  | 'observed'
+  | 'inferred'
+  | 'formula'
+  | 'assumption'
+  | 'unknown'
+  | 'excluded';
+
+export interface JuoSourceCandidateInventoryRow {
+  readonly sourceId: string;
+  readonly sourceType: JuoSourceCandidateType;
+  readonly expectedCategory: string;
+  readonly expectedUnitCategory: string;
+  readonly citationStatus: 'unknown';
+  readonly retrievalStatus: 'not_started';
+  readonly transcriptionStatus: 'not_started';
+  readonly confidenceStatus: 'unverified' | 'excluded';
+  readonly conflictStatus: 'unknown' | 'not_applicable';
+  readonly executionEligibility: 'no';
+}
+
+export const juoSourceCandidateInventory: readonly JuoSourceCandidateInventoryRow[] = [
+  {
+    sourceId: 'juo_primary_manual_candidate',
+    sourceType: 'primary',
+    expectedCategory: 'probability_reward_state_route',
+    expectedUnitCategory: 'mixed',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'unknown',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_secondary_machine_value_candidate',
+    sourceType: 'secondary',
+    expectedCategory: 'probability_reward',
+    expectedUnitCategory: 'mixed',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'unknown',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_observed_counter_candidate',
+    sourceType: 'observed',
+    expectedCategory: 'probability_route',
+    expectedUnitCategory: 'count_over_denominator',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'unknown',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_inferred_complement_candidate',
+    sourceType: 'inferred',
+    expectedCategory: 'probability',
+    expectedUnitCategory: 'complement_derived',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'unknown',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_formula_candidate',
+    sourceType: 'formula',
+    expectedCategory: 'probability_reward',
+    expectedUnitCategory: 'formula_derived',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'unknown',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_assumption_candidate',
+    sourceType: 'assumption',
+    expectedCategory: 'scenario_sensitivity',
+    expectedUnitCategory: 'model_only',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'not_applicable',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_unknown_source_gap',
+    sourceType: 'unknown',
+    expectedCategory: 'unresolved',
+    expectedUnitCategory: 'unknown',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'unverified',
+    conflictStatus: 'unknown',
+    executionEligibility: 'no'
+  },
+  {
+    sourceId: 'juo_excluded_route_candidate',
+    sourceType: 'excluded',
+    expectedCategory: 'out_of_scope_route',
+    expectedUnitCategory: 'excluded',
+    citationStatus: 'unknown',
+    retrievalStatus: 'not_started',
+    transcriptionStatus: 'not_started',
+    confidenceStatus: 'excluded',
+    conflictStatus: 'not_applicable',
+    executionEligibility: 'no'
+  }
+];
