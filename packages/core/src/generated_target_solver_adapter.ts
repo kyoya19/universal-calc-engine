@@ -56,7 +56,7 @@ export type GeneratedTargetComparisonReportRowStatus =
 export type GeneratedTargetComparisonReportRow = {
   from: StateId;
   explicitTo: StateId;
-  generatedTo?: StateId;
+  generatedTo?: StateId | undefined;
   status: GeneratedTargetComparisonReportRowStatus;
 };
 
