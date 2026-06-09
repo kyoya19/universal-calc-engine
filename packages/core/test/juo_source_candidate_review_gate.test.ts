@@ -40,4 +40,16 @@ describe('Juo source candidate review gate', () => {
       }
     }
   });
+
+  test('does not treat ready-for-review as execution eligibility', () => {
+    const readyForReviewRows = juoSourceCandidateReviewGateInventory.map((row) => ({
+      ...row,
+      reviewStatus: row.candidate.sourceType === 'excluded' ? row.reviewStatus : 'ready_for_review'
+    }));
+
+    for (const row of readyForReviewRows) {
+      expect(row.executionEligibility).toBe('no');
+      expect(row.candidate.executionEligibility).toBe('no');
+    }
+  });
 });
