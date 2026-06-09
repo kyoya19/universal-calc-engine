@@ -24,7 +24,14 @@ const forbiddenExecutableKeys = new Set([
   'productionReward',
   'expectedValue',
   'graphBinding',
-  'runtimeTarget'
+  'runtimeTarget',
+  'sourceBackedValue',
+  'sourceBackedProbability',
+  'sourceBackedReward',
+  'productionGraphBinding',
+  'targetSubstitution',
+  'expectedRewardAssertion',
+  'expectedValueAssertion'
 ]);
 
 function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
@@ -43,6 +50,17 @@ function expectReviewStatus(status: string): void {
 
 function expectSourceBackedReadinessStatus(status: string): void {
   expect(['not_ready', 'not_applicable', 'excluded']).toContain(status);
+}
+
+function expectNoReadyOrPromotingStatuses(row: Record<string, unknown>): void {
+  for (const value of Object.values(row)) {
+    expect(value).not.toBe('ready');
+    expect(value).not.toBe('approved');
+    expect(value).not.toBe('promoted');
+    expect(value).not.toBe('eligible');
+    expect(value).not.toBe('executable');
+    expect(value).not.toBe('yes');
+  }
 }
 
 describe('Juo production value readiness review inventory', () => {
@@ -177,6 +195,62 @@ describe('Juo production value readiness review inventory', () => {
       expect(row.readinessReviewId.endsWith('_production_value')).toBe(false);
       expect(row.readinessReviewId.endsWith('_executable_value')).toBe(false);
       expect(row.readinessReviewId.endsWith('_expected_value')).toBe(false);
+    }
+  });
+
+  test('keeps readiness review rows free of source-backed numeric and execution binding fields', () => {
+    for (const row of [
+      ...juoProbabilityProductionValueReadinessReviewInventory,
+      ...juoRewardProductionValueReadinessReviewInventory
+    ]) {
+      expectNoExecutableValueKeys({ ...row });
+      expect(Object.keys(row)).not.toContain('productionGraphBinding');
+      expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
+      expect(Object.keys(row)).not.toContain('expectedValueAssertion');
+      expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
+      expect(Object.keys(row)).not.toContain('sourceBackedNumericValue');
+      expect(Object.keys(row)).not.toContain('sourceBackedDecimalValue');
+    }
+  });
+
+  test('keeps readiness review statuses bounded to pre-production states', () => {
+    for (const row of [
+      ...juoProbabilityProductionValueReadinessReviewInventory,
+      ...juoRewardProductionValueReadinessReviewInventory
+    ]) {
+      expectSourceBackedReadinessStatus(row.sourceBackedValueReadinessStatus);
+      expectReviewStatus(row.citationConsistencyStatus);
+      expectReviewStatus(row.unitConsistencyStatus);
+      expectReviewStatus(row.normalizationConsistencyStatus);
+      expectReviewStatus(row.conflictReviewStatus);
+      expect(row.promotionDecisionStatus).toBe('not_promoted');
+      expect(row.executionEligibility).toBe('no');
+      expectNoReadyOrPromotingStatuses({ ...row });
+    }
+  });
+
+  test('keeps probability and reward review inventories domain-separated', () => {
+    const probabilityReviewIds = juoProbabilityProductionValueReadinessReviewInventory.map((row) => row.readinessReviewId);
+    const rewardReviewIds = juoRewardProductionValueReadinessReviewInventory.map((row) => row.readinessReviewId);
+    const probabilityPlaceholderIds = juoProbabilityProductionValueReadinessReviewInventory.map(
+      (row) => row.productionValuePlaceholderId
+    );
+    const rewardPlaceholderIds = juoRewardProductionValueReadinessReviewInventory.map((row) => row.productionValuePlaceholderId);
+
+    for (const row of juoProbabilityProductionValueReadinessReviewInventory) {
+      expect(row.valueDomain).toBe('probability');
+      expect(row.readinessReviewId).toContain('_probability_');
+      expect(row.productionValuePlaceholderId).toContain('_probability_');
+      expect(rewardReviewIds).not.toContain(row.readinessReviewId);
+      expect(rewardPlaceholderIds).not.toContain(row.productionValuePlaceholderId);
+    }
+
+    for (const row of juoRewardProductionValueReadinessReviewInventory) {
+      expect(row.valueDomain).toBe('reward');
+      expect(row.readinessReviewId).toContain('_reward_');
+      expect(row.productionValuePlaceholderId).toContain('_reward_');
+      expect(probabilityReviewIds).not.toContain(row.readinessReviewId);
+      expect(probabilityPlaceholderIds).not.toContain(row.productionValuePlaceholderId);
     }
   });
 });
