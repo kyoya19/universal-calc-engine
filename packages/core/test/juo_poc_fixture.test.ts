@@ -176,6 +176,30 @@ describe('Juo PoC fixture stub', () => {
     }
   });
 
+  test('keeps named-state fixture aligned with unresolved production metadata', () => {
+    expect(juoPocAssumptions).toContain('State labels are placeholders until confirmed Juo inputs are available.');
+    expect(juoPocUnknowns).toContain('Machine-specific state list');
+    expect(juoPocUnknowns).toContain('Machine-specific transition graph');
+    expect(juoPocUnknowns).toContain('Machine-specific terminal conditions');
+
+    expect(juoPocNamedStateModel.states.map((state) => state.id)).toEqual(
+      juoPocNamedStages.map((stage) => juoStateId(stage))
+    );
+  });
+
+  test('keeps named-state fixture aligned with unresolved production values', () => {
+    expect(juoPocAssumptions).toContain(
+      'Transition probabilities are placeholders and must not be treated as production values.'
+    );
+    expect(juoPocAssumptions).toContain('Rewards are placeholders and must not be treated as production values.');
+    expect(juoPocUnknowns).toContain('Machine-specific probability values');
+    expect(juoPocUnknowns).toContain('Machine-specific reward values');
+    expect(juoPocUnknowns).toContain('Machine-specific expected values');
+
+    expect(juoPocNamedStateModel.transitions.every((transition) => transition.probability === 1)).toBe(true);
+    expect(juoPocNamedStateModel.transitions.every((transition) => transition.reward === 0)).toBe(true);
+  });
+
   test('solves the named-state fixture through the generic expected reward pipeline as zero placeholder reward', () => {
     const expanded = expandModel(juoPocNamedStateModel);
     const evaluated = evaluateModel(expanded);
