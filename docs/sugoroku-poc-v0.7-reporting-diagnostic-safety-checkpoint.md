@@ -56,6 +56,18 @@ npm run typecheck
 npm test
 ```
 
+## CI workflow observed on main
+
+The repository has a GitHub Actions workflow at:
+
+```text
+.github/workflows/ci.yml
+```
+
+The workflow runs on pull requests and pushes to `main`.
+
+Its job installs dependencies, runs `npm run typecheck`, and then runs `npm test`.
+
 ## CI status observed through GitHub metadata
 
 GitHub combined status checks were empty for the latest checked merge commit.
@@ -105,7 +117,7 @@ This checkpoint does not approve or implement:
 
 ## Next safe action
 
-The next safe action is to run the available execution checks:
+The next safe action is to let GitHub Actions run the available execution checks on a pull request or push:
 
 ```bash
 npm run typecheck
