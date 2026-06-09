@@ -4,6 +4,8 @@ export function juoStateId(stage: string): string {
   return stateIdFromProperties({ machine: 'juo', stage });
 }
 
+export const juoPocNamedStages = ['start', 'normal', 'chance', 'bonus', 'terminal'] as const;
+
 export const juoPocAssumptions = [
   'This fixture is a machine-specific PoC stub only.',
   'State labels are placeholders until confirmed Juo inputs are available.',
@@ -35,6 +37,47 @@ export const juoPocSeedModel: DefinitionModel = {
       probability: 1,
       reward: 0,
       effects: [{ type: 'set_property', property: 'stage', value: 'placeholder_terminal' }]
+    }
+  ]
+};
+
+export const juoPocNamedStateModel: DefinitionModel = {
+  startState: juoStateId('start'),
+  states: juoPocNamedStages.map((stage) => ({
+    id: juoStateId(stage),
+    properties: { machine: 'juo', stage },
+    ...(stage === 'terminal'
+      ? { terminalCondition: { type: 'property_equals' as const, property: 'stage', value: 'terminal' } }
+      : {})
+  })),
+  transitions: [
+    {
+      from: juoStateId('start'),
+      to: juoStateId('normal'),
+      probability: 1,
+      reward: 0,
+      effects: [{ type: 'set_property', property: 'stage', value: 'normal' }]
+    },
+    {
+      from: juoStateId('normal'),
+      to: juoStateId('chance'),
+      probability: 1,
+      reward: 0,
+      effects: [{ type: 'set_property', property: 'stage', value: 'chance' }]
+    },
+    {
+      from: juoStateId('chance'),
+      to: juoStateId('bonus'),
+      probability: 1,
+      reward: 0,
+      effects: [{ type: 'set_property', property: 'stage', value: 'bonus' }]
+    },
+    {
+      from: juoStateId('bonus'),
+      to: juoStateId('terminal'),
+      probability: 1,
+      reward: 0,
+      effects: [{ type: 'set_property', property: 'stage', value: 'terminal' }]
     }
   ]
 };
