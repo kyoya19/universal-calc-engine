@@ -37,4 +37,15 @@ describe('Juo citation metadata inventory', () => {
       }
     }
   });
+
+  test('does not treat citation metadata as an executable value', () => {
+    for (const row of juoCitationMetadataInventory) {
+      const copiedRow = { ...row };
+      expect(copiedRow.executionEligibility).toBe('no');
+
+      for (const key of Object.keys(copiedRow)) {
+        expect(forbiddenExecutableKeys.has(key)).toBe(false);
+      }
+    }
+  });
 });
