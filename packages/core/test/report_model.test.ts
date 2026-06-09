@@ -1,9 +1,12 @@
 import { describe, expect, test } from 'vitest';
 import {
   buildGeneratedTargetComparisonReport,
+  formatGeneratedTargetSolverGateResultSummary,
   formatReportModelPlainText,
   generatedTargetComparisonReportToReportModel,
+  generatedTargetSolverGateResultSummaryToReportModel,
   solveExpectedRewardWithGeneratedTargetGate,
+  summarizeGeneratedTargetSolverGateResult,
   toOutputResult
 } from '../src';
 import { positionStateId, representativeSugorokuModel } from './fixtures/sugoroku';
@@ -99,6 +102,66 @@ describe('UI consumable report model', () => {
       }
     });
     expect(firstEdgeRow.plainText).toContain('generatedTo: <missing>');
+  });
+
+  test('converts an accepted generated-target solver gate summary into stable report rows', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+
+    expect(reportModel.kind).toBe('generated_target_solver_gate_summary');
+    expect(reportModel.title).toBe('Generated Target Solver Gate Summary');
+    expect(reportModel.sections.map((section) => section.id)).toEqual(['summary']);
+    expect(reportModel.sections[0]!.rows.map((row) => row.id)).toEqual([
+      'accepted',
+      'edgeCount',
+      'generatedTargetReadyEdgeCount'
+    ]);
+    expect(reportModel.sections[0]!.rows[0]).toMatchObject({
+      plainText: 'accepted: true',
+      status: 'ok',
+      metadata: { value: true }
+    });
+  });
+
+  test('keeps gate summary plain text fallback aligned with the existing formatter body', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+
+    expect(formatReportModelPlainText(reportModel)).toBe(
+      ['Generated Target Solver Gate Summary', '', '## Summary', formatGeneratedTargetSolverGateResultSummary(summary)].join('\n')
+    );
+  });
+
+  test('preserves rejected gate summary metadata without connecting generatedTo to solver target', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+
+    expect(summary.accepted).toBe(false);
+    expect(reportModel.sections[0]!.rows.map((row) => row.id)).toEqual([
+      'accepted',
+      'edgeCount',
+      'generatedTargetReadyEdgeCount',
+      'rejectionCode',
+      'rejectionType',
+      'rejectionMessage'
+    ]);
+    expect(reportModel.sections[0]!.rows.find((row) => row.id === 'accepted')).toMatchObject({
+      plainText: 'accepted: false',
+      status: 'rejected',
+      metadata: { value: false }
+    });
+    expect(reportModel.sections[0]!.rows.find((row) => row.id === 'rejectionCode')).toMatchObject({
+      plainText: 'rejectionCode: missing_generated_target',
+      status: 'rejected',
+      metadata: { value: 'missing_generated_target' }
+    });
   });
 
   test('does not change generated-target solver gate behavior or baseline values', () => {
