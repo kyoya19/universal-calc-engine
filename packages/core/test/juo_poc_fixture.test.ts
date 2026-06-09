@@ -127,6 +127,35 @@ describe('Juo PoC fixture stub', () => {
     }
   });
 
+  test('keeps the named-state graph as a single placeholder path without branches', () => {
+    const outgoingCounts = new Map<string, number>();
+    const incomingCounts = new Map<string, number>();
+
+    for (const transition of juoPocNamedStateModel.transitions) {
+      outgoingCounts.set(transition.from, (outgoingCounts.get(transition.from) ?? 0) + 1);
+      incomingCounts.set(transition.to, (incomingCounts.get(transition.to) ?? 0) + 1);
+    }
+
+    expect(juoPocNamedStateModel.transitions).toHaveLength(juoPocNamedStages.length - 1);
+    expect(outgoingCounts.get(juoStateId('terminal')) ?? 0).toBe(0);
+    expect(incomingCounts.get(juoStateId('start')) ?? 0).toBe(0);
+
+    for (const stage of juoPocNamedStages.filter((candidate) => candidate !== 'terminal')) {
+      expect(outgoingCounts.get(juoStateId(stage))).toBe(1);
+    }
+    for (const stage of juoPocNamedStages.filter((candidate) => candidate !== 'start')) {
+      expect(incomingCounts.get(juoStateId(stage))).toBe(1);
+    }
+  });
+
+  test('keeps the named-state graph acyclic in declared placeholder order', () => {
+    const stageOrder = new Map(juoPocNamedStages.map((stage, index) => [juoStateId(stage), index]));
+
+    for (const transition of juoPocNamedStateModel.transitions) {
+      expect(stageOrder.get(transition.to)).toBe((stageOrder.get(transition.from) ?? -1) + 1);
+    }
+  });
+
   test('keeps exactly one named-state terminal and no outgoing terminal transitions', () => {
     const terminalStates = juoPocNamedStateModel.states.filter((state) => isTerminalState(state));
 
