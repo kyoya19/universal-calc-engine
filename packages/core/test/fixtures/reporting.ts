@@ -46,15 +46,20 @@ export function buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture(
   };
 }
 
-export function buildMismatchedGeneratedTargetComparisonReportModelFixture() {
+export function buildMismatchedGeneratedTargetSolverGateResultFixture() {
   const mismatchedTransition = {
     ...representativeSugorokuModel.transitions[0]!,
     effects: [{ type: 'set_property' as const, property: 'position', value: 2 }]
   };
-  const result = solveExpectedRewardWithGeneratedTargetGate({
+
+  return solveExpectedRewardWithGeneratedTargetGate({
     ...representativeSugorokuModel,
     transitions: [mismatchedTransition, ...representativeSugorokuModel.transitions.slice(1)]
   });
+}
+
+export function buildMismatchedGeneratedTargetComparisonReportModelFixture() {
+  const result = buildMismatchedGeneratedTargetSolverGateResultFixture();
   const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
   const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
 
@@ -66,14 +71,7 @@ export function buildMismatchedGeneratedTargetComparisonReportModelFixture() {
 }
 
 export function buildMismatchedGeneratedTargetSolverGateSummaryReportModelFixture() {
-  const mismatchedTransition = {
-    ...representativeSugorokuModel.transitions[0]!,
-    effects: [{ type: 'set_property' as const, property: 'position', value: 2 }]
-  };
-  const result = solveExpectedRewardWithGeneratedTargetGate({
-    ...representativeSugorokuModel,
-    transitions: [mismatchedTransition, ...representativeSugorokuModel.transitions.slice(1)]
-  });
+  const result = buildMismatchedGeneratedTargetSolverGateResultFixture();
   const summary = summarizeGeneratedTargetSolverGateResult(result);
   const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
 
