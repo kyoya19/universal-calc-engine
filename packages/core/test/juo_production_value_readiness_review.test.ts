@@ -24,12 +24,29 @@ const forbiddenExecutableKeys = new Set([
   'productionReward',
   'expectedValue',
   'graphBinding',
-  'runtimeTarget'
+  'runtimeTarget',
+  'sourceBackedValue',
+  'sourceBackedProbability',
+  'sourceBackedReward',
+  'productionGraphBinding',
+  'targetSubstitution',
+  'expectedRewardAssertion',
+  'expectedValueAssertion'
 ]);
+
+const productionValueLikeKeyPattern = /(?:^|[A-Z])(value|numerator|denominator|decimal|payout|reward|probability|amount|expected|graph|runtime|substitution|assertion)(?:$|[A-Z])/;
 
 function expectNoExecutableValueKeys(row: Record<string, unknown>): void {
   for (const key of Object.keys(row)) {
     expect(forbiddenExecutableKeys.has(key)).toBe(false);
+  }
+}
+
+function expectNoProductionValueLikeKeys(row: Record<string, unknown>): void {
+  for (const key of Object.keys(row)) {
+    if (key === 'sourceBackedValueReadinessStatus' || key === 'valueDomain') continue;
+
+    expect(productionValueLikeKeyPattern.test(key)).toBe(false);
   }
 }
 
@@ -43,6 +60,17 @@ function expectReviewStatus(status: string): void {
 
 function expectSourceBackedReadinessStatus(status: string): void {
   expect(['not_ready', 'not_applicable', 'excluded']).toContain(status);
+}
+
+function expectNoReadyOrPromotingStatuses(row: Record<string, unknown>): void {
+  for (const value of Object.values(row)) {
+    expect(value).not.toBe('ready');
+    expect(value).not.toBe('approved');
+    expect(value).not.toBe('promoted');
+    expect(value).not.toBe('eligible');
+    expect(value).not.toBe('executable');
+    expect(value).not.toBe('yes');
+  }
 }
 
 describe('Juo production value readiness review inventory', () => {
@@ -177,6 +205,60 @@ describe('Juo production value readiness review inventory', () => {
       expect(row.readinessReviewId.endsWith('_production_value')).toBe(false);
       expect(row.readinessReviewId.endsWith('_executable_value')).toBe(false);
       expect(row.readinessReviewId.endsWith('_expected_value')).toBe(false);
+    }
+  });
+
+  test('keeps readiness review rows free of source-backed numeric and execution binding fields', () => {
+    for (const row of [
+      ...juoProbabilityProductionValueReadinessReviewInventory,
+      ...juoRewardProductionValueReadinessReviewInventory
+    ]) {
+      expectNoExecutableValueKeys({ ...row });
+      expectNoProductionValueLikeKeys({ ...row });
+      expect(Object.keys(row)).not.toContain('productionGraphBinding');
+      expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
+      expect(Object.keys(row)).not.toContain('expectedValueAssertion');
+      expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
+    }
+  });
+
+  test('keeps readiness review statuses bounded to pre-production states', () => {
+    for (const row of [
+      ...juoProbabilityProductionValueReadinessReviewInventory,
+      ...juoRewardProductionValueReadinessReviewInventory
+    ]) {
+      expectSourceBackedReadinessStatus(row.sourceBackedValueReadinessStatus);
+      expectReviewStatus(row.citationConsistencyStatus);
+      expectReviewStatus(row.unitConsistencyStatus);
+      expectReviewStatus(row.normalizationConsistencyStatus);
+      expectReviewStatus(row.conflictReviewStatus);
+      expect(row.promotionDecisionStatus).toBe('not_promoted');
+      expect(row.executionEligibility).toBe('no');
+      expectNoReadyOrPromotingStatuses({ ...row });
+    }
+  });
+
+  test('keeps probability and reward review inventories aligned only through shared source lineage', () => {
+    const probabilityBySource = new Map(
+      juoProbabilityProductionValueReadinessReviewInventory.map((row) => [row.sourceId, row])
+    );
+    const rewardBySource = new Map(juoRewardProductionValueReadinessReviewInventory.map((row) => [row.sourceId, row]));
+
+    expect([...probabilityBySource.keys()].sort()).toEqual([...rewardBySource.keys()].sort());
+
+    for (const [sourceId, probabilityRow] of probabilityBySource) {
+      const rewardRow = rewardBySource.get(sourceId);
+
+      expect(rewardRow).toBeDefined();
+      expect(probabilityRow.readinessReviewId).not.toBe(rewardRow?.readinessReviewId);
+      expect(probabilityRow.productionValuePlaceholderId).not.toBe(rewardRow?.productionValuePlaceholderId);
+      expect(probabilityRow.draftMetadataId).not.toBe(rewardRow?.draftMetadataId);
+      expect(probabilityRow.promotionGateId).not.toBe(rewardRow?.promotionGateId);
+      expect(probabilityRow.extractedValueMetadataId).not.toBe(rewardRow?.extractedValueMetadataId);
+      expect(probabilityRow.unitMetadataId).not.toBe(rewardRow?.unitMetadataId);
+      expect(probabilityRow.citationId).not.toBe(rewardRow?.citationId);
+      expect(probabilityRow.valueDomain).toBe('probability');
+      expect(rewardRow?.valueDomain).toBe('reward');
     }
   });
 });
