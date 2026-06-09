@@ -13,6 +13,7 @@ The public entry points are exported from `packages/core/src/index.ts` through `
 ```ts
 solveExpectedRewardWithGeneratedTargetGate(model)
 summarizeGeneratedTargetSolverGateResult(result)
+formatGeneratedTargetSolverGateResultSummary(summary)
 ```
 
 ## Runtime path
@@ -59,6 +60,31 @@ Rejected summary shape:
 }
 ```
 
+## Formatter helper
+
+`formatGeneratedTargetSolverGateResultSummary(summary)` converts a gate summary into a stable line-oriented diagnostic string.
+
+Accepted formatter output shape:
+
+```text
+accepted: true
+edgeCount: 4
+generatedTargetReadyEdgeCount: 4
+```
+
+Rejected formatter output shape:
+
+```text
+accepted: false
+edgeCount: 4
+generatedTargetReadyEdgeCount: 3
+rejectionCode: missing_generated_target
+rejectionType: missing_generated_target
+rejectionMessage: Generated target is missing for edge from position_0 to position_1
+```
+
+The formatter is intentionally summary-based. It does not inspect or modify the model, graph, evaluated model, solved model, solver target, or contribution target.
+
 ## Stable reporting fields
 
 `accepted` is the primary branch field.
@@ -72,6 +98,20 @@ Rejected summary shape:
 `rejectionType` mirrors the planning rejection type for compatibility.
 
 `rejectionMessage` is the human-facing explanation.
+
+## Usage sequence
+
+The recommended reporting sequence is:
+
+```ts
+const result = solveExpectedRewardWithGeneratedTargetGate(model);
+const summary = summarizeGeneratedTargetSolverGateResult(result);
+const diagnosticText = formatGeneratedTargetSolverGateResultSummary(summary);
+```
+
+Accepted results may then be used with the existing explicit-target solver output contained in the accepted gate result.
+
+Rejected results should be reported from the summary or formatted diagnostic text without evaluating or solving the model.
 
 ## Preserved target semantics
 
