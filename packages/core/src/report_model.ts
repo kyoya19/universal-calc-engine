@@ -32,6 +32,17 @@ function comparisonStatusToReportStatus(status: GeneratedTargetComparisonReportR
   return 'rejected';
 }
 
+export function formatReportModelPlainText(report: ReportModel): string {
+  return [
+    report.title,
+    ...report.sections.flatMap((section) => [
+      '',
+      `## ${section.title}`,
+      ...section.rows.map((row) => row.plainText)
+    ])
+  ].join('\n');
+}
+
 export function generatedTargetComparisonReportToReportModel(
   report: GeneratedTargetComparisonReport
 ): ReportModel {
