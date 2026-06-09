@@ -168,6 +168,7 @@ describe('report model adapter regressions', () => {
 
   test('keeps rejected solver gate summary rows stable', () => {
     const { reportModel } = buildRejectedGeneratedTargetSolverGateSummaryReportModelFixture();
+    const rejectionMessage = `Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`;
 
     expect(compactRows(reportModel.sections[0]!.rows)).toEqual([
       {
@@ -194,23 +195,23 @@ describe('report model adapter regressions', () => {
       {
         id: 'rejectionCode',
         label: 'rejectionCode',
-        plainText: 'rejectionCode: generated_target_missing',
+        plainText: 'rejectionCode: missing_generated_target',
         status: 'rejected',
-        metadata: { value: 'generated_target_missing' }
+        metadata: { value: 'missing_generated_target' }
       },
       {
         id: 'rejectionType',
         label: 'rejectionType',
-        plainText: 'rejectionType: generated_target_missing',
+        plainText: 'rejectionType: missing_generated_target',
         status: 'rejected',
-        metadata: { value: 'generated_target_missing' }
+        metadata: { value: 'missing_generated_target' }
       },
       {
         id: 'rejectionMessage',
         label: 'rejectionMessage',
-        plainText: `rejectionMessage: Generated target missing for transition from ${positionStateId(0)} to ${positionStateId(1)}`,
+        plainText: `rejectionMessage: ${rejectionMessage}`,
         status: 'rejected',
-        metadata: { value: `Generated target missing for transition from ${positionStateId(0)} to ${positionStateId(1)}` }
+        metadata: { value: rejectionMessage }
       }
     ]);
   });
