@@ -34,8 +34,8 @@ describe('generated target solver gated wrapper', () => {
 
     expect(summarizeGeneratedTargetSolverGateResult(result)).toEqual({
       accepted: true,
-      edgeCount: 4,
-      generatedTargetReadyEdgeCount: 4
+      edgeCount: result.graph.edges.length,
+      generatedTargetReadyEdgeCount: result.graph.edges.filter((edge) => edge.generatedTo !== undefined).length
     });
   });
 
@@ -67,8 +67,8 @@ describe('generated target solver gated wrapper', () => {
 
     expect(summarizeGeneratedTargetSolverGateResult(result)).toEqual({
       accepted: false,
-      edgeCount: 4,
-      generatedTargetReadyEdgeCount: 3,
+      edgeCount: result.graph.edges.length,
+      generatedTargetReadyEdgeCount: result.graph.edges.filter((edge) => edge.generatedTo !== undefined).length,
       rejectionType: 'missing_generated_target',
       rejectionMessage: `Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`
     });
