@@ -19,6 +19,10 @@ const forbiddenProductionValueKeys = new Set([
   'probability',
   'reward'
 ]);
+const sourcePolicyValueStatuses = new Set(['candidate', 'source_backed', 'formula_backed', 'inferred', 'accepted']);
+const requiredSourceMetadataKeys = new Set(['sourceType', 'sourceTitle', 'sourceLocation', 'transcriptionStatus', 'confidenceStatus']);
+const requiredProbabilityUnitMetadataKeys = new Set(['probabilityRepresentation', 'condition', 'normalizationStatus']);
+const requiredRewardUnitMetadataKeys = new Set(['rewardUnit', 'accountingBoundary', 'grossOrNet']);
 
 function expectUnique(values: readonly string[]): void {
   expect(new Set(values).size).toBe(values.length);
@@ -27,6 +31,23 @@ function expectUnique(values: readonly string[]): void {
 function expectNoProductionValueKeys(candidate: object): void {
   for (const key of Object.keys(candidate)) {
     expect(forbiddenProductionValueKeys.has(key)).toBe(false);
+  }
+}
+
+function expectNoSourcePolicyPromotionWithoutMetadata(candidate: object, requiredMetadataKeys: ReadonlySet<string>): void {
+  const row = candidate as Record<string, unknown>;
+  const valueStatus = row.valueStatus;
+
+  if (typeof valueStatus !== 'string' || !sourcePolicyValueStatuses.has(valueStatus)) {
+    return;
+  }
+
+  for (const key of requiredSourceMetadataKeys) {
+    expect(Object.prototype.hasOwnProperty.call(row, key)).toBe(true);
+  }
+
+  for (const key of requiredMetadataKeys) {
+    expect(Object.prototype.hasOwnProperty.call(row, key)).toBe(true);
   }
 }
 
@@ -132,6 +153,16 @@ describe('Juo production input stub validation', () => {
         'valueStatus',
         'valueType'
       ]);
+    }
+  });
+
+  test('rejects source-policy promotion without required citation and unit metadata', () => {
+    for (const probability of juoProductionInputFixtureStub.probabilities) {
+      expectNoSourcePolicyPromotionWithoutMetadata(probability, requiredProbabilityUnitMetadataKeys);
+    }
+
+    for (const reward of juoProductionInputFixtureStub.rewards) {
+      expectNoSourcePolicyPromotionWithoutMetadata(reward, requiredRewardUnitMetadataKeys);
     }
   });
 
