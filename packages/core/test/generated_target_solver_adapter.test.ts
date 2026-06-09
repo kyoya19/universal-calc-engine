@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'vitest';
 import { toContributionResult, toOutputResult } from '../src';
 import {
+  formatGeneratedTargetSolverGateResultSummary,
   solveExpectedRewardWithGeneratedTargetGate,
   summarizeGeneratedTargetSolverGateResult
 } from '../src/generated_target_solver_adapter';
@@ -39,6 +40,19 @@ describe('generated target solver gated wrapper', () => {
     });
   });
 
+  test('formats an accepted generated-target gate summary', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+
+    expect(formatGeneratedTargetSolverGateResultSummary(summary)).toBe(
+      [
+        'accepted: true',
+        `edgeCount: ${result.graph.edges.length}`,
+        `generatedTargetReadyEdgeCount: ${result.graph.edges.filter((edge) => edge.generatedTo !== undefined).length}`
+      ].join('\n')
+    );
+  });
+
   test('rejects before solving when a generated target is missing', () => {
     const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const result = solveExpectedRewardWithGeneratedTargetGate({
@@ -73,6 +87,26 @@ describe('generated target solver gated wrapper', () => {
       rejectionType: 'missing_generated_target',
       rejectionMessage: `Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`
     });
+  });
+
+  test('formats a rejected generated-target gate summary', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+
+    expect(formatGeneratedTargetSolverGateResultSummary(summary)).toBe(
+      [
+        'accepted: false',
+        `edgeCount: ${result.graph.edges.length}`,
+        `generatedTargetReadyEdgeCount: ${result.graph.edges.filter((edge) => edge.generatedTo !== undefined).length}`,
+        'rejectionCode: missing_generated_target',
+        'rejectionType: missing_generated_target',
+        `rejectionMessage: Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`
+      ].join('\n')
+    );
   });
 
   test('rejects before evaluating probabilities when a generated target is missing', () => {
