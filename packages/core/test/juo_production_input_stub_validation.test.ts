@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { juoProductionInputFixtureStub } from './fixtures/juo';
+import { juoProductionInputFixtureStub, juoSourceCandidateInventory } from './fixtures/juo';
 
 const allowedStatuses = new Set(['required', 'stub', 'deferred', 'excluded']);
 const allowedStateKinds = new Set(['start', 'terminal', 'transient', 'helper']);
@@ -23,6 +23,7 @@ const sourcePolicyValueStatuses = new Set(['candidate', 'source_backed', 'formul
 const requiredSourceMetadataKeys = new Set(['sourceType', 'sourceTitle', 'sourceLocation', 'transcriptionStatus', 'confidenceStatus']);
 const requiredProbabilityUnitMetadataKeys = new Set(['probabilityRepresentation', 'condition', 'normalizationStatus']);
 const requiredRewardUnitMetadataKeys = new Set(['rewardUnit', 'accountingBoundary', 'grossOrNet']);
+const sourceCandidateTypes = new Set(['primary', 'secondary', 'observed', 'inferred', 'formula', 'assumption', 'unknown', 'excluded']);
 
 function expectUnique(values: readonly string[]): void {
   expect(new Set(values).size).toBe(values.length);
@@ -163,6 +164,26 @@ describe('Juo production input stub validation', () => {
 
     for (const reward of juoProductionInputFixtureStub.rewards) {
       expectNoSourcePolicyPromotionWithoutMetadata(reward, requiredRewardUnitMetadataKeys);
+    }
+  });
+
+  test('validates non-executable source candidate inventory rows', () => {
+    expect(juoSourceCandidateInventory).not.toHaveLength(0);
+    expectUnique(juoSourceCandidateInventory.map((candidate) => candidate.sourceId));
+    expect(new Set(juoSourceCandidateInventory.map((candidate) => candidate.sourceType))).toEqual(sourceCandidateTypes);
+
+    for (const candidate of juoSourceCandidateInventory) {
+      expect(candidate.sourceId.trim()).not.toBe('');
+      expect(sourceCandidateTypes.has(candidate.sourceType)).toBe(true);
+      expect(candidate.expectedCategory.trim()).not.toBe('');
+      expect(candidate.expectedUnitCategory.trim()).not.toBe('');
+      expect(candidate.citationStatus).toBe('unknown');
+      expect(candidate.retrievalStatus).toBe('not_started');
+      expect(candidate.transcriptionStatus).toBe('not_started');
+      expect(['unverified', 'excluded']).toContain(candidate.confidenceStatus);
+      expect(['unknown', 'not_applicable']).toContain(candidate.conflictStatus);
+      expect(candidate.executionEligibility).toBe('no');
+      expectNoProductionValueKeys(candidate);
     }
   });
 
