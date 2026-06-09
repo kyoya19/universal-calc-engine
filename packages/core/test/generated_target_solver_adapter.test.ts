@@ -1,6 +1,9 @@
 import { describe, expect, test } from 'vitest';
 import { toContributionResult, toOutputResult } from '../src';
-import { solveExpectedRewardWithGeneratedTargetGate } from '../src/generated_target_solver_adapter';
+import {
+  solveExpectedRewardWithGeneratedTargetGate,
+  summarizeGeneratedTargetSolverGateResult
+} from '../src/generated_target_solver_adapter';
 import {
   positionStateId,
   representativeSugorokuExpectedRewardByState,
@@ -26,6 +29,16 @@ describe('generated target solver gated wrapper', () => {
     expect(output.expectedRewardByState[positionStateId(3)]).toBe(representativeSugorokuExpectedRewardByState[positionStateId(3)]);
   });
 
+  test('summarizes an accepted generated-target gate result', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+
+    expect(summarizeGeneratedTargetSolverGateResult(result)).toEqual({
+      accepted: true,
+      edgeCount: 4,
+      generatedTargetReadyEdgeCount: 4
+    });
+  });
+
   test('rejects before solving when a generated target is missing', () => {
     const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const result = solveExpectedRewardWithGeneratedTargetGate({
@@ -42,6 +55,22 @@ describe('generated target solver gated wrapper', () => {
           explicitTo: positionStateId(1)
         }
       }
+    });
+  });
+
+  test('summarizes a rejected generated-target gate result', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+
+    expect(summarizeGeneratedTargetSolverGateResult(result)).toEqual({
+      accepted: false,
+      edgeCount: 4,
+      generatedTargetReadyEdgeCount: 3,
+      rejectionType: 'missing_generated_target',
+      rejectionMessage: `Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`
     });
   });
 
