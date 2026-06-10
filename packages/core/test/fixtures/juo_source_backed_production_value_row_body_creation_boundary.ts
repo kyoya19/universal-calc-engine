@@ -1,0 +1,55 @@
+import {
+  juoProbabilitySourceBackedProductionValueRowBodyPlaceholderImplementationInventory,
+  juoRewardSourceBackedProductionValueRowBodyPlaceholderImplementationInventory,
+  type JuoProbabilitySourceBackedProductionValueRowBodyPlaceholderImplementationRow,
+  type JuoRewardSourceBackedProductionValueRowBodyPlaceholderImplementationRow
+} from './juo_source_backed_production_value_row_body_placeholder_implementation';
+
+export type JuoSourceBackedProductionValueRowBodyCreationBoundaryStatus =
+  'row_body_creation_boundary_blocked';
+
+export interface JuoProbabilitySourceBackedProductionValueRowBodyCreationBoundaryRow
+  extends JuoProbabilitySourceBackedProductionValueRowBodyPlaceholderImplementationRow {
+  readonly sourceBackedProductionValueRowBodyCreationBoundaryId: string;
+  readonly sourceBackedProductionValueRowBodyCreationBoundaryEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyCreationBoundaryStatus: JuoSourceBackedProductionValueRowBodyCreationBoundaryStatus;
+}
+
+export interface JuoRewardSourceBackedProductionValueRowBodyCreationBoundaryRow
+  extends JuoRewardSourceBackedProductionValueRowBodyPlaceholderImplementationRow {
+  readonly sourceBackedProductionValueRowBodyCreationBoundaryId: string;
+  readonly sourceBackedProductionValueRowBodyCreationBoundaryEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyCreationBoundaryStatus: JuoSourceBackedProductionValueRowBodyCreationBoundaryStatus;
+}
+
+function probabilityRowFor(
+  placeholderImplementation: JuoProbabilitySourceBackedProductionValueRowBodyPlaceholderImplementationRow
+): JuoProbabilitySourceBackedProductionValueRowBodyCreationBoundaryRow {
+  return {
+    ...placeholderImplementation,
+    sourceBackedProductionValueRowBodyCreationBoundaryId: `${placeholderImplementation.sourceId}_probability_source_backed_production_value_row_body_creation_boundary`,
+    sourceBackedProductionValueRowBodyCreationBoundaryEligibility: 'no',
+    sourceBackedProductionValueRowBodyCreationBoundaryStatus: 'row_body_creation_boundary_blocked',
+    sourceBackedProductionValueRowBodyCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+function rewardRowFor(
+  placeholderImplementation: JuoRewardSourceBackedProductionValueRowBodyPlaceholderImplementationRow
+): JuoRewardSourceBackedProductionValueRowBodyCreationBoundaryRow {
+  return {
+    ...placeholderImplementation,
+    sourceBackedProductionValueRowBodyCreationBoundaryId: `${placeholderImplementation.sourceId}_reward_source_backed_production_value_row_body_creation_boundary`,
+    sourceBackedProductionValueRowBodyCreationBoundaryEligibility: 'no',
+    sourceBackedProductionValueRowBodyCreationBoundaryStatus: 'row_body_creation_boundary_blocked',
+    sourceBackedProductionValueRowBodyCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+export const juoProbabilitySourceBackedProductionValueRowBodyCreationBoundaryInventory: readonly JuoProbabilitySourceBackedProductionValueRowBodyCreationBoundaryRow[] =
+  juoProbabilitySourceBackedProductionValueRowBodyPlaceholderImplementationInventory.map(probabilityRowFor);
+
+export const juoRewardSourceBackedProductionValueRowBodyCreationBoundaryInventory: readonly JuoRewardSourceBackedProductionValueRowBodyCreationBoundaryRow[] =
+  juoRewardSourceBackedProductionValueRowBodyPlaceholderImplementationInventory.map(rewardRowFor);
