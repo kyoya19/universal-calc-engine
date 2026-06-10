@@ -1,0 +1,61 @@
+import {
+  juoProbabilitySourceBackedProductionValueRowBodyValueImplementationInventory,
+  juoRewardSourceBackedProductionValueRowBodyValueImplementationInventory,
+  type JuoProbabilitySourceBackedProductionValueRowBodyValueImplementationRow,
+  type JuoRewardSourceBackedProductionValueRowBodyValueImplementationRow
+} from './juo_source_backed_production_value_row_body_value_implementation';
+
+export type JuoSourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus =
+  'row_body_value_materialization_boundary_blocked';
+
+export interface JuoProbabilitySourceBackedProductionValueRowBodyValueMaterializationBoundaryRow
+  extends JuoProbabilitySourceBackedProductionValueRowBodyValueImplementationRow {
+  readonly sourceBackedProductionValueRowBodyValueMaterializationBoundaryId: string;
+  readonly sourceBackedProductionValueRowBodyValueMaterializationBoundaryEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus: JuoSourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus;
+  readonly sourceBackedProductionValueRowBodyValueMaterializationEligibility: 'no';
+}
+
+export interface JuoRewardSourceBackedProductionValueRowBodyValueMaterializationBoundaryRow
+  extends JuoRewardSourceBackedProductionValueRowBodyValueImplementationRow {
+  readonly sourceBackedProductionValueRowBodyValueMaterializationBoundaryId: string;
+  readonly sourceBackedProductionValueRowBodyValueMaterializationBoundaryEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus: JuoSourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus;
+  readonly sourceBackedProductionValueRowBodyValueMaterializationEligibility: 'no';
+}
+
+function probabilityRowFor(
+  implementation: JuoProbabilitySourceBackedProductionValueRowBodyValueImplementationRow
+): JuoProbabilitySourceBackedProductionValueRowBodyValueMaterializationBoundaryRow {
+  return {
+    ...implementation,
+    sourceBackedProductionValueRowBodyValueMaterializationBoundaryId: `${implementation.sourceId}_probability_source_backed_production_value_row_body_value_materialization_boundary`,
+    sourceBackedProductionValueRowBodyValueMaterializationBoundaryEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus:
+      'row_body_value_materialization_boundary_blocked',
+    sourceBackedProductionValueRowBodyValueMaterializationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+function rewardRowFor(
+  implementation: JuoRewardSourceBackedProductionValueRowBodyValueImplementationRow
+): JuoRewardSourceBackedProductionValueRowBodyValueMaterializationBoundaryRow {
+  return {
+    ...implementation,
+    sourceBackedProductionValueRowBodyValueMaterializationBoundaryId: `${implementation.sourceId}_reward_source_backed_production_value_row_body_value_materialization_boundary`,
+    sourceBackedProductionValueRowBodyValueMaterializationBoundaryEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueMaterializationBoundaryStatus:
+      'row_body_value_materialization_boundary_blocked',
+    sourceBackedProductionValueRowBodyValueMaterializationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+export const juoProbabilitySourceBackedProductionValueRowBodyValueMaterializationBoundaryInventory: readonly JuoProbabilitySourceBackedProductionValueRowBodyValueMaterializationBoundaryRow[] =
+  juoProbabilitySourceBackedProductionValueRowBodyValueImplementationInventory.map(probabilityRowFor);
+
+export const juoRewardSourceBackedProductionValueRowBodyValueMaterializationBoundaryInventory: readonly JuoRewardSourceBackedProductionValueRowBodyValueMaterializationBoundaryRow[] =
+  juoRewardSourceBackedProductionValueRowBodyValueImplementationInventory.map(rewardRowFor);
