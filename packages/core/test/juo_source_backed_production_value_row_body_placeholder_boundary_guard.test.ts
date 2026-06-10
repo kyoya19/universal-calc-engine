@@ -62,7 +62,9 @@ const forbiddenReadyValues = new Set([
   'executable'
 ]);
 
-function allPlaceholderRows(): readonly Record<string, unknown>[] {
+type PlaceholderBoundaryGuardRow = Record<string, unknown>;
+
+function allPlaceholderRows(): readonly PlaceholderBoundaryGuardRow[] {
   return [
     ...juoProbabilitySourceBackedProductionValueRowBodyPlaceholderBoundaryInventory,
     ...juoRewardSourceBackedProductionValueRowBodyPlaceholderBoundaryInventory
@@ -121,13 +123,15 @@ describe('Juo source-backed production value row body placeholder boundary guard
 
   test('keeps placeholder boundary ids separate from readiness, shell, and executable row body ids', () => {
     for (const row of allPlaceholderRows()) {
-      const boundaryId = String(row.sourceBackedProductionValueRowBodyPlaceholderBoundaryId);
+      const boundaryId = String(row['sourceBackedProductionValueRowBodyPlaceholderBoundaryId']);
 
-      expect(boundaryId).toContain(String(row.sourceId));
-      expect(boundaryId).not.toBe(row.sourceBackedProductionValueRowBodyReadinessBoundaryId);
-      expect(boundaryId).not.toBe(row.sourceBackedProductionValueRowShellBoundaryId);
-      expect(boundaryId).not.toContain(String(row.sourceBackedProductionValueRowBodyReadinessBoundaryId));
-      expect(boundaryId).not.toContain(String(row.sourceBackedProductionValueRowShellBoundaryId));
+      expect(boundaryId).toContain(String(row['sourceId']));
+      expect(boundaryId).not.toBe(row['sourceBackedProductionValueRowBodyReadinessBoundaryId']);
+      expect(boundaryId).not.toBe(row['sourceBackedProductionValueRowShellBoundaryId']);
+      expect(boundaryId).not.toContain(
+        String(row['sourceBackedProductionValueRowBodyReadinessBoundaryId'])
+      );
+      expect(boundaryId).not.toContain(String(row['sourceBackedProductionValueRowShellBoundaryId']));
       expect(boundaryId).toContain('_source_backed_production_value_row_body_placeholder_boundary');
       expect(boundaryId).not.toContain('_source_backed_production_value_row_body_placeholder_id');
     }
@@ -149,12 +153,12 @@ describe('Juo source-backed production value row body placeholder boundary guard
 
   test('keeps all placeholder boundary guard values on the blocked path', () => {
     for (const row of allPlaceholderRows()) {
-      expect(row.sourceBackedProductionValueRowBodyPlaceholderEligibility).toBe('no');
-      expect(row.sourceBackedProductionValueRowBodyPlaceholderBoundaryStatus).toBe(
+      expect(row['sourceBackedProductionValueRowBodyPlaceholderEligibility']).toBe('no');
+      expect(row['sourceBackedProductionValueRowBodyPlaceholderBoundaryStatus']).toBe(
         'row_body_placeholder_boundary_blocked'
       );
-      expect(row.sourceBackedProductionValueRowBodyCreationEligibility).toBe('no');
-      expect(row.executionEligibility).toBe('no');
+      expect(row['sourceBackedProductionValueRowBodyCreationEligibility']).toBe('no');
+      expect(row['executionEligibility']).toBe('no');
 
       for (const value of Object.values(row)) {
         expect(forbiddenReadyValues.has(String(value))).toBe(false);
