@@ -1,0 +1,63 @@
+import {
+  juoProbabilitySourceBackedProductionValueRowBodyValueMaterializationImplementationInventory,
+  juoRewardSourceBackedProductionValueRowBodyValueMaterializationImplementationInventory,
+  type JuoProbabilitySourceBackedProductionValueRowBodyValueMaterializationImplementationRow,
+  type JuoRewardSourceBackedProductionValueRowBodyValueMaterializationImplementationRow
+} from './juo_source_backed_production_value_row_body_value_materialization_implementation';
+
+export type JuoSourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus =
+  'row_body_value_finalization_boundary_blocked';
+
+export interface JuoProbabilitySourceBackedProductionValueRowBodyValueFinalizationBoundaryRow
+  extends JuoProbabilitySourceBackedProductionValueRowBodyValueMaterializationImplementationRow {
+  readonly sourceBackedProductionValueRowBodyValueFinalizationBoundaryId: string;
+  readonly sourceBackedProductionValueRowBodyValueFinalizationBoundaryEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus: JuoSourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus;
+  readonly sourceBackedProductionValueRowBodyValueFinalizationEligibility: 'no';
+}
+
+export interface JuoRewardSourceBackedProductionValueRowBodyValueFinalizationBoundaryRow
+  extends JuoRewardSourceBackedProductionValueRowBodyValueMaterializationImplementationRow {
+  readonly sourceBackedProductionValueRowBodyValueFinalizationBoundaryId: string;
+  readonly sourceBackedProductionValueRowBodyValueFinalizationBoundaryEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus: JuoSourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus;
+  readonly sourceBackedProductionValueRowBodyValueFinalizationEligibility: 'no';
+}
+
+function probabilityRowFor(
+  implementation: JuoProbabilitySourceBackedProductionValueRowBodyValueMaterializationImplementationRow
+): JuoProbabilitySourceBackedProductionValueRowBodyValueFinalizationBoundaryRow {
+  return {
+    ...implementation,
+    sourceBackedProductionValueRowBodyValueFinalizationBoundaryId: `${implementation.sourceId}_probability_source_backed_production_value_row_body_value_finalization_boundary`,
+    sourceBackedProductionValueRowBodyValueFinalizationBoundaryEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus:
+      'row_body_value_finalization_boundary_blocked',
+    sourceBackedProductionValueRowBodyValueFinalizationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueMaterializationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+function rewardRowFor(
+  implementation: JuoRewardSourceBackedProductionValueRowBodyValueMaterializationImplementationRow
+): JuoRewardSourceBackedProductionValueRowBodyValueFinalizationBoundaryRow {
+  return {
+    ...implementation,
+    sourceBackedProductionValueRowBodyValueFinalizationBoundaryId: `${implementation.sourceId}_reward_source_backed_production_value_row_body_value_finalization_boundary`,
+    sourceBackedProductionValueRowBodyValueFinalizationBoundaryEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueFinalizationBoundaryStatus:
+      'row_body_value_finalization_boundary_blocked',
+    sourceBackedProductionValueRowBodyValueFinalizationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueMaterializationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+export const juoProbabilitySourceBackedProductionValueRowBodyValueFinalizationBoundaryInventory: readonly JuoProbabilitySourceBackedProductionValueRowBodyValueFinalizationBoundaryRow[] =
+  juoProbabilitySourceBackedProductionValueRowBodyValueMaterializationImplementationInventory.map(probabilityRowFor);
+
+export const juoRewardSourceBackedProductionValueRowBodyValueFinalizationBoundaryInventory: readonly JuoRewardSourceBackedProductionValueRowBodyValueFinalizationBoundaryRow[] =
+  juoRewardSourceBackedProductionValueRowBodyValueMaterializationImplementationInventory.map(rewardRowFor);
