@@ -90,6 +90,15 @@ const carriedApprovalBoundaryKeys = [
   'executionEligibility'
 ] as const;
 
+const decisionBoundaryKeys = [
+  ...carriedApprovalBoundaryKeys,
+  'materializationDecisionBoundaryId',
+  'materializationDecisionEligibility',
+  'materializationDecisionBoundaryStatus'
+] as const;
+
+const rewardDecisionBoundaryKeys = [...decisionBoundaryKeys, 'accountingConsistencyStatus'] as const;
+
 function expectNoForbiddenKeys(row: Record<string, unknown>): void {
   for (const key of Object.keys(row)) {
     expect(forbiddenKeys.has(key)).toBe(false);
@@ -184,6 +193,16 @@ describe('Juo materialization decision boundary inventory', () => {
       expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
       expectNoForbiddenKeys({ ...row });
       expectNoForbiddenKeyFragments({ ...row });
+    }
+  });
+
+  test('keeps decision boundary row key sets closed', () => {
+    for (const row of juoProbabilityMaterializationDecisionBoundaryInventory) {
+      expect(Object.keys(row).sort()).toEqual([...decisionBoundaryKeys].sort());
+    }
+
+    for (const row of juoRewardMaterializationDecisionBoundaryInventory) {
+      expect(Object.keys(row).sort()).toEqual([...rewardDecisionBoundaryKeys].sort());
     }
   });
 
