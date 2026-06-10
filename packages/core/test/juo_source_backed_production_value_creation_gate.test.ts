@@ -93,6 +93,15 @@ const carriedDecisionBoundaryKeys = [
   'executionEligibility'
 ] as const;
 
+const creationGateKeys = [
+  ...carriedDecisionBoundaryKeys,
+  'sourceBackedProductionValueCreationGateId',
+  'sourceBackedProductionValueRowCreationEligibility',
+  'sourceBackedProductionValueCreationGateStatus'
+] as const;
+
+const rewardCreationGateKeys = [...creationGateKeys, 'accountingConsistencyStatus'] as const;
+
 function expectNoForbiddenKeys(row: Record<string, unknown>): void {
   for (const key of Object.keys(row)) {
     expect(forbiddenKeys.has(key)).toBe(false);
@@ -194,6 +203,16 @@ describe('Juo source-backed production value creation gate inventory', () => {
       expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
       expectNoForbiddenKeys({ ...row });
       expectNoForbiddenKeyFragments({ ...row });
+    }
+  });
+
+  test('keeps creation gate row key sets closed', () => {
+    for (const row of juoProbabilitySourceBackedProductionValueCreationGateInventory) {
+      expect(Object.keys(row).sort()).toEqual([...creationGateKeys].sort());
+    }
+
+    for (const row of juoRewardSourceBackedProductionValueCreationGateInventory) {
+      expect(Object.keys(row).sort()).toEqual([...rewardCreationGateKeys].sort());
     }
   });
 
