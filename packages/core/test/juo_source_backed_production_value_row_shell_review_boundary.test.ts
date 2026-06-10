@@ -29,6 +29,8 @@ const forbiddenKeys = new Set([
   'sourceBackedNumerator',
   'sourceBackedDenominator',
   'sourceBackedPayout',
+  'sourceBackedProductionValueRowBody',
+  'sourceBackedProductionValueRowShell',
   'productionGraphBinding',
   'runtimeTargetSubstitution',
   'targetSubstitution',
@@ -222,6 +224,7 @@ describe('Juo source-backed production value row shell review boundary inventory
     ]) {
       expect(Object.keys(row)).not.toContain('sourceBackedProductionValue');
       expect(Object.keys(row)).not.toContain('sourceBackedProductionValueRowBody');
+      expect(Object.keys(row)).not.toContain('sourceBackedProductionValueRowShell');
       expect(Object.keys(row)).not.toContain('productionGraphBinding');
       expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
       expect(Object.keys(row)).not.toContain('expectedValueAssertion');
@@ -295,6 +298,64 @@ describe('Juo source-backed production value row shell review boundary inventory
         expect(row[key]).toBe(draft?.[key]);
       }
       expect(row.accountingConsistencyStatus).toBe(draft?.accountingConsistencyStatus);
+    }
+  });
+
+  test('keeps shell review rows linked only to existing row draft boundary ids', () => {
+    const probabilityDraftIds = new Set(
+      juoProbabilitySourceBackedProductionValueRowDraftBoundaryInventory.map(
+        (row) => row.sourceBackedProductionValueRowDraftBoundaryId
+      )
+    );
+    const rewardDraftIds = new Set(
+      juoRewardSourceBackedProductionValueRowDraftBoundaryInventory.map(
+        (row) => row.sourceBackedProductionValueRowDraftBoundaryId
+      )
+    );
+
+    for (const row of juoProbabilitySourceBackedProductionValueRowShellReviewBoundaryInventory) {
+      expect(probabilityDraftIds.has(row.sourceBackedProductionValueRowDraftBoundaryId)).toBe(true);
+      expect(row.sourceBackedProductionValueRowShellReviewBoundaryId).toContain(row.sourceId);
+      expect(row.sourceBackedProductionValueRowShellReviewBoundaryId).not.toContain(
+        row.sourceBackedProductionValueRowDraftBoundaryId
+      );
+    }
+
+    for (const row of juoRewardSourceBackedProductionValueRowShellReviewBoundaryInventory) {
+      expect(rewardDraftIds.has(row.sourceBackedProductionValueRowDraftBoundaryId)).toBe(true);
+      expect(row.sourceBackedProductionValueRowShellReviewBoundaryId).toContain(row.sourceId);
+      expect(row.sourceBackedProductionValueRowShellReviewBoundaryId).not.toContain(
+        row.sourceBackedProductionValueRowDraftBoundaryId
+      );
+    }
+  });
+
+  test('keeps every shell review guard field on the blocked path', () => {
+    const guardFields = [
+      'sourceBackedProductionValueRowCreationEligibility',
+      'sourceBackedProductionValueRowDraftEligibility',
+      'sourceBackedProductionValueRowShellReviewEligibility',
+      'sourceBackedProductionValueRowBodyCreationEligibility',
+      'executionEligibility'
+    ] as const;
+
+    const blockedStatusFields = [
+      'sourceBackedProductionValueCreationGateStatus',
+      'sourceBackedProductionValueRowDraftBoundaryStatus',
+      'sourceBackedProductionValueRowShellReviewBoundaryStatus'
+    ] as const;
+
+    for (const row of [
+      ...juoProbabilitySourceBackedProductionValueRowShellReviewBoundaryInventory,
+      ...juoRewardSourceBackedProductionValueRowShellReviewBoundaryInventory
+    ]) {
+      for (const field of guardFields) {
+        expect(row[field]).toBe('no');
+      }
+
+      for (const field of blockedStatusFields) {
+        expect(String(row[field])).toContain('blocked');
+      }
     }
   });
 });
