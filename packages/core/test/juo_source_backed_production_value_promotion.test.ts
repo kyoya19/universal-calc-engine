@@ -17,14 +17,21 @@ const forbiddenKeys = new Set([
   'payout',
   'reward',
   'probability',
+  'amount',
   'productionValue',
   'expectedValue',
   'graphBinding',
   'runtimeTarget',
   'sourceBackedValue',
   'sourceBackedProductionValue',
+  'sourceBackedNumericValue',
+  'sourceBackedDecimalValue',
+  'sourceBackedNumerator',
+  'sourceBackedDenominator',
+  'sourceBackedPayout',
   'productionGraphBinding',
   'runtimeTargetSubstitution',
+  'targetSubstitution',
   'expectedRewardAssertion',
   'expectedValueAssertion'
 ]);
@@ -32,6 +39,18 @@ const forbiddenKeys = new Set([
 function expectNoForbiddenKeys(row: Record<string, unknown>): void {
   for (const key of Object.keys(row)) {
     expect(forbiddenKeys.has(key)).toBe(false);
+  }
+}
+
+function expectNoReadyStates(row: Record<string, unknown>): void {
+  for (const value of Object.values(row)) {
+    expect(value).not.toBe('ready');
+    expect(value).not.toBe('approved');
+    expect(value).not.toBe('promoted');
+    expect(value).not.toBe('eligible');
+    expect(value).not.toBe('materialized');
+    expect(value).not.toBe('executable');
+    expect(value).not.toBe('yes');
   }
 }
 
@@ -61,6 +80,21 @@ describe('Juo source-backed production value promotion inventory', () => {
       expect(row.draftStatus).toBe('draft_blocked');
       expect(row.sourceBackedProductionValuePromotionStatus).toBe('promotion_blocked');
       expect(row.executionEligibility).toBe('no');
+      expectNoForbiddenKeys({ ...row });
+      expectNoReadyStates({ ...row });
+    }
+  });
+
+  test('keeps promotion rows free of materialized value bindings', () => {
+    for (const row of [
+      ...juoProbabilitySourceBackedProductionValuePromotionInventory,
+      ...juoRewardSourceBackedProductionValuePromotionInventory
+    ]) {
+      expect(Object.keys(row)).not.toContain('sourceBackedProductionValue');
+      expect(Object.keys(row)).not.toContain('productionGraphBinding');
+      expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
+      expect(Object.keys(row)).not.toContain('expectedValueAssertion');
+      expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
       expectNoForbiddenKeys({ ...row });
     }
   });
