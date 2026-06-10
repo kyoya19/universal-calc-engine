@@ -36,9 +36,77 @@ const forbiddenKeys = new Set([
   'expectedValueAssertion'
 ]);
 
+const forbiddenKeyFragments = [
+  'numeric',
+  'decimal',
+  'numerator',
+  'denominator',
+  'payout',
+  'graphBinding',
+  'runtimeTarget',
+  'targetSubstitution',
+  'expectedValue',
+  'expectedReward',
+  'Assertion'
+];
+
+const carriedMaterializationBoundaryKeys = [
+  'sourceBackedProductionValueMaterializationBoundaryId',
+  'sourceBackedProductionValuePromotionId',
+  'sourceBackedProductionValueDraftId',
+  'preflightId',
+  'readinessReviewId',
+  'productionValuePlaceholderId',
+  'draftMetadataId',
+  'promotionGateId',
+  'extractedValueMetadataId',
+  'unitMetadataId',
+  'citationId',
+  'sourceId',
+  'sourceType',
+  'valueDomain',
+  'placeholderStatus',
+  'preflightStatus',
+  'sourceBackedValueReadinessStatus',
+  'citationConsistencyStatus',
+  'unitConsistencyStatus',
+  'normalizationConsistencyStatus',
+  'conflictReviewStatus',
+  'promotionDecisionStatus',
+  'sourceBackedValueCreationEligibility',
+  'draftStatus',
+  'sourceBackedProductionValuePromotionStatus',
+  'materializationEligibility',
+  'sourceBackedProductionValueMaterializationBoundaryStatus',
+  'executionEligibility'
+] as const;
+
 function expectNoForbiddenKeys(row: Record<string, unknown>): void {
   for (const key of Object.keys(row)) {
     expect(forbiddenKeys.has(key)).toBe(false);
+  }
+}
+
+function expectNoForbiddenKeyFragments(row: Record<string, unknown>): void {
+  const exemptKeys = new Set([
+    'productionValuePlaceholderId',
+    'sourceBackedProductionValuePromotionId',
+    'sourceBackedProductionValueDraftId',
+    'sourceBackedProductionValueMaterializationBoundaryId',
+    'sourceBackedProductionValuePromotionStatus',
+    'sourceBackedProductionValueMaterializationBoundaryStatus',
+    'guardedSourceBackedProductionValueMaterializationCandidateBoundaryId',
+    'guardedSourceBackedProductionValueMaterializationCandidateBoundaryStatus'
+  ]);
+
+  for (const key of Object.keys(row)) {
+    if (exemptKeys.has(key)) {
+      continue;
+    }
+
+    for (const fragment of forbiddenKeyFragments) {
+      expect(key).not.toContain(fragment);
+    }
   }
 }
 
@@ -98,6 +166,7 @@ describe('Juo guarded source-backed production value materialization candidate b
       expect(row.guardedSourceBackedProductionValueMaterializationCandidateBoundaryStatus).toBe('candidate_blocked');
       expect(row.executionEligibility).toBe('no');
       expectNoForbiddenKeys({ ...row });
+      expectNoForbiddenKeyFragments({ ...row });
       expectNoReadyStates({ ...row });
     }
   });
@@ -113,6 +182,7 @@ describe('Juo guarded source-backed production value materialization candidate b
       expect(Object.keys(row)).not.toContain('expectedValueAssertion');
       expect(Object.keys(row)).not.toContain('expectedRewardAssertion');
       expectNoForbiddenKeys({ ...row });
+      expectNoForbiddenKeyFragments({ ...row });
     }
   });
 
@@ -134,6 +204,40 @@ describe('Juo guarded source-backed production value materialization candidate b
 
     for (const id of rewardIds) {
       expect(id.endsWith('_reward_guarded_source_backed_production_value_materialization_candidate_boundary')).toBe(true);
+    }
+  });
+
+  test('carries materialization boundary metadata without creating production values', () => {
+    const probabilityBoundaries = new Map(
+      juoProbabilitySourceBackedProductionValueMaterializationBoundaryInventory.map((row) => [
+        row.sourceBackedProductionValueMaterializationBoundaryId,
+        row
+      ])
+    );
+    const rewardBoundaries = new Map(
+      juoRewardSourceBackedProductionValueMaterializationBoundaryInventory.map((row) => [
+        row.sourceBackedProductionValueMaterializationBoundaryId,
+        row
+      ])
+    );
+
+    for (const row of juoProbabilityGuardedSourceBackedProductionValueMaterializationCandidateBoundaryInventory) {
+      const boundary = probabilityBoundaries.get(row.sourceBackedProductionValueMaterializationBoundaryId);
+      expect(boundary).toBeDefined();
+
+      for (const key of carriedMaterializationBoundaryKeys) {
+        expect(row[key]).toBe(boundary?.[key]);
+      }
+    }
+
+    for (const row of juoRewardGuardedSourceBackedProductionValueMaterializationCandidateBoundaryInventory) {
+      const boundary = rewardBoundaries.get(row.sourceBackedProductionValueMaterializationBoundaryId);
+      expect(boundary).toBeDefined();
+
+      for (const key of carriedMaterializationBoundaryKeys) {
+        expect(row[key]).toBe(boundary?.[key]);
+      }
+      expect(row.accountingConsistencyStatus).toBe(boundary?.accountingConsistencyStatus);
     }
   });
 });
