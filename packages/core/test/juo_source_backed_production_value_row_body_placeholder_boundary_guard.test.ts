@@ -66,8 +66,12 @@ type PlaceholderBoundaryGuardRow = Record<string, unknown>;
 
 function allPlaceholderRows(): readonly PlaceholderBoundaryGuardRow[] {
   return [
-    ...juoProbabilitySourceBackedProductionValueRowBodyPlaceholderBoundaryInventory,
-    ...juoRewardSourceBackedProductionValueRowBodyPlaceholderBoundaryInventory
+    ...juoProbabilitySourceBackedProductionValueRowBodyPlaceholderBoundaryInventory.map((row) => ({
+      ...row
+    })),
+    ...juoRewardSourceBackedProductionValueRowBodyPlaceholderBoundaryInventory.map((row) => ({
+      ...row
+    }))
   ];
 }
 
