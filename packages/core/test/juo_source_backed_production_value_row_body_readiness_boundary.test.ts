@@ -31,6 +31,8 @@ const forbiddenKeys = new Set([
   'sourceBackedPayout',
   'sourceBackedProductionValueRowBody',
   'sourceBackedProductionValueRowBodyPlaceholder',
+  'sourceBackedProductionValueRowBodyValue',
+  'sourceBackedProductionValueRowBodyNumericValue',
   'sourceBackedProductionValueRowShellValue',
   'sourceBackedProductionValueRowShellNumericValue',
   'productionGraphBinding',
@@ -246,6 +248,8 @@ describe('Juo source-backed production value row body readiness boundary invento
       expect(Object.keys(row)).not.toContain('sourceBackedProductionValue');
       expect(Object.keys(row)).not.toContain('sourceBackedProductionValueRowBody');
       expect(Object.keys(row)).not.toContain('sourceBackedProductionValueRowBodyPlaceholder');
+      expect(Object.keys(row)).not.toContain('sourceBackedProductionValueRowBodyValue');
+      expect(Object.keys(row)).not.toContain('sourceBackedProductionValueRowBodyNumericValue');
       expect(Object.keys(row)).not.toContain('productionGraphBinding');
       expect(Object.keys(row)).not.toContain('runtimeTargetSubstitution');
       expect(Object.keys(row)).not.toContain('expectedValueAssertion');
@@ -321,6 +325,69 @@ describe('Juo source-backed production value row body readiness boundary invento
         expect(row[key]).toBe(shell?.[key]);
       }
       expect(row.accountingConsistencyStatus).toBe(shell?.accountingConsistencyStatus);
+    }
+  });
+
+  test('keeps body readiness rows linked only to existing row shell boundary ids', () => {
+    const probabilityShellIds = new Set(
+      juoProbabilitySourceBackedProductionValueRowShellBoundaryInventory.map(
+        (row) => row.sourceBackedProductionValueRowShellBoundaryId
+      )
+    );
+    const rewardShellIds = new Set(
+      juoRewardSourceBackedProductionValueRowShellBoundaryInventory.map(
+        (row) => row.sourceBackedProductionValueRowShellBoundaryId
+      )
+    );
+
+    for (const row of juoProbabilitySourceBackedProductionValueRowBodyReadinessBoundaryInventory) {
+      expect(probabilityShellIds.has(row.sourceBackedProductionValueRowShellBoundaryId)).toBe(true);
+      expect(row.sourceBackedProductionValueRowBodyReadinessBoundaryId).toContain(row.sourceId);
+      expect(row.sourceBackedProductionValueRowBodyReadinessBoundaryId).not.toContain(
+        row.sourceBackedProductionValueRowShellBoundaryId
+      );
+    }
+
+    for (const row of juoRewardSourceBackedProductionValueRowBodyReadinessBoundaryInventory) {
+      expect(rewardShellIds.has(row.sourceBackedProductionValueRowShellBoundaryId)).toBe(true);
+      expect(row.sourceBackedProductionValueRowBodyReadinessBoundaryId).toContain(row.sourceId);
+      expect(row.sourceBackedProductionValueRowBodyReadinessBoundaryId).not.toContain(
+        row.sourceBackedProductionValueRowShellBoundaryId
+      );
+    }
+  });
+
+  test('keeps every body readiness guard field on the blocked path', () => {
+    const guardFields = [
+      'sourceBackedProductionValueRowCreationEligibility',
+      'sourceBackedProductionValueRowDraftEligibility',
+      'sourceBackedProductionValueRowShellReviewEligibility',
+      'sourceBackedProductionValueRowShellEligibility',
+      'sourceBackedProductionValueRowBodyReadinessEligibility',
+      'sourceBackedProductionValueRowBodyPlaceholderEligibility',
+      'sourceBackedProductionValueRowBodyCreationEligibility',
+      'executionEligibility'
+    ] as const;
+
+    const blockedStatusFields = [
+      'sourceBackedProductionValueCreationGateStatus',
+      'sourceBackedProductionValueRowDraftBoundaryStatus',
+      'sourceBackedProductionValueRowShellReviewBoundaryStatus',
+      'sourceBackedProductionValueRowShellBoundaryStatus',
+      'sourceBackedProductionValueRowBodyReadinessBoundaryStatus'
+    ] as const;
+
+    for (const row of [
+      ...juoProbabilitySourceBackedProductionValueRowBodyReadinessBoundaryInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyReadinessBoundaryInventory
+    ]) {
+      for (const field of guardFields) {
+        expect(row[field]).toBe('no');
+      }
+
+      for (const field of blockedStatusFields) {
+        expect(String(row[field])).toContain('blocked');
+      }
     }
   });
 });
