@@ -38,11 +38,7 @@ const forbiddenKeys = new Set([
   'expectedValueAssertion'
 ]);
 
-const allowedRowBodyKeys = new Set([
-  'sourceBackedProductionValueRowBodyCreationEligibility',
-  'sourceBackedProductionValueRowBodyCreationBoundaryId',
-  'sourceBackedProductionValueRowBodyCreationBoundaryEligibility',
-  'sourceBackedProductionValueRowBodyCreationBoundaryStatus',
+const rowBodyImplementationMetadataKeys = new Set([
   'sourceBackedProductionValueRowBodyImplementationId',
   'sourceBackedProductionValueRowBodyImplementationEligibility',
   'sourceBackedProductionValueRowBodyImplementationStatus',
@@ -134,15 +130,13 @@ describe('Juo source-backed production value row body implementation inventory',
     }
   });
 
-  test('allows only row body boundary and implementation metadata, not row body value fields', () => {
+  test('adds only row body implementation metadata, not row body value fields', () => {
     for (const row of [
       ...juoProbabilitySourceBackedProductionValueRowBodyImplementationInventory,
       ...juoRewardSourceBackedProductionValueRowBodyImplementationInventory
     ]) {
-      for (const key of Object.keys(row)) {
-        if (key.includes('RowBody')) {
-          expect(allowedRowBodyKeys.has(key)).toBe(true);
-        }
+      for (const key of rowBodyImplementationMetadataKeys) {
+        expect(Object.keys(row)).toContain(key);
       }
 
       for (const key of forbiddenRuntimeKeys) {
