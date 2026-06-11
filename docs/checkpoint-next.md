@@ -1,3 +1,5 @@
 # checkpoint next
 
-Base: `7f9d1014afc915d33adeca97a28eef83dd17f2be`.
+Base: `555687f1d9122872aafb597d88d8c360bd5882f0`.
+
+Follow-up base: `555687f1d9122872aafb597d88d8c360bd5882f0`.
