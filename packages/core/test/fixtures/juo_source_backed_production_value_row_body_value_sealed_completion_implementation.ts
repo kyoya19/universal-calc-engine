@@ -1,0 +1,61 @@
+import {
+  juoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionBoundaryInventory,
+  juoRewardSourceBackedProductionValueRowBodyValueSealedCompletionBoundaryInventory,
+  type JuoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionBoundaryRow,
+  type JuoRewardSourceBackedProductionValueRowBodyValueSealedCompletionBoundaryRow
+} from './juo_source_backed_production_value_row_body_value_sealed_completion_boundary';
+
+export type JuoSourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus =
+  'row_body_value_sealed_completion_implementation_blocked';
+
+export interface JuoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionImplementationRow
+  extends JuoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionBoundaryRow {
+  readonly sourceBackedProductionValueRowBodyValueSealedCompletionImplementationId: string;
+  readonly sourceBackedProductionValueRowBodyValueSealedCompletionImplementationEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus: JuoSourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus;
+}
+
+export interface JuoRewardSourceBackedProductionValueRowBodyValueSealedCompletionImplementationRow
+  extends JuoRewardSourceBackedProductionValueRowBodyValueSealedCompletionBoundaryRow {
+  readonly sourceBackedProductionValueRowBodyValueSealedCompletionImplementationId: string;
+  readonly sourceBackedProductionValueRowBodyValueSealedCompletionImplementationEligibility: 'no';
+  readonly sourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus: JuoSourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus;
+}
+
+function probabilityRowFor(
+  boundary: JuoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionBoundaryRow
+): JuoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionImplementationRow {
+  return {
+    ...boundary,
+    sourceBackedProductionValueRowBodyValueSealedCompletionImplementationId: `${boundary.sourceId}_probability_source_backed_production_value_row_body_value_sealed_completion_implementation`,
+    sourceBackedProductionValueRowBodyValueSealedCompletionImplementationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus:
+      'row_body_value_sealed_completion_implementation_blocked',
+    sourceBackedProductionValueRowBodyValueSealedCompletionEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueSealedEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+function rewardRowFor(
+  boundary: JuoRewardSourceBackedProductionValueRowBodyValueSealedCompletionBoundaryRow
+): JuoRewardSourceBackedProductionValueRowBodyValueSealedCompletionImplementationRow {
+  return {
+    ...boundary,
+    sourceBackedProductionValueRowBodyValueSealedCompletionImplementationId: `${boundary.sourceId}_reward_source_backed_production_value_row_body_value_sealed_completion_implementation`,
+    sourceBackedProductionValueRowBodyValueSealedCompletionImplementationEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueSealedCompletionImplementationStatus:
+      'row_body_value_sealed_completion_implementation_blocked',
+    sourceBackedProductionValueRowBodyValueSealedCompletionEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueSealedEligibility: 'no',
+    sourceBackedProductionValueRowBodyValueCreationEligibility: 'no',
+    executionEligibility: 'no'
+  };
+}
+
+export const juoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionImplementationInventory: readonly JuoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionImplementationRow[] =
+  juoProbabilitySourceBackedProductionValueRowBodyValueSealedCompletionBoundaryInventory.map(probabilityRowFor);
+
+export const juoRewardSourceBackedProductionValueRowBodyValueSealedCompletionImplementationInventory: readonly JuoRewardSourceBackedProductionValueRowBodyValueSealedCompletionImplementationRow[] =
+  juoRewardSourceBackedProductionValueRowBodyValueSealedCompletionBoundaryInventory.map(rewardRowFor);
