@@ -71,6 +71,7 @@ More docs note added.
 追加の docs note は `docs/am.md` を参照してください。
 追加の docs note は `docs/an.md` を参照してください。
 追加の docs note は `docs/ao.md` を参照してください。
+追加の docs note は `docs/a%70.md` を参照してください。
 
 ## Verification
 
