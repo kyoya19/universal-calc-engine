@@ -1,3 +1,3 @@
 # pre
 
-Docs only.
+Superseded by `docs/pre-rename-boundary.md`.
