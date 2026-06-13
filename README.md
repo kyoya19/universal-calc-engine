@@ -99,6 +99,7 @@ More docs note captured.
 More docs note captured.
 More docs note captured.
 More docs note logged.
+D12 note added.
 
 ## Verification
 
