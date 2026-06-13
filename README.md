@@ -102,6 +102,7 @@ More docs note logged.
 D12 note added.
 E12 note added.
 G12 note added.
+Trail note added.
 
 ## Verification
 
