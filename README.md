@@ -123,6 +123,7 @@ S note added.
 U note added.
 V note added.
 W note added.
+N508 note added.
 
 ## Verification
 
