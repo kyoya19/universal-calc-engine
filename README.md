@@ -160,6 +160,7 @@ C4 added.
 D4 added.
 E4 added.
 F4 added.
+G4 added.
 
 ## Verification
 
