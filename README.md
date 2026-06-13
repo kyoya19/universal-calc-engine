@@ -122,6 +122,7 @@ More note logged.
 S note added.
 U note added.
 V note added.
+W note added.
 
 ## Verification
 
