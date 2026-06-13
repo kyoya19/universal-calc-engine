@@ -153,6 +153,7 @@ V3 added.
 W3 added.
 X3 added.
 Y3 added.
+Z3 added.
 
 ## Verification
 
