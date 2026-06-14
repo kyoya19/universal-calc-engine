@@ -1,0 +1,40 @@
+import type { ReportModel, ReportRowStatus } from './report_model';
+
+export type ReportStatusSummary = Record<ReportRowStatus, number>;
+
+export function createEmptyReportStatusSummary(): ReportStatusSummary {
+  return {
+    ok: 0,
+    warning: 0,
+    rejected: 0,
+    info: 0
+  };
+}
+
+export function summarizeReportModelStatuses(report: ReportModel): ReportStatusSummary {
+  const summary = createEmptyReportStatusSummary();
+
+  for (const section of report.sections) {
+    for (const row of section.rows) {
+      if (row.status !== undefined) {
+        summary[row.status] += 1;
+      }
+    }
+  }
+
+  return summary;
+}
+
+export function summarizeReportModelsStatuses(reports: ReportModel[]): ReportStatusSummary {
+  const summary = createEmptyReportStatusSummary();
+
+  for (const report of reports) {
+    const reportSummary = summarizeReportModelStatuses(report);
+    summary.ok += reportSummary.ok;
+    summary.warning += reportSummary.warning;
+    summary.rejected += reportSummary.rejected;
+    summary.info += reportSummary.info;
+  }
+
+  return summary;
+}
