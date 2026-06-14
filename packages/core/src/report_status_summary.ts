@@ -54,6 +54,10 @@ export function selectReportStatusSummaryLevel(summary: ReportStatusSummary): Re
   return 'ok';
 }
 
+export function isReportStatusSummaryOk(summary: ReportStatusSummary): boolean {
+  return selectReportStatusSummaryLevel(summary) === 'ok';
+}
+
 export function formatReportStatusSummaryPlainText(summary: ReportStatusSummary): string {
   return [
     `ok: ${summary.ok}`,
