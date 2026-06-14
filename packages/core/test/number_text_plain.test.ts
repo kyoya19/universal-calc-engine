@@ -8,3 +8,7 @@ it('formats 0 as plain text', () => {
 it('formats a decimal number as plain text', () => {
   expect(formatNumberPlainText(1.25)).toBe('1.25');
 });
+
+it('formats a larger integer as plain text', () => {
+  expect(formatNumberPlainText(12345)).toBe('12345');
+});
