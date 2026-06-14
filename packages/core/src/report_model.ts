@@ -1,3 +1,6 @@
+import {
+  buildGeneratedTargetComparisonReport
+} from './generated_target_solver_adapter';
 import type {
   GeneratedTargetComparisonReport,
   GeneratedTargetComparisonReportRowStatus,
@@ -372,4 +375,10 @@ export function generatedTargetComparisonReportToReportModel(
       }
     ]
   };
+}
+
+export function definitionModelToGeneratedTargetComparisonReportModel(model: DefinitionModel): ReportModel {
+  return generatedTargetComparisonReportToReportModel(
+    buildGeneratedTargetComparisonReport(expandGraphFromModel(model))
+  );
 }
