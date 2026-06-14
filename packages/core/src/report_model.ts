@@ -3,6 +3,10 @@ import type {
   GeneratedTargetComparisonReportRowStatus,
   GeneratedTargetSolverGateResultSummary
 } from './generated_target_solver_adapter';
+import type {
+  TransitionProbabilityAuditResult,
+  TransitionProbabilityAuditRow
+} from './model';
 
 export type ReportRowStatus = 'ok' | 'warning' | 'rejected' | 'info';
 
@@ -34,6 +38,14 @@ function comparisonStatusToReportStatus(status: GeneratedTargetComparisonReportR
   }
 
   return 'rejected';
+}
+
+function transitionProbabilityAuditRowToReportStatus(row: TransitionProbabilityAuditRow): ReportRowStatus {
+  if (!row.valid) {
+    return 'rejected';
+  }
+
+  return row.terminal ? 'info' : 'ok';
 }
 
 export function formatReportModelPlainText(report: ReportModel): string {
@@ -108,6 +120,71 @@ export function generatedTargetSolverGateResultSummaryToReportModel(
         id: 'summary',
         title: 'Summary',
         rows: summaryRows
+      }
+    ]
+  };
+}
+
+export function transitionProbabilityAuditResultToReportModel(
+  result: TransitionProbabilityAuditResult
+): ReportModel {
+  return {
+    kind: 'transition_probability_audit',
+    title: 'Transition Probability Audit',
+    sections: [
+      {
+        id: 'summary',
+        title: 'Summary',
+        rows: [
+          {
+            id: 'valid',
+            label: 'valid',
+            plainText: `valid: ${result.valid}`,
+            status: result.valid ? 'ok' : 'rejected',
+            metadata: { value: result.valid }
+          },
+          {
+            id: 'rowCount',
+            label: 'rowCount',
+            plainText: `rowCount: ${result.rows.length}`,
+            status: 'info',
+            metadata: { value: result.rows.length }
+          },
+          {
+            id: 'invalidRowCount',
+            label: 'invalidRowCount',
+            plainText: `invalidRowCount: ${result.invalidRows.length}`,
+            status: result.invalidRows.length === 0 ? 'ok' : 'rejected',
+            metadata: { value: result.invalidRows.length }
+          }
+        ]
+      },
+      {
+        id: 'rows',
+        title: 'Rows',
+        rows: result.rows.map((row, index) => ({
+          id: `row-${index}`,
+          label: row.stateId,
+          plainText: [
+            `row ${index}:`,
+            `stateId: ${row.stateId}`,
+            `transitionCount: ${row.transitionCount}`,
+            `probabilityTotal: ${row.probabilityTotal}`,
+            `deviationFromOne: ${row.deviationFromOne}`,
+            `terminal: ${row.terminal}`,
+            `valid: ${row.valid}`
+          ].join(' '),
+          className: `transition-probability-audit-row transition-probability-audit-row--${row.valid ? 'valid' : 'invalid'}`,
+          status: transitionProbabilityAuditRowToReportStatus(row),
+          metadata: {
+            stateId: row.stateId,
+            transitionCount: row.transitionCount,
+            probabilityTotal: row.probabilityTotal,
+            deviationFromOne: row.deviationFromOne,
+            terminal: row.terminal,
+            valid: row.valid
+          }
+        }))
       }
     ]
   };
