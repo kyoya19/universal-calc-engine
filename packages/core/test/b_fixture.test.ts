@@ -10,4 +10,9 @@ describe('b fixture', () => {
     expect(boundaryReportDefinitionModel.states).toHaveLength(2);
     expect(boundaryReportDefinitionModel.transitions).toHaveLength(1);
   });
+
+  it('has a terminal target and unit transition', () => {
+    expect(boundaryReportDefinitionModel.states[1]?.terminal).toBe(true);
+    expect(boundaryReportDefinitionModel.transitions[0]?.probability).toBe(1);
+  });
 });
