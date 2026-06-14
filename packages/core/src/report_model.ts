@@ -382,3 +382,11 @@ export function definitionModelToGeneratedTargetComparisonReportModel(model: Def
     buildGeneratedTargetComparisonReport(expandGraphFromModel(model))
   );
 }
+
+export function definitionModelToBoundaryReportModels(model: DefinitionModel): ReportModel[] {
+  return [
+    definitionModelToStateGraphSummaryReportModel(model),
+    definitionModelToTransitionProbabilityAuditReportModel(model),
+    definitionModelToGeneratedTargetComparisonReportModel(model)
+  ];
+}
