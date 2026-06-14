@@ -5,4 +5,9 @@ describe('b fixture', () => {
   it('has a start state', () => {
     expect(boundaryReportDefinitionModel.startState).toBe('start');
   });
+
+  it('has a minimal shape', () => {
+    expect(boundaryReportDefinitionModel.states).toHaveLength(2);
+    expect(boundaryReportDefinitionModel.transitions).toHaveLength(1);
+  });
 });
