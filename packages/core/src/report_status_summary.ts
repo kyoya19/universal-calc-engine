@@ -55,3 +55,7 @@ export function definitionModelToBoundaryReportStatusSummary(
 ): ReportStatusSummary {
   return summarizeReportModelsStatuses(definitionModelToBoundaryReportModels(model));
 }
+
+export function definitionModelToBoundaryReportStatusSummaryPlainText(model: DefinitionModel): string {
+  return formatReportStatusSummaryPlainText(definitionModelToBoundaryReportStatusSummary(model));
+}
