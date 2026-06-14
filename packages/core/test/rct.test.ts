@@ -1,0 +1,6 @@
+import { expect, it } from 'vitest';
+import { formatSummaryRowsText as f } from '../src/rc_text';
+
+it('rct', () => {
+  expect(f({ ok: 2, warning: 1, rejected: 0, info: 3 })).toBe('rows: 6');
+});
