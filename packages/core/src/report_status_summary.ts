@@ -1,3 +1,5 @@
+import type { DefinitionModel } from './model';
+import { definitionModelToBoundaryReportModels } from './report_model';
 import type { ReportModel, ReportRowStatus } from './report_model';
 
 export type ReportStatusSummary = Record<ReportRowStatus, number>;
@@ -37,4 +39,10 @@ export function summarizeReportModelsStatuses(reports: ReportModel[]): ReportSta
   }
 
   return summary;
+}
+
+export function definitionModelToBoundaryReportStatusSummary(
+  model: DefinitionModel
+): ReportStatusSummary {
+  return summarizeReportModelsStatuses(definitionModelToBoundaryReportModels(model));
 }
