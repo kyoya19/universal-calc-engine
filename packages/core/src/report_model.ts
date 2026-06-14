@@ -9,6 +9,7 @@ import type {
   TransitionProbabilityAuditResult,
   TransitionProbabilityAuditRow
 } from './model';
+import { expandGraphFromModel, summarizeStateGraph } from './state_generation';
 import type { StateGraphSummary } from './state_generation';
 
 export type ReportRowStatus = 'ok' | 'warning' | 'rejected' | 'info';
@@ -225,6 +226,10 @@ export function stateGraphSummaryToReportModel(summary: StateGraphSummary): Repo
       }
     ]
   };
+}
+
+export function definitionModelToStateGraphSummaryReportModel(model: DefinitionModel): ReportModel {
+  return stateGraphSummaryToReportModel(summarizeStateGraph(expandGraphFromModel(model)));
 }
 
 export function transitionProbabilityAuditResultToReportModel(
