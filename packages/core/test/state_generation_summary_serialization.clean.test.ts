@@ -35,3 +35,7 @@ test('serializes a state graph summary with a version', () => {
 test('formats a serialized state graph summary as JSON text', () => {
   expect(JSON.parse(stateGraphSummaryToJson(summary))).toEqual(serializeStateGraphSummary(summary));
 });
+
+test('copies serialized diagnostic counts by value', () => {
+  expect(serializeStateGraphSummary(summary).diagnosticCountsByType).not.toBe(summary.diagnosticCountsByType);
+});
