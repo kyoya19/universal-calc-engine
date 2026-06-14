@@ -135,7 +135,7 @@ Generated targets may be used only as validation and inspection data until all o
 5. The solver-facing PR clearly states whether it is using:
    - explicit-only mode,
    - diagnostics-only generated targets,
-   - or a later compatibility mode.
+   - a later compatibility mode.
 
 The immediate safe mode is explicit-only solver execution plus graph summary diagnostics.
 
