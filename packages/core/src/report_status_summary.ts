@@ -41,6 +41,15 @@ export function summarizeReportModelsStatuses(reports: ReportModel[]): ReportSta
   return summary;
 }
 
+export function formatReportStatusSummaryPlainText(summary: ReportStatusSummary): string {
+  return [
+    `ok: ${summary.ok}`,
+    `warning: ${summary.warning}`,
+    `rejected: ${summary.rejected}`,
+    `info: ${summary.info}`
+  ].join('\n');
+}
+
 export function definitionModelToBoundaryReportStatusSummary(
   model: DefinitionModel
 ): ReportStatusSummary {
