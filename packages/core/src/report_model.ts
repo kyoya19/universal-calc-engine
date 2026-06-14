@@ -7,6 +7,7 @@ import type {
   TransitionProbabilityAuditResult,
   TransitionProbabilityAuditRow
 } from './model';
+import type { StateGraphSummary } from './state_generation';
 
 export type ReportRowStatus = 'ok' | 'warning' | 'rejected' | 'info';
 
@@ -120,6 +121,105 @@ export function generatedTargetSolverGateResultSummaryToReportModel(
         id: 'summary',
         title: 'Summary',
         rows: summaryRows
+      }
+    ]
+  };
+}
+
+export function stateGraphSummaryToReportModel(summary: StateGraphSummary): ReportModel {
+  return {
+    kind: 'state_graph_summary',
+    title: 'State Graph Summary',
+    sections: [
+      {
+        id: 'summary',
+        title: 'Summary',
+        rows: [
+          {
+            id: 'stateCount',
+            label: 'stateCount',
+            plainText: `stateCount: ${summary.stateCount}`,
+            status: 'info',
+            metadata: { value: summary.stateCount }
+          },
+          {
+            id: 'generatedStateCount',
+            label: 'generatedStateCount',
+            plainText: `generatedStateCount: ${summary.generatedStateCount}`,
+            status: 'info',
+            metadata: { value: summary.generatedStateCount }
+          },
+          {
+            id: 'edgeCount',
+            label: 'edgeCount',
+            plainText: `edgeCount: ${summary.edgeCount}`,
+            status: 'info',
+            metadata: { value: summary.edgeCount }
+          },
+          {
+            id: 'edgeWithGeneratedTargetCount',
+            label: 'edgeWithGeneratedTargetCount',
+            plainText: `edgeWithGeneratedTargetCount: ${summary.edgeWithGeneratedTargetCount}`,
+            status: 'info',
+            metadata: { value: summary.edgeWithGeneratedTargetCount }
+          },
+          {
+            id: 'edgeWithoutGeneratedTargetCount',
+            label: 'edgeWithoutGeneratedTargetCount',
+            plainText: `edgeWithoutGeneratedTargetCount: ${summary.edgeWithoutGeneratedTargetCount}`,
+            status: summary.edgeWithoutGeneratedTargetCount === 0 ? 'ok' : 'warning',
+            metadata: { value: summary.edgeWithoutGeneratedTargetCount }
+          },
+          {
+            id: 'explicitGeneratedMatchCount',
+            label: 'explicitGeneratedMatchCount',
+            plainText: `explicitGeneratedMatchCount: ${summary.explicitGeneratedMatchCount}`,
+            status: 'info',
+            metadata: { value: summary.explicitGeneratedMatchCount }
+          },
+          {
+            id: 'explicitGeneratedMismatchCount',
+            label: 'explicitGeneratedMismatchCount',
+            plainText: `explicitGeneratedMismatchCount: ${summary.explicitGeneratedMismatchCount}`,
+            status: summary.explicitGeneratedMismatchCount === 0 ? 'ok' : 'rejected',
+            metadata: { value: summary.explicitGeneratedMismatchCount }
+          },
+          {
+            id: 'explicitGeneratedMatchRate',
+            label: 'explicitGeneratedMatchRate',
+            plainText: `explicitGeneratedMatchRate: ${summary.explicitGeneratedMatchRate}`,
+            status: 'info',
+            metadata: { value: summary.explicitGeneratedMatchRate }
+          },
+          {
+            id: 'explicitGeneratedMismatchRate',
+            label: 'explicitGeneratedMismatchRate',
+            plainText: `explicitGeneratedMismatchRate: ${summary.explicitGeneratedMismatchRate}`,
+            status: summary.explicitGeneratedMismatchRate === 0 ? 'ok' : 'warning',
+            metadata: { value: summary.explicitGeneratedMismatchRate }
+          },
+          {
+            id: 'diagnosticCount',
+            label: 'diagnosticCount',
+            plainText: `diagnosticCount: ${summary.diagnosticCount}`,
+            status: summary.diagnosticCount === 0 ? 'ok' : 'warning',
+            metadata: { value: summary.diagnosticCount }
+          }
+        ]
+      },
+      {
+        id: 'diagnostics',
+        title: 'Diagnostics',
+        rows: Object.entries(summary.diagnosticCountsByType).map(([type, count]) => ({
+          id: `diagnostic-${type}`,
+          label: type,
+          plainText: `${type}: ${count}`,
+          status: count === 0 ? 'ok' : 'warning',
+          metadata: {
+            type,
+            count
+          }
+        }))
       }
     ]
   };
