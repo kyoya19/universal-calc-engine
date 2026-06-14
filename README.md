@@ -208,6 +208,7 @@ Y5 added.
 Z5 added.
 A6 added.
 B6 added.
+C6 added.
 
 ## Verification
 
