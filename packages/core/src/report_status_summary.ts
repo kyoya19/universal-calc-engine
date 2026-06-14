@@ -82,3 +82,7 @@ export function definitionModelToBoundaryReportStatusLevel(
 ): ReportStatusSummaryLevel {
   return selectReportStatusSummaryLevel(definitionModelToBoundaryReportStatusSummary(model));
 }
+
+export function definitionModelToBoundaryReportStatusIsOk(model: DefinitionModel): boolean {
+  return isReportStatusSummaryOk(definitionModelToBoundaryReportStatusSummary(model));
+}
