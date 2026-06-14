@@ -2,4 +2,4 @@
 
 Next step: keep state helper work small and separate from solver changes.
 
-Add state summary JSON tests before solver target changes.
+State summary JSON serialization tests are now fixed. Keep the next solver target change separate from this boundary.
