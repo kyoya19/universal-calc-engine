@@ -20,3 +20,18 @@ export function definitionModelToBoundaryReportDigest(model: DefinitionModel): B
     statusOverview: toReportStatusOverview(summarizeReportModelsStatuses(reports))
   };
 }
+
+export function formatBoundaryReportDigestPlainText(digest: BoundaryReportDigest): string {
+  return [
+    `statusLevel: ${digest.statusOverview.level}`,
+    digest.statusOverview.plainText,
+    '',
+    '---',
+    '',
+    digest.reportText
+  ].join('\n');
+}
+
+export function definitionModelToBoundaryReportDigestPlainText(model: DefinitionModel): string {
+  return formatBoundaryReportDigestPlainText(definitionModelToBoundaryReportDigest(model));
+}
