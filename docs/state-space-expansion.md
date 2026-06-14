@@ -134,10 +134,23 @@ Generated targets may be used only as validation and inspection data until all o
 4. Existing solver tests pass without changing expected values.
 5. The solver-facing PR clearly states whether it is using:
    - explicit-only mode,
-   - diagnostics-only generated targets, or
-   - a later compatibility mode.
+   - diagnostics-only generated targets,
+   - or a later compatibility mode.
 
 The immediate safe mode is explicit-only solver execution plus graph summary diagnostics.
+
+## Solver integration dry-run note
+
+A solver-facing helper should not be introduced until its exact type boundary is agreed with the existing TypeScript configuration.
+
+The first attempted solver helper boundary used an explicit-only selector inside `model.ts`. It was intentionally not merged because CI failed during Typecheck before Test execution. The safe conclusion is:
+
+- keep solver execution on direct explicit `transition.to` until a smaller typed boundary is proven by CI,
+- keep `selectGraphTarget()` as the graph-level target policy helper for now,
+- do not add a second solver-level target policy helper without a passing Typecheck run,
+- do not merge a solver-facing helper on the basis of semantic review alone.
+
+This does not change the solver integration goal. It only adds a gate: the next solver-facing PR must first prove that the helper shape is TypeScript-compatible before changing any solver call site.
 
 ## Target policy helper
 
