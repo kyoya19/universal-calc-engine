@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import type { ReportModel } from '../src/report_model';
 import {
   definitionModelToBoundaryReportStatusSummary,
+  definitionModelToBoundaryReportStatusSummaryPlainText,
   formatReportStatusSummaryPlainText,
   summarizeReportModelsStatuses,
   summarizeReportModelStatuses
@@ -67,5 +68,28 @@ describe('report status summary helpers', () => {
     expect(summary.info).toBeGreaterThan(0);
     expect(summary.warning).toBe(0);
     expect(summary.rejected).toBe(0);
+  });
+
+  it('formats boundary report status summary directly from a definition model', () => {
+    const text = definitionModelToBoundaryReportStatusSummaryPlainText({
+      startState: 'start',
+      states: [
+        { id: 'start', properties: { step: 0 } },
+        { id: 'state:{step=1}', terminal: true, properties: { step: 1 } }
+      ],
+      transitions: [
+        {
+          from: 'start',
+          to: 'state:{step=1}',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'step', value: 1 }]
+        }
+      ]
+    });
+
+    expect(text).toContain('ok:');
+    expect(text).toContain('warning: 0');
+    expect(text).toContain('rejected: 0');
+    expect(text).toContain('info:');
   });
 });
