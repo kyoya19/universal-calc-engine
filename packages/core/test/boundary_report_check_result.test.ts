@@ -1,25 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   boundaryReportDigestToCheckResult,
-  definitionModelToBoundaryReportCheckResult
+  definitionModelToBoundaryReportCheckResult,
+  definitionModelToBoundaryReportCheckResultPlainText,
+  formatBoundaryReportCheckResultPlainText
 } from '../src/boundary_report_check_result';
 import { definitionModelToBoundaryReportDigest } from '../src/boundary_report_digest';
+import { boundaryReportDefinitionModel } from './boundary_report_fixture';
 
-const model = {
-  startState: 'start',
-  states: [
-    { id: 'start', properties: { step: 0 } },
-    { id: 'state:{step=1}', terminal: true, properties: { step: 1 } }
-  ],
-  transitions: [
-    {
-      from: 'start',
-      to: 'state:{step=1}',
-      probability: 1,
-      effects: [{ type: 'set_property' as const, property: 'step', value: 1 }]
-    }
-  ]
-};
+const model = boundaryReportDefinitionModel;
 
 describe('boundary report check result helpers', () => {
   it('builds a check result from a digest', () => {
@@ -34,5 +23,21 @@ describe('boundary report check result helpers', () => {
 
     expect(result.ok).toBe(true);
     expect(result.digest.reports).toHaveLength(3);
+  });
+
+  it('formats a check result as plain text', () => {
+    const text = formatBoundaryReportCheckResultPlainText(
+      definitionModelToBoundaryReportCheckResult(model)
+    );
+
+    expect(text).toContain('ok: true');
+    expect(text).toContain('statusLevel: ok');
+  });
+
+  it('builds check result plain text from a definition model', () => {
+    const text = definitionModelToBoundaryReportCheckResultPlainText(model);
+
+    expect(text).toContain('ok: true');
+    expect(text).toContain('State Graph Summary');
   });
 });
