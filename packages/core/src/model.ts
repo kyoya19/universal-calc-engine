@@ -88,6 +88,21 @@ export type ContributionResult = {
   }>>;
 };
 
+export type TransitionProbabilityAuditRow = {
+  stateId: StateId;
+  transitionCount: number;
+  probabilityTotal: number;
+  deviationFromOne: number;
+  terminal: boolean;
+  valid: boolean;
+};
+
+export type TransitionProbabilityAuditResult = {
+  rows: TransitionProbabilityAuditRow[];
+  invalidRows: TransitionProbabilityAuditRow[];
+  valid: boolean;
+};
+
 export function evaluateScalarSpec(spec: ScalarSpec): number {
   if (typeof spec === 'number') {
     return spec;
@@ -200,6 +215,38 @@ export function evaluateModel(model: ExpandedModel): EvaluatedModel {
   }
 
   return evaluated;
+}
+
+export function auditTransitionProbabilityTotals(
+  model: ExpandedModel,
+  tolerance = 1e-9
+): TransitionProbabilityAuditResult {
+  const rows = model.states.map((state): TransitionProbabilityAuditRow => {
+    const transitions = model.transitionsByState.get(state.id) ?? [];
+    const probabilityTotal = transitions.reduce(
+      (sum, transition) => sum + evaluateScalarSpec(transition.probability),
+      0
+    );
+    const terminal = isTerminalState(state);
+    const deviationFromOne = probabilityTotal - 1;
+    const valid = terminal || Math.abs(deviationFromOne) <= tolerance;
+
+    return {
+      stateId: state.id,
+      transitionCount: transitions.length,
+      probabilityTotal,
+      deviationFromOne,
+      terminal,
+      valid
+    };
+  });
+  const invalidRows = rows.filter((row) => !row.valid);
+
+  return {
+    rows,
+    invalidRows,
+    valid: invalidRows.length === 0
+  };
 }
 
 export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
