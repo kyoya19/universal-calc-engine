@@ -7,3 +7,4 @@ export * from './generated_target_solver_adapter';
 export * from './report_model';
 export * from './boundary_report_text';
 export * from './report_status_summary';
+export * from './report_status_overview';
