@@ -3,7 +3,9 @@ import type {
   GeneratedTargetComparisonReportRowStatus,
   GeneratedTargetSolverGateResultSummary
 } from './generated_target_solver_adapter';
+import { auditTransitionProbabilityTotals, expandModel } from './model';
 import type {
+  DefinitionModel,
   TransitionProbabilityAuditResult,
   TransitionProbabilityAuditRow
 } from './model';
@@ -288,6 +290,14 @@ export function transitionProbabilityAuditResultToReportModel(
       }
     ]
   };
+}
+
+export function definitionModelToTransitionProbabilityAuditReportModel(
+  model: DefinitionModel
+): ReportModel {
+  return transitionProbabilityAuditResultToReportModel(
+    auditTransitionProbabilityTotals(expandModel(model))
+  );
 }
 
 export function generatedTargetComparisonReportToReportModel(
