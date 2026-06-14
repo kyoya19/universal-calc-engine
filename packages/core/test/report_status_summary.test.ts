@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportModel } from '../src/report_model';
 import {
+  definitionModelToBoundaryReportStatusIsOk,
   definitionModelToBoundaryReportStatusLevel,
   definitionModelToBoundaryReportStatusSummary,
   definitionModelToBoundaryReportStatusSummaryPlainText,
@@ -97,5 +98,9 @@ describe('report status summary helpers', () => {
 
   it('selects boundary report status level directly from a definition model', () => {
     expect(definitionModelToBoundaryReportStatusLevel(validDefinitionModel)).toBe('ok');
+  });
+
+  it('checks boundary report status directly from a definition model', () => {
+    expect(definitionModelToBoundaryReportStatusIsOk(validDefinitionModel)).toBe(true);
   });
 });
