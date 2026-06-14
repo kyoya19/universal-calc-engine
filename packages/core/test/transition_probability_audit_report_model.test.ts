@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { TransitionProbabilityAuditResult } from '../src/model';
 import {
+  definitionModelToTransitionProbabilityAuditReportModel,
   formatReportModelPlainText,
   transitionProbabilityAuditResultToReportModel
 } from '../src/report_model';
@@ -79,5 +80,36 @@ describe('transitionProbabilityAuditResultToReportModel', () => {
     expect(text).toContain('Transition Probability Audit');
     expect(text).toContain('valid: true');
     expect(text).toContain('stateId: start');
+  });
+
+  it('builds an audit report directly from a definition model', () => {
+    const report = definitionModelToTransitionProbabilityAuditReportModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.5 },
+        { from: 'start', to: 'lose', probability: 0.4 }
+      ]
+    });
+
+    const rows = report.sections.flatMap((section) => section.rows);
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        id: 'invalidRowCount',
+        plainText: 'invalidRowCount: 1',
+        status: 'rejected'
+      })
+    );
+    expect(rows).toContainEqual(
+      expect.objectContaining({
+        id: 'row-0',
+        label: 'start',
+        status: 'rejected'
+      })
+    );
   });
 });
