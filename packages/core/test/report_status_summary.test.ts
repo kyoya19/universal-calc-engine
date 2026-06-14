@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import type { ReportModel } from '../src/report_model';
-import { summarizeReportModelsStatuses, summarizeReportModelStatuses } from '../src/report_status_summary';
+import {
+  definitionModelToBoundaryReportStatusSummary,
+  summarizeReportModelsStatuses,
+  summarizeReportModelStatuses
+} from '../src/report_status_summary';
 
 const one: ReportModel = {
   kind: 'one',
@@ -33,5 +37,28 @@ describe('report status summary helpers', () => {
 
   it('summarizes report arrays', () => {
     expect(summarizeReportModelsStatuses([one, two])).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
+  });
+
+  it('summarizes boundary reports built from a definition model', () => {
+    const summary = definitionModelToBoundaryReportStatusSummary({
+      startState: 'start',
+      states: [
+        { id: 'start', properties: { step: 0 } },
+        { id: 'state:{step=1}', terminal: true, properties: { step: 1 } }
+      ],
+      transitions: [
+        {
+          from: 'start',
+          to: 'state:{step=1}',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'step', value: 1 }]
+        }
+      ]
+    });
+
+    expect(summary.ok).toBeGreaterThan(0);
+    expect(summary.info).toBeGreaterThan(0);
+    expect(summary.warning).toBe(0);
+    expect(summary.rejected).toBe(0);
   });
 });
