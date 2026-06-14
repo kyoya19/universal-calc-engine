@@ -119,3 +119,103 @@ Addendum note added.
 More note added.
 Brief note added.
 Next 2 note added.
+More note logged.
+S note added.
+U note added.
+V note added.
+W note added.
+N508 note added.
+N510 note added.
+Entry added.
+More added.
+QX added.
+RA added.
+S added.
+T added.
+U added.
+V added.
+Note added.
+K added.
+P added.
+Q added.
+Z added.
+R1 added.
+T1 added.
+U1 added.
+N added.
+O added.
+P3 added.
+Q3 added.
+R3 added.
+S3 added.
+T3 added.
+U3 added.
+V3 added.
+W3 added.
+X3 added.
+Y3 added.
+Z3 added.
+A4 added.
+B4 added.
+C4 added.
+D4 added.
+E4 added.
+F4 added.
+G4 added.
+H4 added.
+I4 added.
+J4 added.
+K4 added.
+L4 added.
+M4 added.
+N4 added.
+O4 added.
+P4 added.
+Q4 added.
+R4 added.
+S4 added.
+T4 added.
+U4 added.
+V4 added.
+W4 added.
+X4 added.
+Y4 added.
+Z4 added.
+A5 added.
+B5 added.
+C5 added.
+D5 added.
+E5 added.
+F5 added.
+G5 added.
+H5 added.
+I5 added.
+J5 added.
+K5 added.
+L5 added.
+M5 added.
+N5 added.
+O5 added.
+P5 added.
+Q5 added.
+R5 added.
+S5 added.
+T5 added.
+U5 added.
+V5 added.
+W5 added.
+X5 added.
+Y5 added.
+Z5 added.
+A6 added.
+B6 added.
+C6 added.
+
+## Verification
+
+```bash
+npm run typecheck
+npm test
+```
+
+本プロジェクトはツモロジ（仮）のマネタイズ企画そのものではなく、同企画にも利用され得る中核計算エンジンの実装を目的とします。
