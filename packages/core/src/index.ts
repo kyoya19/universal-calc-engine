@@ -10,3 +10,4 @@ export * from './report_status_summary';
 export * from './report_status_overview';
 export * from './boundary_report_digest';
 export * from './boundary_report_checks';
+export * from './boundary_report_check_result';
