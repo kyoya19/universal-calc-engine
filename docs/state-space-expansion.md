@@ -126,6 +126,8 @@ For future solver integration:
 
 The next solver-facing PR should still keep `transition.to` authoritative by default.
 
+Transition `effects[]` may derive generated candidates for graph inspection, but they do not change solver target resolution.
+
 Generated targets may be used only as validation and inspection data until all of the following are true:
 
 1. `summarizeStateGraph()` reports the explicit/generated match rate for the target model.
