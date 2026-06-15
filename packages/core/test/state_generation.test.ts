@@ -112,6 +112,22 @@ describe('state generation helpers', () => {
     expect(selectGraphTarget(edge, 'explicit_only')).toBe('legacy_pos_1');
   });
 
+  test('keeps diagnostics-only graph target selection explicit', () => {
+    const edge = {
+      from: 'pos_0',
+      explicitTo: 'legacy_pos_1',
+      generatedTo: 'state:{position=1}',
+      transition: {
+        from: 'pos_0',
+        to: 'legacy_pos_1',
+        probability: 1,
+        effects: [{ type: 'set_property' as const, property: 'position', value: 1 }]
+      }
+    };
+
+    expect(selectGraphTarget(edge, 'diagnostics_only')).toBe('legacy_pos_1');
+  });
+
   test('summarizes graph counts, target counts, and target rates', () => {
     const graph = expandStateSpace(
       [{ id: 'pos_0', properties: { position: 0 } }],
