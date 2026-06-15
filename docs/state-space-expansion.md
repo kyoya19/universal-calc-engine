@@ -18,7 +18,7 @@ The current solver continues to use explicit `transition.to` semantics. The new 
 - `expandStateSpace()` creates an inspectable generated graph without changing solver behavior.
 - `expandGraphFromModel()` derives the seed state from `DefinitionModel.startState` and expands an inspectable generated graph.
 - `summarizeStateGraph()` reports graph counts, diagnostic counts, and explicit/generated target match rates.
-- `selectGraphTarget()` currently supports only `explicit_only` and returns `explicitTo`.
+- `selectGraphTarget()` supports `explicit_only` and `diagnostics_only`; both currently return `explicitTo`.
 - `solveExpectedReward()` uses an explicit-only internal target helper and still resolves downstream states from `transition.to`.
 - `toContributionResult()` uses the same explicit-only target boundary and still reports explicit `transition.to` targets.
 
@@ -93,7 +93,7 @@ export type StateExpansionDiagnostic = {
   message: string;
 };
 
-export type GraphTargetPolicy = 'explicit_only';
+export type GraphTargetPolicy = 'explicit_only' | 'diagnostics_only';
 ```
 
 ## Expansion algorithm
@@ -158,9 +158,10 @@ This does not change the solver integration goal. It only adds a gate: the next 
 
 Current behavior:
 
-- accepted policy: `explicit_only`,
+- accepted policies: `explicit_only` and `diagnostics_only`,
 - selected target: `edge.explicitTo`,
 - `edge.generatedTo` never overrides `edge.explicitTo`,
+- `diagnostics_only` currently keeps explicit targets authoritative and exposes generated targets only through graph diagnostics,
 - this preserves current solver behavior and keeps generated targets diagnostic-only.
 
 Any future policy that uses `generatedTo` must be introduced in a separate PR with tests that prove existing explicit-only behavior is unchanged.
@@ -176,7 +177,8 @@ The implementation should keep tests for:
 5. reporting explicit/generated mismatch without changing solver behavior,
 6. stopping at a configured depth or state limit,
 7. summarizing diagnostic counts and explicit/generated target match rates,
-8. selecting explicit targets under the `explicit_only` policy.
+8. selecting explicit targets under the `explicit_only` policy,
+9. selecting explicit targets under the `diagnostics_only` policy.
 
 ## Safe PR sequence
 
