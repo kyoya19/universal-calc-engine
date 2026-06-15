@@ -34,7 +34,7 @@ A minimal v0.3 completion should satisfy all of the following:
 4. Generated candidates can be expanded into an inspectable graph.
 5. The graph summary reports explicit/generated match and mismatch counts.
 6. The solver continues to execute in explicit-only mode using `transition.to`.
-7. A regression test proves that `effects[]` does not override explicit solver targets.
+7. A regression test, added in PR #753, proves that `effects[]` does not override explicit solver targets.
 8. Typecheck and test both pass.
 
 The following are intentionally outside v0.3 completion:
