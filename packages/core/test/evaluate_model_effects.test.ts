@@ -5,7 +5,7 @@ const model: DefinitionModel = {
   startState: 'start',
   states: [
     { id: 'start', properties: { position: 0 } },
-    { id: 'explicit_target', properties: { position: 1 } }
+    { id: 'explicit_target', terminal: true, properties: { position: 1 } }
   ],
   transitions: [
     {
