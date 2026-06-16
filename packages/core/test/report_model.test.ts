@@ -104,6 +104,30 @@ describe('UI consumable report model', () => {
     expect(firstEdgeRow.plainText).toContain('generatedTo: <missing>');
   });
 
+  test('keeps missing generated-target diagnostics stable after JSON serialization', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
+    const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
+    const serializedReportModel = JSON.parse(JSON.stringify(reportModel));
+    const firstEdgeRow = serializedReportModel.sections[1]!.rows[0]!;
+
+    expect(firstEdgeRow).toMatchObject({
+      plainText: `row 0: from: ${positionStateId(0)} explicitTo: ${positionStateId(1)} generatedTo: <missing> status: missing_generated_target`,
+      status: 'rejected',
+      metadata: {
+        from: positionStateId(0),
+        explicitTo: positionStateId(1),
+        generatedToMissing: true,
+        comparisonStatus: 'missing_generated_target'
+      }
+    });
+    expect(firstEdgeRow.metadata).not.toHaveProperty('generatedTo');
+  });
+
   test('converts an accepted generated-target solver gate summary into stable report rows', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
     const summary = summarizeGeneratedTargetSolverGateResult(result);
