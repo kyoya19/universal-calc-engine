@@ -21,6 +21,23 @@ const model: DefinitionModel = {
   ]
 };
 
+const effectModel: DefinitionModel = {
+  startState: 'start',
+  states: [
+    { id: 'start', properties: { step: 0 } },
+    { id: 'explicit_win', terminal: true }
+  ],
+  transitions: [
+    {
+      from: 'start',
+      to: 'explicit_win',
+      probability: 1,
+      reward: 7,
+      effects: [{ type: 'set_property', property: 'step', value: 1 }]
+    }
+  ]
+};
+
 test('serializes OutputResult as a public JSON boundary object', () => {
   const evaluated = evaluateModel(expandModel(model));
   const solved = solveExpectedReward(evaluated);
@@ -64,4 +81,27 @@ test('serializes ContributionResult with explicit public transition targets', ()
       lose: []
     }
   });
+});
+
+test('does not expose transition effects in ContributionResult JSON', () => {
+  const evaluated = evaluateModel(expandModel(effectModel));
+  const solved = solveExpectedReward(evaluated);
+  const contribution = toContributionResult(evaluated, solved);
+
+  expect(JSON.parse(JSON.stringify(contribution))).toEqual({
+    transitionContributionsByState: {
+      start: [
+        {
+          to: 'explicit_win',
+          probability: 1,
+          reward: 7,
+          downstreamExpectedReward: 0,
+          contribution: 7
+        }
+      ],
+      explicit_win: []
+    }
+  });
+  expect(JSON.stringify(contribution)).not.toContain('effects');
+  expect(JSON.stringify(contribution)).not.toContain('from');
 });
