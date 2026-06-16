@@ -139,6 +139,38 @@ describe('generated target solver gated wrapper', () => {
     );
   });
 
+  test('keeps rejected generated-target gate summaries stable after JSON serialization', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const missingResult = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const mismatchResult = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+
+    expect(JSON.parse(JSON.stringify(summarizeGeneratedTargetSolverGateResult(missingResult)))).toEqual({
+      accepted: false,
+      edgeCount: missingResult.graph.edges.length,
+      generatedTargetReadyEdgeCount: missingResult.graph.edges.filter((edge) => edge.generatedTo !== undefined).length,
+      rejectionCode: 'missing_generated_target',
+      rejectionType: 'missing_generated_target',
+      rejectionMessage: `Generated target is missing for edge from ${positionStateId(0)} to ${positionStateId(1)}`
+    });
+    expect(JSON.parse(JSON.stringify(summarizeGeneratedTargetSolverGateResult(mismatchResult)))).toEqual({
+      accepted: false,
+      edgeCount: mismatchResult.graph.edges.length,
+      generatedTargetReadyEdgeCount: mismatchResult.graph.edges.filter((edge) => edge.generatedTo !== undefined).length,
+      rejectionCode: 'explicit_generated_mismatch',
+      rejectionType: 'explicit_generated_mismatch',
+      rejectionMessage: `Explicit target legacy_pos_1 differs from generated target ${positionStateId(1)}`
+    });
+  });
+
   test('builds a missing generated target comparison report', () => {
     const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const result = solveExpectedRewardWithGeneratedTargetGate({
