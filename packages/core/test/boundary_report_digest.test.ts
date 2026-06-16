@@ -37,6 +37,25 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(digest.statusOverview.plainText).toContain('rejected: 0');
   });
 
+  it('keeps digest reports and status overview stable after JSON serialization', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const serializedDigest = JSON.parse(JSON.stringify(digest));
+
+    expect(serializedDigest.reports.map((report: { kind: string }) => report.kind)).toEqual([
+      'state_graph_summary',
+      'transition_probability_audit',
+      'generated_target_comparison'
+    ]);
+    expect(serializedDigest.statusOverview).toMatchObject({
+      level: 'ok',
+      summary: {
+        rejected: 0,
+        warning: 0
+      }
+    });
+    expect(serializedDigest.reportText).toBe(digest.reportText);
+  });
+
   it('formats a digest as plain text', () => {
     const text = formatBoundaryReportDigestPlainText(definitionModelToBoundaryReportDigest(model));
 
