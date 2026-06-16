@@ -60,6 +60,27 @@ test('serializes OutputResult as a public JSON boundary object', () => {
   });
 });
 
+test('does not expose model internals in OutputResult JSON', () => {
+  const evaluated = evaluateModel(expandModel(effectModel));
+  const solved = solveExpectedReward(evaluated);
+  const output = toOutputResult(effectModel, solved);
+  const json = JSON.stringify(output);
+
+  expect(JSON.parse(json)).toEqual({
+    startState: 'start',
+    expectedReward: 7,
+    expectedRewardByState: {
+      start: 7,
+      explicit_win: 0
+    }
+  });
+  expect(Object.keys(output).sort()).toEqual(['expectedReward', 'expectedRewardByState', 'startState']);
+  expect(json).not.toContain('effects');
+  expect(json).not.toContain('transitions');
+  expect(json).not.toContain('stateById');
+  expect(json).not.toContain('transitionsByState');
+});
+
 test('serializes ContributionResult with explicit public transition targets', () => {
   const evaluated = evaluateModel(expandModel(model));
   const solved = solveExpectedReward(evaluated);
