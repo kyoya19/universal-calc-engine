@@ -128,6 +128,38 @@ describe('UI consumable report model', () => {
     expect(firstEdgeRow.metadata).not.toHaveProperty('generatedTo');
   });
 
+  test('keeps explicit/generated mismatch diagnostics stable after JSON serialization', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
+    const reportModel = generatedTargetComparisonReportToReportModel(comparisonReport);
+    const serializedReportModel = JSON.parse(JSON.stringify(reportModel));
+    const summaryRows = serializedReportModel.sections[0]!.rows;
+    const firstEdgeRow = serializedReportModel.sections[1]!.rows[0]!;
+
+    expect(summaryRows.find((row: { id: string }) => row.id === 'explicitGeneratedMismatchCount')).toMatchObject({
+      plainText: 'explicitGeneratedMismatchCount: 1',
+      status: 'rejected',
+      metadata: { value: 1 }
+    });
+    expect(firstEdgeRow).toMatchObject({
+      plainText: `row 0: from: ${positionStateId(0)} explicitTo: legacy_pos_1 generatedTo: ${positionStateId(1)} status: explicit_generated_mismatch`,
+      status: 'rejected',
+      metadata: {
+        from: positionStateId(0),
+        explicitTo: 'legacy_pos_1',
+        generatedTo: positionStateId(1),
+        generatedToMissing: false,
+        comparisonStatus: 'explicit_generated_mismatch'
+      }
+    });
+  });
+
   test('converts an accepted generated-target solver gate summary into stable report rows', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
     const summary = summarizeGeneratedTargetSolverGateResult(result);
