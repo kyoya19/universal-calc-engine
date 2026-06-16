@@ -38,6 +38,12 @@ const effectModel: DefinitionModel = {
   ]
 };
 
+const omittedRewardModel: DefinitionModel = {
+  startState: 'start',
+  states: [{ id: 'start' }, { id: 'end', terminal: true }],
+  transitions: [{ from: 'start', to: 'end', probability: 1 }]
+};
+
 test('serializes OutputResult as a public JSON boundary object', () => {
   const evaluated = evaluateModel(expandModel(model));
   const solved = solveExpectedReward(evaluated);
@@ -104,4 +110,25 @@ test('does not expose transition effects in ContributionResult JSON', () => {
   });
   expect(JSON.stringify(contribution)).not.toContain('effects');
   expect(JSON.stringify(contribution)).not.toContain('from');
+});
+
+test('serializes omitted transition reward as zero in ContributionResult JSON', () => {
+  const evaluated = evaluateModel(expandModel(omittedRewardModel));
+  const solved = solveExpectedReward(evaluated);
+  const contribution = toContributionResult(evaluated, solved);
+
+  expect(JSON.parse(JSON.stringify(contribution))).toEqual({
+    transitionContributionsByState: {
+      start: [
+        {
+          to: 'end',
+          probability: 1,
+          reward: 0,
+          downstreamExpectedReward: 0,
+          contribution: 0
+        }
+      ],
+      end: []
+    }
+  });
 });
