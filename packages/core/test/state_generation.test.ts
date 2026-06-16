@@ -8,6 +8,8 @@ import {
   generateNextStateCandidates,
   seedStatesFromModel,
   selectGraphTarget,
+  serializeStateGraphSummary,
+  stateGraphSummaryToJson,
   stateIdFromProperties,
   summarizeStateGraph,
   uniqueStateCandidates
@@ -166,6 +168,33 @@ describe('state generation helpers', () => {
         max_states_reached: 0
       }
     });
+  });
+
+  test('serializes state graph summary with a stable versioned JSON shape', () => {
+    const graph = expandStateSpace(
+      [{ id: 'pos_0', properties: { position: 0 } }],
+      [
+        {
+          from: 'pos_0',
+          to: 'legacy_pos_1',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'position', value: 1 }]
+        }
+      ]
+    );
+    const summary = summarizeStateGraph(graph);
+    const serialized = serializeStateGraphSummary(summary);
+
+    expect(serialized).toMatchObject({
+      summaryVersion: 1,
+      edgeCount: 1,
+      explicitGeneratedMismatchCount: 1,
+      diagnosticCountsByType: {
+        explicit_generated_mismatch: 1
+      }
+    });
+    expect(serialized.diagnosticCountsByType).not.toBe(summary.diagnosticCountsByType);
+    expect(JSON.parse(stateGraphSummaryToJson(summary))).toEqual(serialized);
   });
 
   test('generates next state candidates from transition effects', () => {
