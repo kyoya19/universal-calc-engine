@@ -3,6 +3,7 @@ import {
   DefinitionModel,
   expandGraphFromModel,
   serializeStateGraphSummary,
+  stateGraphSummaryToJson,
   summarizeStateGraph
 } from '../src';
 
@@ -43,4 +44,21 @@ test('serializes state graph diagnostics as a public summary object', () => {
       max_states_reached: 0
     }
   });
+});
+
+test('state graph summary JSON does not expose raw graph collections', () => {
+  const graph = expandGraphFromModel(model);
+  const json = stateGraphSummaryToJson(summarizeStateGraph(graph));
+  const parsed = JSON.parse(json);
+
+  expect(parsed.summaryVersion).toBe(1);
+  expect(parsed.edgeCount).toBe(1);
+  expect(parsed.diagnosticCount).toBe(1);
+  expect(parsed).not.toHaveProperty('states');
+  expect(parsed).not.toHaveProperty('generatedStates');
+  expect(parsed).not.toHaveProperty('edges');
+  expect(parsed).not.toHaveProperty('diagnostics');
+  expect(json).not.toContain('transition');
+  expect(json).not.toContain('explicit_target');
+  expect(json).not.toContain('state:{step=1}');
 });
