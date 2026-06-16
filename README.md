@@ -202,3 +202,24 @@ N5 added.
 O5 added.
 P5 added.
 Q5 added.
+R5 added.
+S5 added.
+T5 added.
+U5 added.
+V5 added.
+W5 added.
+X5 added.
+Y5 added.
+Z5 added.
+A6 added.
+B6 added.
+C6 added.
+
+## Verification
+
+```bash
+npm run typecheck
+npm test
+```
+
+本プロジェクトはツモロジ（仮）のマネタイズ企画そのものではなく、同企画にも利用され得る中核計算エンジンの実装を目的とします。
