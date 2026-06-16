@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { evaluateModel, expandGraphFromModel, expandModel, solveExpectedReward, toContributionResult, toOutputResult } from '../src';
+import {
+  evaluateModel,
+  expandGraphFromModel,
+  expandModel,
+  selectGraphTarget,
+  solveExpectedReward,
+  toContributionResult,
+  toOutputResult
+} from '../src';
 import {
   requireGeneratedMatchPlanningDecision,
   validateGeneratedTargetSolverPlanningBoundary
@@ -57,6 +65,24 @@ describe('generated target solver planning boundary', () => {
         }
       }
     });
+  });
+
+  test('keeps graph target selection explicit-only during diagnostics-only planning', () => {
+    const graph = expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const firstEdge = graph.edges[0]!;
+
+    expect(firstEdge).toMatchObject({
+      explicitTo: 'legacy_pos_1',
+      generatedTo: positionStateId(1)
+    });
+    expect(selectGraphTarget(firstEdge)).toBe('legacy_pos_1');
+    expect(selectGraphTarget(firstEdge, 'diagnostics_only')).toBe('legacy_pos_1');
   });
 
   test('keeps the representative expected reward baseline unchanged', () => {
