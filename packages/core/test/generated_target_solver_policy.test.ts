@@ -67,6 +67,30 @@ describe('generated target solver planning boundary', () => {
     });
   });
 
+  test('keeps rejected planning decisions stable after JSON serialization', () => {
+    const graph = expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const decision = validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedDecision = JSON.parse(JSON.stringify(decision));
+
+    expect(serializedDecision).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'explicit_generated_mismatch',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: 'legacy_pos_1',
+          generatedTo: positionStateId(1)
+        }
+      }
+    });
+  });
+
   test('keeps graph target selection explicit-only during diagnostics-only planning', () => {
     const graph = expandGraphFromModel({
       ...representativeSugorokuModel,
