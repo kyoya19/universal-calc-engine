@@ -1,5 +1,9 @@
-# Main write recovery note
+# Branch-first recovery note
 
-This file records the recovery boundary for an accidental direct main write.
+This file records the recovery boundary for a direct-write mistake.
 
-The repository operating policy remains branch-first for future changes. Solver targets remain explicit-only; generated targets stay limited to diagnostics and planning boundaries until public output behavior is fixed by tests.
+Repository changes should be made on a branch first, then reviewed through a pull request before merging into `main`.
+
+The solver target policy remains explicit-only. Generated targets remain limited to diagnostics and planning boundaries until public output behavior is fixed by tests.
+
+This note is documentation-only and does not change runtime behavior, public APIs, or naming policy.
