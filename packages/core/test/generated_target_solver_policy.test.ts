@@ -123,4 +123,41 @@ describe('generated target solver planning boundary', () => {
       }
     ]);
   });
+
+  test('keeps solver output and contribution results stable after JSON serialization', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(representativeSugorokuModel, solved);
+    const contributions = toContributionResult(evaluated, solved);
+
+    const serializedOutput = JSON.parse(JSON.stringify(output));
+    const serializedContributions = JSON.parse(JSON.stringify(contributions));
+
+    expect(serializedOutput).toMatchObject({
+      startState: representativeSugorokuModel.startState,
+      expectedReward: representativeSugorokuStartExpectedReward,
+      expectedRewardByState: {
+        [positionStateId(0)]: representativeSugorokuExpectedRewardByState[positionStateId(0)],
+        [positionStateId(1)]: representativeSugorokuExpectedRewardByState[positionStateId(1)],
+        [positionStateId(2)]: representativeSugorokuExpectedRewardByState[positionStateId(2)],
+        [positionStateId(3)]: representativeSugorokuExpectedRewardByState[positionStateId(3)]
+      }
+    });
+    expect(serializedContributions.transitionContributionsByState[positionStateId(0)]).toEqual([
+      {
+        to: positionStateId(1),
+        probability: 0.5,
+        reward: 1,
+        downstreamExpectedReward: representativeSugorokuExpectedRewardByState[positionStateId(1)],
+        contribution: 1.25
+      },
+      {
+        to: positionStateId(2),
+        probability: 0.5,
+        reward: 1,
+        downstreamExpectedReward: representativeSugorokuExpectedRewardByState[positionStateId(2)],
+        contribution: 1
+      }
+    ]);
+  });
 });
