@@ -20,6 +20,12 @@ const model: DefinitionModel = {
   ]
 };
 
+const missingCandidateModel: DefinitionModel = {
+  startState: 'start',
+  states: [{ id: 'start' }, { id: 'end', terminal: true }],
+  transitions: [{ from: 'start', to: 'end', probability: 1 }]
+};
+
 test('serializes state graph diagnostics as a public summary object', () => {
   const graph = expandGraphFromModel(model);
   const summary = serializeStateGraphSummary(summarizeStateGraph(graph));
@@ -61,4 +67,33 @@ test('state graph summary JSON does not expose raw graph collections', () => {
   expect(json).not.toContain('transition');
   expect(json).not.toContain('explicit_target');
   expect(json).not.toContain('state:{step=1}');
+});
+
+test('serializes missing generated candidate diagnostics as summary-only JSON', () => {
+  const graph = expandGraphFromModel(missingCandidateModel);
+  const json = stateGraphSummaryToJson(summarizeStateGraph(graph));
+
+  expect(JSON.parse(json)).toEqual({
+    summaryVersion: 1,
+    stateCount: 1,
+    generatedStateCount: 0,
+    edgeCount: 1,
+    edgeWithGeneratedTargetCount: 0,
+    explicitGeneratedMatchCount: 0,
+    explicitGeneratedMismatchCount: 0,
+    explicitGeneratedMatchRate: 0,
+    explicitGeneratedMismatchRate: 0,
+    edgeWithoutGeneratedTargetCount: 1,
+    diagnosticCount: 1,
+    diagnosticCountsByType: {
+      missing_generated_candidate: 1,
+      explicit_generated_mismatch: 0,
+      duplicate_state_ignored: 0,
+      depth_limit_reached: 0,
+      max_states_reached: 0
+    }
+  });
+  expect(json).not.toContain('from');
+  expect(json).not.toContain('to');
+  expect(json).not.toContain('end');
 });
