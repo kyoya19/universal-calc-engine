@@ -138,6 +138,15 @@ describe('generated target solver planning boundary', () => {
     expect(selectGraphTarget(firstEdge, 'diagnostics_only')).toBe('legacy_pos_1');
   });
 
+  test('keeps generated match planning policy stable after JSON serialization', () => {
+    const serializedPolicy = JSON.parse(JSON.stringify(requireGeneratedMatchPlanningDecision));
+
+    expect(serializedPolicy).toMatchObject({
+      expectedRewardBaseline: 'must_remain_unchanged',
+      contributionOutput: 'report_explicit_target'
+    });
+  });
+
   test('keeps the representative expected reward baseline unchanged', () => {
     expect(requireGeneratedMatchPlanningDecision.expectedRewardBaseline).toBe('must_remain_unchanged');
 
