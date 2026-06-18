@@ -26,6 +26,14 @@ describe('generated target solver planning boundary', () => {
     expect(validateGeneratedTargetSolverPlanningBoundary(graph)).toEqual({ accepted: true });
   });
 
+  test('keeps accepted planning decisions stable after JSON serialization', () => {
+    const graph = expandGraphFromModel(representativeSugorokuModel);
+    const decision = validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedDecision = JSON.parse(JSON.stringify(decision));
+
+    expect(serializedDecision).toEqual({ accepted: true });
+  });
+
   test('rejects a missing generated target before solver runtime integration', () => {
     const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const graph = expandGraphFromModel({
