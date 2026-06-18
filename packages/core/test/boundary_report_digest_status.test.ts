@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { definitionModelToBoundaryReportDigest } from '../src/boundary_report_digest';
+import { definitionModelToBoundaryReportDigest, formatBoundaryReportDigestPlainText } from '../src/boundary_report_digest';
 
 const model = {
   startState: 'start',
@@ -15,5 +15,13 @@ describe('boundary report digest status JSON boundary', () => {
     expect(serialized.statusOverview.level).toBe('rejected');
     expect(serialized.statusOverview.summary.rejected).toBeGreaterThan(0);
     expect(serialized.reportText).toBe(digest.reportText);
+  });
+
+  it('keeps formatted digest text stable after JSON serialization', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const serialized = JSON.parse(JSON.stringify(digest));
+
+    expect(formatBoundaryReportDigestPlainText(serialized)).toBe(formatBoundaryReportDigestPlainText(digest));
+    expect(formatBoundaryReportDigestPlainText(serialized)).toContain('statusLevel: rejected');
   });
 });
