@@ -31,4 +31,18 @@ describe('terminal contribution JSON boundary', () => {
 
     expect(serialized.transitionContributionsByState[positionStateId(0)]).toHaveLength(2);
   });
+
+  test('keeps first contribution row values stable after JSON serialization', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const contributions = toContributionResult(evaluated, solved);
+    const serialized = JSON.parse(JSON.stringify(contributions));
+
+    expect(serialized.transitionContributionsByState[positionStateId(0)][0]).toMatchObject({
+      to: positionStateId(1),
+      probability: 0.5,
+      reward: 1,
+      contribution: 1.25
+    });
+  });
 });
