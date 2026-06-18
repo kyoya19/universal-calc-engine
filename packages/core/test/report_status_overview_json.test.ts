@@ -31,4 +31,13 @@ describe('report status overview JSON boundary', () => {
       ['ok: 3', 'warning: 0', 'rejected: 0', 'info: 1'].join('\n')
     );
   });
+
+  test('keeps info-only summaries ok after JSON serialization', () => {
+    const summary = JSON.parse(JSON.stringify({ ok: 0, warning: 0, rejected: 0, info: 2 }));
+
+    expect(selectReportStatusSummaryLevel(summary)).toBe('ok');
+    expect(formatReportStatusSummaryPlainText(summary)).toBe(
+      ['ok: 0', 'warning: 0', 'rejected: 0', 'info: 2'].join('\n')
+    );
+  });
 });
