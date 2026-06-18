@@ -57,12 +57,14 @@ describe('terminal contribution JSON boundary', () => {
         to: positionStateId(1),
         probability: 0.5,
         reward: 1,
+        downstreamExpectedReward: 1.5,
         contribution: 1.25
       },
       {
         to: positionStateId(2),
         probability: 0.5,
         reward: 1,
+        downstreamExpectedReward: 1,
         contribution: 1
       }
     ]);
