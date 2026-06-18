@@ -11,4 +11,15 @@ describe('terminal contribution JSON boundary', () => {
 
     expect(serialized.transitionContributionsByState[positionStateId(3)]).toEqual([]);
   });
+
+  test('keeps contribution state keys stable after JSON serialization', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const contributions = toContributionResult(evaluated, solved);
+    const serialized = JSON.parse(JSON.stringify(contributions));
+
+    expect(Object.keys(serialized.transitionContributionsByState).sort()).toEqual(
+      [positionStateId(0), positionStateId(1), positionStateId(2), positionStateId(3)].sort()
+    );
+  });
 });
