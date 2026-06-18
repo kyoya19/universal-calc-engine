@@ -22,4 +22,13 @@ describe('terminal contribution JSON boundary', () => {
       [positionStateId(0), positionStateId(1), positionStateId(2), positionStateId(3)].sort()
     );
   });
+
+  test('keeps starting state contribution row count stable after JSON serialization', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const contributions = toContributionResult(evaluated, solved);
+    const serialized = JSON.parse(JSON.stringify(contributions));
+
+    expect(serialized.transitionContributionsByState[positionStateId(0)]).toHaveLength(2);
+  });
 });
