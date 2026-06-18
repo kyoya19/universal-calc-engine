@@ -22,4 +22,13 @@ describe('report status overview JSON boundary', () => {
       ['ok: 4', 'warning: 1', 'rejected: 0', 'info: 2'].join('\n')
     );
   });
+
+  test('keeps ok summaries stable after JSON serialization', () => {
+    const summary = JSON.parse(JSON.stringify({ ok: 3, warning: 0, rejected: 0, info: 1 }));
+
+    expect(selectReportStatusSummaryLevel(summary)).toBe('ok');
+    expect(formatReportStatusSummaryPlainText(summary)).toBe(
+      ['ok: 3', 'warning: 0', 'rejected: 0', 'info: 1'].join('\n')
+    );
+  });
 });
