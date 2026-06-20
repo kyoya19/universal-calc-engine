@@ -82,19 +82,15 @@ describe('terminal contribution JSON boundary', () => {
     const solved = solveExpectedReward(evaluated);
     const contributions = toContributionResult(evaluated, solved);
     const serialized = serializeContributionResult(contributions);
+    const serializedRows = serialized.transitionContributionsByState[positionStateId(0)]!;
+    const originalRows = contributions.transitionContributionsByState[positionStateId(0)]!;
 
     expect(Object.keys(serialized.transitionContributionsByState).sort()).toEqual(
       [positionStateId(0), positionStateId(1), positionStateId(2), positionStateId(3)].sort()
     );
-    expect(serialized.transitionContributionsByState[positionStateId(0)]).toEqual(
-      contributions.transitionContributionsByState[positionStateId(0)]
-    );
-    expect(serialized.transitionContributionsByState[positionStateId(0)]).not.toBe(
-      contributions.transitionContributionsByState[positionStateId(0)]
-    );
-    expect(serialized.transitionContributionsByState[positionStateId(0)][0]).not.toBe(
-      contributions.transitionContributionsByState[positionStateId(0)][0]
-    );
+    expect(serializedRows).toEqual(originalRows);
+    expect(serializedRows).not.toBe(originalRows);
+    expect(serializedRows[0]).not.toBe(originalRows[0]);
     expect(JSON.parse(contributionResultToJson(contributions))).toEqual(serialized);
   });
 });
