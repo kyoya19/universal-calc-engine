@@ -12,7 +12,7 @@ v0.3 は、explicit-only solver execution と state generation / graph diagnosti
 
 v0.4 では、代表すごろくモデルのfixture化と graph diagnostics 出力整備を優先します。`generatedTo` を solver target にする作業は、引き続き現在の境界外です。
 
-v0.4 の public output boundary として、`OutputResult` / `ContributionResult` の JSON helper（`serializeOutputResult`, `outputResultToJson`, `serializeContributionResult`, `contributionResultToJson`）を `packages/core` entrypoint から利用できます。
+v0.4 の public output boundary として、`OutputResult` / `ContributionResult` / `TransitionProbabilityAuditResult` の JSON helper（`serializeOutputResult`, `outputResultToJson`, `serializeContributionResult`, `contributionResultToJson`, `serializeTransitionProbabilityAuditResult`, `transitionProbabilityAuditResultToJson`）を `packages/core` entrypoint から利用できます。
 
 詳細は以下を参照してください。
 
