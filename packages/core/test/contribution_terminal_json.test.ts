@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import * as core from '../src';
 import {
   contributionResultToJson,
   evaluateModel,
@@ -92,5 +93,15 @@ describe('terminal contribution JSON boundary', () => {
     expect(serializedRows).not.toBe(originalRows);
     expect(serializedRows[0]).not.toBe(originalRows[0]);
     expect(JSON.parse(contributionResultToJson(contributions))).toEqual(serialized);
+  });
+
+  test('exposes JSON helpers from the public entrypoint', () => {
+    const evaluated = core.evaluateModel(core.expandModel(representativeSugorokuModel));
+    const solved = core.solveExpectedReward(evaluated);
+    const contributions = core.toContributionResult(evaluated, solved);
+    const serialized = core.serializeContributionResult(contributions);
+
+    expect(serialized.transitionContributionsByState[positionStateId(3)]).toEqual([]);
+    expect(JSON.parse(core.contributionResultToJson(contributions))).toEqual(serialized);
   });
 });
