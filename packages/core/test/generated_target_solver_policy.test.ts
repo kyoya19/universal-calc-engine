@@ -235,4 +235,27 @@ describe('generated target solver planning boundary', () => {
       explicitGeneratedMismatch: 'reject'
     });
   });
+
+  test('exposes planning rejections from the public entrypoint', () => {
+    const graph = core.expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const decision = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+
+    expect(decision).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'explicit_generated_mismatch',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: 'legacy_pos_1',
+          generatedTo: positionStateId(1)
+        }
+      }
+    });
+  });
 });
