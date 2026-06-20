@@ -258,4 +258,24 @@ describe('generated target solver planning boundary', () => {
       }
     });
   });
+
+  test('exposes missing generated target rejections from the public entrypoint', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const graph = core.expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const decision = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+
+    expect(decision).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'missing_generated_target',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: positionStateId(1)
+        }
+      }
+    });
+  });
 });
