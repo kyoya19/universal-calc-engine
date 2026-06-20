@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import * as core from '../src';
 import {
   evaluateModel,
   expandModel,
@@ -52,5 +53,15 @@ describe('output result JSON boundary', () => {
     });
     expect(serialized.expectedRewardByState).not.toBe(output.expectedRewardByState);
     expect(JSON.parse(outputResultToJson(output))).toEqual(serialized);
+  });
+
+  test('exposes output JSON helpers from the public entrypoint', () => {
+    const evaluated = core.evaluateModel(core.expandModel(representativeSugorokuModel));
+    const solved = core.solveExpectedReward(evaluated);
+    const output = core.toOutputResult(representativeSugorokuModel, solved);
+    const serialized = core.serializeOutputResult(output);
+
+    expect(serialized.expectedReward).toBe(representativeSugorokuStartExpectedReward);
+    expect(JSON.parse(core.outputResultToJson(output))).toEqual(serialized);
   });
 });
