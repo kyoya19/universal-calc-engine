@@ -20,4 +20,15 @@ describe('output result JSON boundary', () => {
       expectedRewardByState: representativeSugorokuExpectedRewardByState
     });
   });
+
+  test('keeps output expected reward state keys stable after JSON serialization', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(representativeSugorokuModel, solved);
+    const serialized = JSON.parse(JSON.stringify(output));
+
+    expect(Object.keys(serialized.expectedRewardByState).sort()).toEqual(
+      [positionStateId(0), positionStateId(1), positionStateId(2), positionStateId(3)].sort()
+    );
+  });
 });
