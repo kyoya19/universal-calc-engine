@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'vitest';
+import * as core from '../src';
 import {
   evaluateModel,
   expandGraphFromModel,
@@ -221,5 +222,17 @@ describe('generated target solver planning boundary', () => {
         contribution: 1
       }
     ]);
+  });
+
+  test('exposes planning boundary from the public entrypoint', () => {
+    const graph = core.expandGraphFromModel(representativeSugorokuModel);
+    const decision = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+
+    expect(decision).toEqual({ accepted: true });
+    expect(core.requireGeneratedMatchPlanningDecision).toMatchObject({
+      policy: 'require_generated_match',
+      missingGeneratedTarget: 'reject',
+      explicitGeneratedMismatch: 'reject'
+    });
   });
 });
