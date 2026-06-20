@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import { evaluateModel, expandModel, solveExpectedReward, toContributionResult } from '../src';
+import {
+  contributionResultToJson,
+  evaluateModel,
+  expandModel,
+  serializeContributionResult,
+  solveExpectedReward,
+  toContributionResult
+} from '../src';
 import { positionStateId, representativeSugorokuModel } from './fixtures/sugoroku';
 
 describe('terminal contribution JSON boundary', () => {
@@ -68,5 +75,22 @@ describe('terminal contribution JSON boundary', () => {
         contribution: 1
       }
     ]);
+  });
+
+  test('serializes contribution result with a stable JSON helper shape', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const contributions = toContributionResult(evaluated, solved);
+    const serialized = serializeContributionResult(contributions);
+    const serializedRows = serialized.transitionContributionsByState[positionStateId(0)]!;
+    const originalRows = contributions.transitionContributionsByState[positionStateId(0)]!;
+
+    expect(Object.keys(serialized.transitionContributionsByState).sort()).toEqual(
+      [positionStateId(0), positionStateId(1), positionStateId(2), positionStateId(3)].sort()
+    );
+    expect(serializedRows).toEqual(originalRows);
+    expect(serializedRows).not.toBe(originalRows);
+    expect(serializedRows[0]).not.toBe(originalRows[0]);
+    expect(JSON.parse(contributionResultToJson(contributions))).toEqual(serialized);
   });
 });

@@ -334,3 +334,17 @@ export function toContributionResult(model: EvaluatedModel, solved: SolvedModel)
 
   return { transitionContributionsByState };
 }
+
+export function serializeContributionResult(contributions: ContributionResult): ContributionResult {
+  const transitionContributionsByState: ContributionResult['transitionContributionsByState'] = {};
+
+  for (const [stateId, rows] of Object.entries(contributions.transitionContributionsByState)) {
+    transitionContributionsByState[stateId] = rows.map((row) => ({ ...row }));
+  }
+
+  return { transitionContributionsByState };
+}
+
+export function contributionResultToJson(contributions: ContributionResult): string {
+  return JSON.stringify(serializeContributionResult(contributions));
+}
