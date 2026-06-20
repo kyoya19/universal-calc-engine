@@ -3,3 +3,5 @@
 Solver targets remain explicit-only. Generated targets stay in diagnostics and planning checks.
 
 Public entrypoint rejection coverage is fixed in `packages/core/test/generated_target_solver_policy.test.ts`.
+
+Runtime expected reward and contribution output continue to use explicit targets while generated targets remain planning-boundary evidence.
