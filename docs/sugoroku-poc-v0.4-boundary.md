@@ -78,8 +78,9 @@ Sugoroku PoC v0.4 is complete when all of the following remain true:
 3. Graph diagnostics are inspectable through versioned summary serialization and JSON output.
 4. Explicit/generated mismatch handling is tested as diagnostics-only.
 5. Solver and contribution calculations still use explicit `transition.to` targets.
-6. Generated-target solver integration is still outside the current boundary.
-7. Typecheck and tests pass.
+6. Public entrypoint rejection coverage keeps missing generated targets and explicit/generated mismatches outside solver execution.
+7. Generated-target solver integration is still outside the current boundary.
+8. Typecheck and tests pass.
 
 ## Current completion status
 
