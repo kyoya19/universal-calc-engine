@@ -12,7 +12,7 @@ v0.3 は、explicit-only solver execution と state generation / graph diagnosti
 
 v0.4 では、代表すごろくモデルのfixture化と graph diagnostics 出力整備を優先します。`generatedTo` を solver target にする作業は、引き続き現在の境界外です。
 
-v0.4 の public output boundary として、`OutputResult` / `ContributionResult` の JSON helper（`serializeOutputResult`, `outputResultToJson`, `serializeContributionResult`, `contributionResultToJson`）を `packages/core` entrypoint から利用できます。
+v0.4 の public output boundary として、`OutputResult` / `ContributionResult` / `TransitionProbabilityAuditResult` の JSON helper（`serializeOutputResult`, `outputResultToJson`, `serializeContributionResult`, `contributionResultToJson`, `serializeTransitionProbabilityAuditResult`, `transitionProbabilityAuditResultToJson`）を `packages/core` entrypoint から利用できます。
 
 詳細は以下を参照してください。
 
@@ -198,32 +198,3 @@ F5 added.
 G5 added.
 H5 added.
 I5 added.
-J5 added.
-K5 added.
-L5 added.
-M5 added.
-N5 added.
-O5 added.
-P5 added.
-Q5 added.
-R5 added.
-S5 added.
-T5 added.
-U5 added.
-V5 added.
-W5 added.
-X5 added.
-Y5 added.
-Z5 added.
-A6 added.
-B6 added.
-C6 added.
-
-## Verification
-
-```bash
-npm run typecheck
-npm test
-```
-
-本プロジェクトはツモロジ（仮）のマネタイズ企画そのものではなく、同企画にも利用され得る中核計算エンジンの実装を目的とします。
