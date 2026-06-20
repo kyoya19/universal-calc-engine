@@ -249,6 +249,22 @@ export function auditTransitionProbabilityTotals(
   };
 }
 
+export function serializeTransitionProbabilityAuditResult(
+  result: TransitionProbabilityAuditResult
+): TransitionProbabilityAuditResult {
+  return {
+    rows: result.rows.map((row) => ({ ...row })),
+    invalidRows: result.invalidRows.map((row) => ({ ...row })),
+    valid: result.valid
+  };
+}
+
+export function transitionProbabilityAuditResultToJson(
+  result: TransitionProbabilityAuditResult
+): string {
+  return JSON.stringify(serializeTransitionProbabilityAuditResult(result));
+}
+
 export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
   const stateIds = model.states.map((state) => state.id);
   const expectedRewardByState = new Map<StateId, number>();
