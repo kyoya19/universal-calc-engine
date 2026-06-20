@@ -1,5 +1,12 @@
 import { describe, expect, test } from 'vitest';
-import { evaluateModel, expandModel, solveExpectedReward, toOutputResult } from '../src';
+import {
+  evaluateModel,
+  expandModel,
+  outputResultToJson,
+  serializeOutputResult,
+  solveExpectedReward,
+  toOutputResult
+} from '../src';
 import {
   positionStateId,
   representativeSugorokuExpectedRewardByState,
@@ -30,5 +37,20 @@ describe('output result JSON boundary', () => {
     expect(Object.keys(serialized.expectedRewardByState).sort()).toEqual(
       [positionStateId(0), positionStateId(1), positionStateId(2), positionStateId(3)].sort()
     );
+  });
+
+  test('serializes output result with a stable JSON helper shape', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(representativeSugorokuModel, solved);
+    const serialized = serializeOutputResult(output);
+
+    expect(serialized).toEqual({
+      startState: positionStateId(0),
+      expectedReward: representativeSugorokuStartExpectedReward,
+      expectedRewardByState: representativeSugorokuExpectedRewardByState
+    });
+    expect(serialized.expectedRewardByState).not.toBe(output.expectedRewardByState);
+    expect(JSON.parse(outputResultToJson(output))).toEqual(serialized);
   });
 });

@@ -301,6 +301,18 @@ export function toOutputResult(model: DefinitionModel, solved: SolvedModel): Out
   };
 }
 
+export function serializeOutputResult(output: OutputResult): OutputResult {
+  return {
+    startState: output.startState,
+    expectedReward: output.expectedReward,
+    expectedRewardByState: { ...output.expectedRewardByState }
+  };
+}
+
+export function outputResultToJson(output: OutputResult): string {
+  return JSON.stringify(serializeOutputResult(output));
+}
+
 export function toContributionResult(model: EvaluatedModel, solved: SolvedModel): ContributionResult {
   const transitionContributionsByState: ContributionResult['transitionContributionsByState'] = {};
 
