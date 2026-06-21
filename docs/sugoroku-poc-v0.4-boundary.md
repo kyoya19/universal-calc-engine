@@ -55,6 +55,8 @@ Generated targets may be produced, summarized, serialized, and tested as diagnos
 
 The compact policy note for this rule is maintained in `docs/solver-exp.md`.
 
+Public entrypoint policy JSON stability is fixed in `packages/core/test/generated_target_solver_policy.test.ts`.
+
 Runtime target policy changes must start from a dedicated policy PR before solver behavior changes.
 
 Any generated-target solver integration must be introduced in a later dedicated PR and must include:
