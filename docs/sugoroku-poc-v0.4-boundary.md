@@ -74,6 +74,7 @@ Any generated-target solver integration must be introduced in a later dedicated 
 3. Refactored the v0.3 completion test to use the fixture without changing expected values.
 4. Added graph diagnostics serialization and JSON reporting helpers.
 5. Added mismatch fixture/tests that prove diagnostics do not mutate solver targets.
+6. Fixed public entrypoint rejection and policy JSON stability boundaries.
 
 ## Completion checklist for v0.4
 
