@@ -16,6 +16,8 @@ v0.4 の public output boundary として、`OutputResult` / `ContributionResult
 
 Generated target solver policy の public-entrypoint rejection boundary は `packages/core/test/generated_target_solver_policy.test.ts` で固定しています。
 
+Runtime target policy changes も現在の境界外であり、solver behavior を変える前に dedicated policy PR から開始します。
+
 詳細は以下を参照してください。
 
 - [Sugoroku PoC v0.3](docs/sugoroku-poc-v0.3.md)
