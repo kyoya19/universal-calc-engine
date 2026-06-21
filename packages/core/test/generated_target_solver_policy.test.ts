@@ -236,6 +236,18 @@ describe('generated target solver planning boundary', () => {
     });
   });
 
+  test('keeps public entrypoint planning policy stable after JSON serialization', () => {
+    const serializedPolicy = JSON.parse(JSON.stringify(core.requireGeneratedMatchPlanningDecision));
+
+    expect(serializedPolicy).toMatchObject({
+      policy: 'require_generated_match',
+      missingGeneratedTarget: 'reject',
+      explicitGeneratedMismatch: 'reject',
+      expectedRewardBaseline: 'must_remain_unchanged',
+      contributionOutput: 'report_explicit_target'
+    });
+  });
+
   test('exposes explicit-only graph target selection from the public entrypoint', () => {
     const graph = core.expandGraphFromModel({
       ...representativeSugorokuModel,
