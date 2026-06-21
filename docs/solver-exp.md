@@ -7,3 +7,5 @@ Public entrypoint rejection coverage is fixed in `packages/core/test/generated_t
 Runtime expected reward and contribution output continue to use explicit targets while generated targets remain planning-boundary evidence.
 
 The Sugoroku v0.4 completion checklist mirrors this boundary in `docs/sugoroku-poc-v0.4-boundary.md`.
+
+Any runtime target policy change must start from a dedicated policy PR before solver behavior changes.
