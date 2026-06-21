@@ -236,6 +236,24 @@ describe('generated target solver planning boundary', () => {
     });
   });
 
+  test('exposes explicit-only graph target selection from the public entrypoint', () => {
+    const graph = core.expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const firstEdge = graph.edges[0]!;
+
+    expect(firstEdge).toMatchObject({
+      explicitTo: 'legacy_pos_1',
+      generatedTo: positionStateId(1)
+    });
+    expect(core.selectGraphTarget(firstEdge)).toBe('legacy_pos_1');
+    expect(core.selectGraphTarget(firstEdge, 'diagnostics_only')).toBe('legacy_pos_1');
+  });
+
   test('exposes rejection planning decisions from the public entrypoint', () => {
     const graph = core.expandGraphFromModel({
       ...representativeSugorokuModel,
