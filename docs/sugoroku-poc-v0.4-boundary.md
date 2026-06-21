@@ -53,6 +53,8 @@ solver target = transition.to
 
 Generated targets may be produced, summarized, serialized, and tested as diagnostics, but they must not override explicit targets in solver or contribution calculations.
 
+The compact policy note for this rule is maintained in `docs/solver-exp.md`.
+
 Any generated-target solver integration must be introduced in a later dedicated PR and must include:
 
 1. an explicit policy name other than `explicit_only`,
