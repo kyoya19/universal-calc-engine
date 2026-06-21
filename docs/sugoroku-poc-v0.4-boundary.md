@@ -97,4 +97,4 @@ npm test
 
 both pass.
 
-This completion status does not approve generated-target solver integration. The next phase must start from a new boundary document or a dedicated policy PR.
+This completion status does not approve generated-target solver integration or runtime target policy changes. The next phase must start from a new boundary document or a dedicated policy PR.
