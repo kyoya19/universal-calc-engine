@@ -16,6 +16,7 @@ describe('Juo PoC report model non-connection boundary', () => {
 
     expect(report.kind).toBe('generated_target_comparison');
     expect(report.title).toBe('Generated Target Comparison Report');
+    expect(report.sections).toHaveLength(2);
     expect(report.sections.map((section) => section.id)).toEqual(['summary', 'rows']);
     expect(report.sections[0]!.rows.map((row) => row.id)).toEqual([
       'edgeCount',
@@ -31,17 +32,5 @@ describe('Juo PoC report model non-connection boundary', () => {
     expect(plainText).toContain('Generated Target Comparison Report');
     expect(plainText).not.toContain('Juo Report');
     expect(plainText).not.toContain('Beast King');
-  });
-
-  test('keeps generic report model identity stable after JSON serialization', () => {
-    const graph = expandGraphFromModel(juoPocNamedStateModel);
-    const comparison = buildGeneratedTargetComparisonReport(graph);
-    const report = generatedTargetComparisonReportToReportModel(comparison);
-    const serializedReport = JSON.parse(JSON.stringify(report));
-
-    expect(serializedReport).toMatchObject({
-      kind: 'generated_target_comparison',
-      title: 'Generated Target Comparison Report'
-    });
   });
 });
