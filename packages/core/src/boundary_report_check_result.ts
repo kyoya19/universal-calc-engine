@@ -26,6 +26,32 @@ export function definitionModelToBoundaryReportCheckResult(
   return boundaryReportDigestToCheckResult(definitionModelToBoundaryReportDigest(model));
 }
 
+export function serializeBoundaryReportCheckResult(
+  result: BoundaryReportCheckResult
+): BoundaryReportCheckResult {
+  return {
+    digest: {
+      reports: result.digest.reports.map((report) => ({
+        ...report,
+        sections: report.sections.map((section) => ({
+          ...section,
+          rows: section.rows.map((row) => ({
+            ...row,
+            ...(row.metadata === undefined ? {} : { metadata: { ...row.metadata } })
+          }))
+        }))
+      })),
+      reportText: result.digest.reportText,
+      statusOverview: { ...result.digest.statusOverview }
+    },
+    ok: result.ok
+  };
+}
+
+export function boundaryReportCheckResultToJson(result: BoundaryReportCheckResult): string {
+  return JSON.stringify(serializeBoundaryReportCheckResult(result));
+}
+
 export function formatBoundaryReportCheckResultPlainText(
   result: BoundaryReportCheckResult
 ): string {
