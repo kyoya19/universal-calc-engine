@@ -236,6 +236,14 @@ describe('generated target solver planning boundary', () => {
     });
   });
 
+  test('keeps public entrypoint accepted planning decisions stable after JSON serialization', () => {
+    const graph = core.expandGraphFromModel(representativeSugorokuModel);
+    const decision = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedDecision = JSON.parse(JSON.stringify(decision));
+
+    expect(serializedDecision).toEqual({ accepted: true });
+  });
+
   test('keeps public entrypoint planning policy stable after JSON serialization', () => {
     const serializedPolicy = JSON.parse(JSON.stringify(core.requireGeneratedMatchPlanningDecision));
 
