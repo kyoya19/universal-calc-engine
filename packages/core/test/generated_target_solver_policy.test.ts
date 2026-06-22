@@ -332,4 +332,25 @@ describe('generated target solver planning boundary', () => {
       }
     });
   });
+
+  test('keeps public entrypoint missing generated target rejections stable after JSON serialization', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const graph = core.expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const decision = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedDecision = JSON.parse(JSON.stringify(decision));
+
+    expect(serializedDecision).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'missing_generated_target',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: positionStateId(1)
+        }
+      }
+    });
+  });
 });
