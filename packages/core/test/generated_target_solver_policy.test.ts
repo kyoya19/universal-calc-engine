@@ -289,6 +289,30 @@ describe('generated target solver planning boundary', () => {
     });
   });
 
+  test('keeps public entrypoint rejection decisions stable after JSON serialization', () => {
+    const graph = core.expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const decision = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedDecision = JSON.parse(JSON.stringify(decision));
+
+    expect(serializedDecision).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'explicit_generated_mismatch',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: 'legacy_pos_1',
+          generatedTo: positionStateId(1)
+        }
+      }
+    });
+  });
+
   test('exposes missing generated target rejections from the public entrypoint', () => {
     const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
     const graph = core.expandGraphFromModel({
