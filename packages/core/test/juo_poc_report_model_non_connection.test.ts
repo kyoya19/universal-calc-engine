@@ -13,6 +13,7 @@ describe('Juo PoC report model non-connection boundary', () => {
     const comparison = buildGeneratedTargetComparisonReport(graph);
     const report = generatedTargetComparisonReportToReportModel(comparison);
     const plainText = formatReportModelPlainText(report);
+    const rowIds = report.sections.flatMap((section) => section.rows.map((row) => row.id));
 
     expect(report.kind).toBe('generated_target_comparison');
     expect(report.title).toBe('Generated Target Comparison Report');
@@ -27,6 +28,8 @@ describe('Juo PoC report model non-connection boundary', () => {
     expect(report.sections[1]!.rows.map((row) => Object.keys(row.metadata ?? {}).sort())).toEqual(
       comparison.rows.map(() => ['comparisonStatus', 'explicitTo', 'from', 'generatedTo', 'generatedToMissing'])
     );
+    expect(rowIds).not.toContain('juoReport');
+    expect(rowIds).not.toContain('beastKingReport');
     expect(report.sections[1]!.rows.every((row) => row.status === 'ok')).toBe(true);
     expect(plainText).toContain('Generated Target Comparison Report');
     expect(plainText).not.toContain('Juo Report');
