@@ -1,0 +1,20 @@
+# Dependency directories
+node_modules/
+
+# Build and package outputs
+dist/
+build/
+coverage/
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Environment and local machine files
+.env
+.env.*
+!.env.example
+.DS_Store
