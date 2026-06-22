@@ -1,3 +1,5 @@
 export function formatNumberPlainText(value: number): string {
-  return String(value);
+  const text = String(value);
+
+  return text;
 }
