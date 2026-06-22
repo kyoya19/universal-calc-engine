@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { formatNumberPlainText } from '../src/number_text';
+import { formatNumberDiagnosticText, formatNumberPlainText } from '../src/number_text';
 
 it('formats 0 as plain text', () => {
   expect(formatNumberPlainText(0)).toBe('0');
@@ -18,5 +18,13 @@ it('keeps generated number text output explicit', () => {
 
   for (const value of generatedValues) {
     expect(formatNumberPlainText(value)).toBe(String(value));
+  }
+});
+
+it('keeps diagnostic number text output aligned with generated text', () => {
+  const generatedValues = [0 / 0, 1 / 0, -1 / 0, 12.5];
+
+  for (const value of generatedValues) {
+    expect(formatNumberDiagnosticText(value)).toBe(String(value));
   }
 });
