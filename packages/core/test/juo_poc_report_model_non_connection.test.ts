@@ -32,4 +32,16 @@ describe('Juo PoC report model non-connection boundary', () => {
     expect(plainText).not.toContain('Juo Report');
     expect(plainText).not.toContain('Beast King');
   });
+
+  test('keeps generic report model identity stable after JSON serialization', () => {
+    const graph = expandGraphFromModel(juoPocNamedStateModel);
+    const comparison = buildGeneratedTargetComparisonReport(graph);
+    const report = generatedTargetComparisonReportToReportModel(comparison);
+    const serializedReport = JSON.parse(JSON.stringify(report));
+
+    expect(serializedReport).toMatchObject({
+      kind: 'generated_target_comparison',
+      title: 'Generated Target Comparison Report'
+    });
+  });
 });
