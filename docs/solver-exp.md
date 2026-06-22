@@ -6,6 +6,8 @@ Public entrypoint rejection coverage is fixed in `packages/core/test/generated_t
 
 Public entrypoint policy JSON stability is also fixed in `packages/core/test/generated_target_solver_policy.test.ts`.
 
+Public entrypoint rejection decision JSON stability is fixed for explicit/generated mismatches and missing generated targets in `packages/core/test/generated_target_solver_policy.test.ts`.
+
 Runtime expected reward and contribution output continue to use explicit targets while generated targets remain planning-boundary evidence.
 
 The Sugoroku v0.4 completion checklist mirrors this boundary in `docs/sugoroku-poc-v0.4-boundary.md`.
