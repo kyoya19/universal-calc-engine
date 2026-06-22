@@ -256,6 +256,10 @@ describe('generated target solver planning boundary', () => {
     });
   });
 
+  test('keeps public entrypoint planning policy values aligned with the canonical policy', () => {
+    expect(core.requireGeneratedMatchPlanningDecision).toMatchObject(requireGeneratedMatchPlanningDecision);
+  });
+
   test('exposes explicit-only graph target selection from the public entrypoint', () => {
     const graph = core.expandGraphFromModel({
       ...representativeSugorokuModel,
