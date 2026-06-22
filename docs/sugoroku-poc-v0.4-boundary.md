@@ -55,7 +55,7 @@ Generated targets may be produced, summarized, serialized, and tested as diagnos
 
 The compact policy note for this rule is maintained in `docs/solver-exp.md`.
 
-Public entrypoint policy JSON stability is fixed in `packages/core/test/generated_target_solver_policy.test.ts`.
+Public entrypoint policy JSON stability and accepted/rejection decision JSON stability are fixed in `packages/core/test/generated_target_solver_policy.test.ts`.
 
 Runtime target policy changes must start from a dedicated policy PR before solver behavior changes.
 
@@ -74,7 +74,7 @@ Any generated-target solver integration must be introduced in a later dedicated 
 3. Refactored the v0.3 completion test to use the fixture without changing expected values.
 4. Added graph diagnostics serialization and JSON reporting helpers.
 5. Added mismatch fixture/tests that prove diagnostics do not mutate solver targets.
-6. Fixed public entrypoint rejection and policy JSON stability boundaries.
+6. Fixed public entrypoint rejection, accepted/rejection decision JSON stability, and policy JSON stability boundaries.
 
 ## Completion checklist for v0.4
 
@@ -85,7 +85,7 @@ Sugoroku PoC v0.4 is complete when all of the following remain true:
 3. Graph diagnostics are inspectable through versioned summary serialization and JSON output.
 4. Explicit/generated mismatch handling is tested as diagnostics-only.
 5. Solver and contribution calculations still use explicit `transition.to` targets.
-6. Public entrypoint rejection coverage and policy JSON stability keep generated-target planning outside solver execution.
+6. Public entrypoint rejection coverage, accepted/rejection decision JSON stability, and policy JSON stability keep generated-target planning outside solver execution.
 7. Generated-target solver integration and runtime target policy changes are still outside the current boundary.
 8. Typecheck and tests pass.
 
