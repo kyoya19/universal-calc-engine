@@ -32,6 +32,8 @@ describe('Juo PoC report model non-connection boundary', () => {
     expect(rowIds).not.toContain('beastKingReport');
     expect(report.sections[1]!.rows.every((row) => row.status === 'ok')).toBe(true);
     expect(plainText).toContain('Generated Target Comparison Report');
+    expect(plainText).toContain('## Summary');
+    expect(plainText).toContain('## Rows');
     expect(plainText).not.toContain('Juo Report');
     expect(plainText).not.toContain('Beast King');
   });
