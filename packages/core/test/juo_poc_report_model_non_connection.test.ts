@@ -16,6 +16,7 @@ describe('Juo PoC report model non-connection boundary', () => {
 
     expect(report.kind).toBe('generated_target_comparison');
     expect(report.title).toBe('Generated Target Comparison Report');
+    expect(report.sections).toHaveLength(2);
     expect(report.sections.map((section) => section.id)).toEqual(['summary', 'rows']);
     expect(report.sections[0]!.rows.map((row) => row.id)).toEqual([
       'edgeCount',
