@@ -4,6 +4,30 @@
 
 このリポジトリでは、まずすごろくPoC v0.3を通じて、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の最小実装を検証します。
 
+## License / Commercial Use
+
+Copyright (c) 2026 Kyoya Sato. All rights reserved.
+
+This repository is source-available for review, study, and non-commercial evaluation only.
+
+Commercial use is not permitted without a prior written paid license from the copyright holder.
+
+Commercial use includes, but is not limited to, use in paid products or services, SaaS, web services, applications, commercial tools, consulting, paid analysis reports, business deliverables, client work, redistribution, sublicensing, modification for commercial purposes, or incorporation into proprietary systems, commercial decision-support systems, or internal business systems.
+
+Making this repository public does not grant a commercial license.
+
+For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
+
+## ライセンス / 商用利用
+
+本リポジトリは、閲覧・研究・非商用評価のために公開する source-available project です。
+
+権利者による事前の書面許諾および有料ライセンスなしに、商用利用することを禁止します。
+
+本リポジトリの公開は、商用ライセンスの付与を意味しません。
+
+商用利用を希望する場合は、利用前にリポジトリ所有者へ連絡してください。
+
 ## Current focus
 
 現在の焦点は、すごろくPoC v0.4の境界整理です。
