@@ -29,7 +29,6 @@ Implemented v0.4 work items:
 3. Graph summary diagnostics have versioned serialization and JSON output helpers.
 4. An explicit/generated mismatch fixture proves mismatch handling remains diagnostics-only.
 5. README and docs keep generated-target solver integration outside the current boundary.
-6. Public entrypoint accepted/rejection decision JSON stability and policy JSON stability are fixed.
 
 ## Non-goals
 
