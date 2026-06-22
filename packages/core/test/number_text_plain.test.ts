@@ -34,3 +34,12 @@ it('keeps finite number text formatters aligned with the public entrypoint', () 
   expect(core.formatNumberPlainText(1.25)).toBe(formatNumberPlainText(1.25));
   expect(core.formatNumberDiagnosticText(1.25)).toBe(formatNumberDiagnosticText(1.25));
 });
+
+it('keeps finite number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: formatNumberDiagnosticText(1.25),
+      plain: formatNumberPlainText(1.25)
+    })
+  ).toBe('{"diagnostic":"1.25","plain":"1.25"}');
+});
