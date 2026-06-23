@@ -236,6 +236,7 @@ describe('UI consumable report model', () => {
 
     const output = toOutputResult(representativeSugorokuModel, result.solvedModel);
 
+    expect(output.expectedReward).toBe(2.25);
     expect(output.expectedRewardByState[positionStateId(0)]).toBe(2.25);
     expect(output.expectedRewardByState[positionStateId(1)]).toBe(1.5);
     expect(output.expectedRewardByState[positionStateId(2)]).toBe(1);
