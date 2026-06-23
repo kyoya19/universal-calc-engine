@@ -61,3 +61,12 @@ it('keeps signed public number text JSON output explicit', () => {
     })
   ).toBe('{"diagnostic":"-1.25","plain":"-1.25"}');
 });
+
+it('keeps zero public number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(0),
+      plain: core.formatNumberPlainText(0)
+    })
+  ).toBe('{"diagnostic":"0","plain":"0"}');
+});
