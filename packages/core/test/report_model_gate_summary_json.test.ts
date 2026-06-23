@@ -141,7 +141,7 @@ describe('generated target solver gate summary report JSON boundary', () => {
     expect(serializedOutput.expectedRewardByState[heldBallSpin]).toBeCloseTo(9.41119691119691);
     expect(outputTex).toContain('\\begin{array}{c|r}');
     expect(valueFunctionTex).toContain('V(\\mathrm{state:\\{lane=cash,outcome=spin\\}})');
-    expect(valueFunctionTex).toContain('V(\\mathrm{state:\\{lane=held_ball,outcome=spin\\}})');
+    expect(valueFunctionTex).toContain('V(\\mathrm{state:\\{lane=held\\_ball,outcome=spin\\}})');
     expect(contributionTex).toContain('state:\\{lane=cash,outcome=spin\\}');
     expect(digest.statusOverview.level).toBe('ok');
     expect(digest.reportText).toContain('Transition Probability Audit');
