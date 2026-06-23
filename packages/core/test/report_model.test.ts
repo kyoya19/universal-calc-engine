@@ -1,14 +1,20 @@
 import { describe, expect, test } from 'vitest';
 import {
   buildGeneratedTargetComparisonReport,
+  definitionModelToBoundaryReportDigest,
+  evaluateModel,
+  expandModel,
   formatGeneratedTargetSolverGateResultSummary,
   formatReportModelPlainText,
   generatedTargetComparisonReportToReportModel,
   generatedTargetSolverGateResultSummaryToReportModel,
+  solveExpectedReward,
   solveExpectedRewardWithGeneratedTargetGate,
   summarizeGeneratedTargetSolverGateResult,
+  toContributionResult,
   toOutputResult
 } from '../src';
+import type { DefinitionModel } from '../src';
 import { positionStateId, representativeSugorokuModel } from './fixtures/sugoroku';
 
 describe('UI consumable report model', () => {
@@ -234,5 +240,97 @@ describe('UI consumable report model', () => {
     expect(output.expectedRewardByState[positionStateId(1)]).toBe(1.5);
     expect(output.expectedRewardByState[positionStateId(2)]).toBe(1);
     expect(output.expectedRewardByState[positionStateId(3)]).toBe(0);
+  });
+
+  test('runs a Beast mini model through solver contribution and boundary digest', () => {
+    const normal = 'state:{phase=normal}';
+    const high = 'state:{phase=high}';
+    const cz = 'state:{phase=cz}';
+    const at = 'state:{phase=at}';
+    const normalMiss = 'state:{phase=normal_miss}';
+    const highMiss = 'state:{phase=high_miss}';
+    const czMiss = 'state:{phase=cz_miss}';
+    const atEnd = 'state:{phase=at_end}';
+    const beastMiniModel: DefinitionModel = {
+      startState: normal,
+      states: [
+        { id: normal, properties: { phase: 'normal' } },
+        { id: high, properties: { phase: 'high' } },
+        { id: cz, properties: { phase: 'cz' } },
+        { id: at, properties: { phase: 'at' } },
+        { id: normalMiss, terminal: true, properties: { phase: 'normal_miss' } },
+        { id: highMiss, terminal: true, properties: { phase: 'high_miss' } },
+        { id: czMiss, terminal: true, properties: { phase: 'cz_miss' } },
+        { id: atEnd, terminal: true, properties: { phase: 'at_end' } }
+      ],
+      transitions: [
+        {
+          from: normal,
+          to: high,
+          probability: 0.2,
+          effects: [{ type: 'set_property', property: 'phase', value: 'high' }]
+        },
+        {
+          from: normal,
+          to: normalMiss,
+          probability: 0.8,
+          effects: [{ type: 'set_property', property: 'phase', value: 'normal_miss' }]
+        },
+        {
+          from: high,
+          to: cz,
+          probability: 0.5,
+          effects: [{ type: 'set_property', property: 'phase', value: 'cz' }]
+        },
+        {
+          from: high,
+          to: highMiss,
+          probability: 0.5,
+          effects: [{ type: 'set_property', property: 'phase', value: 'high_miss' }]
+        },
+        {
+          from: cz,
+          to: at,
+          probability: 0.4,
+          effects: [{ type: 'set_property', property: 'phase', value: 'at' }]
+        },
+        {
+          from: cz,
+          to: czMiss,
+          probability: 0.6,
+          effects: [{ type: 'set_property', property: 'phase', value: 'cz_miss' }]
+        },
+        {
+          from: at,
+          to: atEnd,
+          probability: 1,
+          reward: 100,
+          effects: [{ type: 'set_property', property: 'phase', value: 'at_end' }]
+        }
+      ]
+    };
+
+    const expanded = expandModel(beastMiniModel);
+    const evaluated = evaluateModel(expanded);
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(beastMiniModel, solved);
+    const contributions = toContributionResult(evaluated, solved);
+    const digest = definitionModelToBoundaryReportDigest(beastMiniModel);
+
+    expect(output.expectedReward).toBeCloseTo(4);
+    expect(output.expectedRewardByState[normal]).toBeCloseTo(4);
+    expect(output.expectedRewardByState[high]).toBeCloseTo(20);
+    expect(output.expectedRewardByState[cz]).toBeCloseTo(40);
+    expect(output.expectedRewardByState[at]).toBeCloseTo(100);
+    expect(contributions.transitionContributionsByState[normal]![0]!.contribution).toBeCloseTo(4);
+    expect(contributions.transitionContributionsByState[normal]![1]!.contribution).toBeCloseTo(0);
+    expect(digest.reports.map((report) => report.kind)).toEqual([
+      'state_graph_summary',
+      'transition_probability_audit',
+      'generated_target_comparison'
+    ]);
+    expect(digest.statusOverview.level).toBe('ok');
+    expect(digest.reportText).toContain('Transition Probability Audit');
+    expect(digest.reportText).toContain('Generated Target Comparison Report');
   });
 });
