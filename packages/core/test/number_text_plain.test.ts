@@ -61,6 +61,19 @@ it('keeps finite number text JSON output aligned with the public entrypoint', ()
   }
 });
 
+it('keeps zero number text JSON output aligned with the public entrypoint', () => {
+  const directJson = JSON.stringify({
+    diagnostic: formatNumberDiagnosticText(0),
+    plain: formatNumberPlainText(0)
+  });
+  const publicJson = JSON.stringify({
+    diagnostic: core.formatNumberDiagnosticText(0),
+    plain: core.formatNumberPlainText(0)
+  });
+
+  expect(publicJson).toBe(directJson);
+});
+
 it('keeps finite number text JSON output explicit', () => {
   expect(
     JSON.stringify({
