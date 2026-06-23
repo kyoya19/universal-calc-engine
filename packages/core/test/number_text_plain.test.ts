@@ -35,6 +35,11 @@ it('keeps finite number text formatters aligned with the public entrypoint', () 
   expect(core.formatNumberDiagnosticText(1.25)).toBe(formatNumberDiagnosticText(1.25));
 });
 
+it('keeps large number text formatters aligned with the public entrypoint', () => {
+  expect(core.formatNumberPlainText(12345)).toBe(formatNumberPlainText(12345));
+  expect(core.formatNumberDiagnosticText(12345)).toBe(formatNumberDiagnosticText(12345));
+});
+
 it('keeps generated number text formatters aligned with the public entrypoint', () => {
   const generatedValues = [0 / 0, 1 / 0, -1 / 0];
 
