@@ -1,10 +1,14 @@
 import { describe, expect, test } from 'vitest';
 import {
+  contributionResultToJson,
+  contributionResultToTex,
   definitionModelToBoundaryReportDigest,
   evaluateModel,
   expandModel,
   generatedTargetSolverGateResultSummaryToReportModel,
   outputResultToJson,
+  outputResultToTex,
+  outputResultToValueFunctionTex,
   solveExpectedReward,
   solveExpectedRewardWithGeneratedTargetGate,
   summarizeGeneratedTargetSolverGateResult,
@@ -129,5 +133,111 @@ describe('generated target solver gate summary report JSON boundary', () => {
     expect(serializedOutput.expectedRewardByState[heldBallSpin]).toBeCloseTo(-25);
     expect(digest.statusOverview.level).toBe('ok');
     expect(digest.reportText).toContain('Transition Probability Audit');
+  });
+
+  test('keeps Beast mini JSON TeX and digest output boundaries stable', () => {
+    const normal = 'state:{phase=normal}';
+    const high = 'state:{phase=high}';
+    const cz = 'state:{phase=cz}';
+    const at = 'state:{phase=at}';
+    const normalMiss = 'state:{phase=normal_miss}';
+    const highMiss = 'state:{phase=high_miss}';
+    const czMiss = 'state:{phase=cz_miss}';
+    const atEnd = 'state:{phase=at_end}';
+    const beastMiniModel: DefinitionModel = {
+      startState: normal,
+      states: [
+        { id: normal, properties: { phase: 'normal' } },
+        { id: high, properties: { phase: 'high' } },
+        { id: cz, properties: { phase: 'cz' } },
+        { id: at, properties: { phase: 'at' } },
+        { id: normalMiss, terminal: true, properties: { phase: 'normal_miss' } },
+        { id: highMiss, terminal: true, properties: { phase: 'high_miss' } },
+        { id: czMiss, terminal: true, properties: { phase: 'cz_miss' } },
+        { id: atEnd, terminal: true, properties: { phase: 'at_end' } }
+      ],
+      transitions: [
+        {
+          from: normal,
+          to: high,
+          probability: 0.2,
+          effects: [{ type: 'set_property', property: 'phase', value: 'high' }]
+        },
+        {
+          from: normal,
+          to: normalMiss,
+          probability: 0.8,
+          effects: [{ type: 'set_property', property: 'phase', value: 'normal_miss' }]
+        },
+        {
+          from: high,
+          to: cz,
+          probability: 0.5,
+          effects: [{ type: 'set_property', property: 'phase', value: 'cz' }]
+        },
+        {
+          from: high,
+          to: highMiss,
+          probability: 0.5,
+          effects: [{ type: 'set_property', property: 'phase', value: 'high_miss' }]
+        },
+        {
+          from: cz,
+          to: at,
+          probability: 0.4,
+          effects: [{ type: 'set_property', property: 'phase', value: 'at' }]
+        },
+        {
+          from: cz,
+          to: czMiss,
+          probability: 0.6,
+          effects: [{ type: 'set_property', property: 'phase', value: 'cz_miss' }]
+        },
+        {
+          from: at,
+          to: atEnd,
+          probability: 1,
+          reward: 100,
+          effects: [{ type: 'set_property', property: 'phase', value: 'at_end' }]
+        }
+      ]
+    };
+
+    const expanded = expandModel(beastMiniModel);
+    const evaluated = evaluateModel(expanded);
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(beastMiniModel, solved);
+    const contributions = toContributionResult(evaluated, solved);
+    const digest = definitionModelToBoundaryReportDigest(beastMiniModel);
+    const serializedOutput = JSON.parse(outputResultToJson(output));
+    const serializedContributions = JSON.parse(contributionResultToJson(contributions));
+    const serializedDigest = JSON.parse(JSON.stringify(digest));
+    const outputTex = outputResultToTex(output);
+    const valueFunctionTex = outputResultToValueFunctionTex(output);
+    const contributionTex = contributionResultToTex(contributions);
+
+    expect(serializedOutput).toMatchObject({
+      startState: normal,
+      expectedReward: 4,
+      expectedRewardByState: {
+        [normal]: 4,
+        [high]: 20,
+        [cz]: 40,
+        [at]: 100
+      }
+    });
+    expect(serializedContributions.transitionContributionsByState[normal][0].contribution).toBeCloseTo(4);
+    expect(serializedContributions.transitionContributionsByState[normal][1].contribution).toBeCloseTo(0);
+    expect(serializedDigest.reports.map((report: { kind: string }) => report.kind)).toEqual([
+      'state_graph_summary',
+      'transition_probability_audit',
+      'generated_target_comparison'
+    ]);
+    expect(serializedDigest.statusOverview.level).toBe('ok');
+    expect(serializedDigest.reportText).toContain('Transition Probability Audit');
+    expect(serializedDigest.reportText).toContain('Generated Target Comparison Report');
+    expect(outputTex).toContain('\\begin{array}{c|r}');
+    expect(valueFunctionTex).toContain('V(\\mathrm{state:\\{phase=normal\\}}) &= 4');
+    expect(contributionTex).toContain('0.2 & 0 & 20 & 4');
   });
 });
