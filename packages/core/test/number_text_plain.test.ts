@@ -88,3 +88,12 @@ it('keeps generated public number text JSON output explicit', () => {
     })
   ).toBe('{"diagnostic":"NaN","plain":"NaN"}');
 });
+
+it('keeps generated overflow public number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(1 / 0),
+      plain: core.formatNumberPlainText(1 / 0)
+    })
+  ).toBe('{"diagnostic":"Infinity","plain":"Infinity"}');
+});
