@@ -229,6 +229,11 @@ describe('generated target solver gate summary report JSON boundary', () => {
       'held_ball_100',
       'cash_50_held_ball_50'
     ]);
+    expect(serializedRatioRows.map((row: { label: string }) => row.label)).toEqual([
+      'cash 100%',
+      'held ball 100%',
+      'cash 50% / held ball 50%'
+    ]);
     expect(serializedRatioRows[0]).toMatchObject({ id: 'cash_100', cashRatio: 1, heldBallRatio: 0 });
     expect(serializedRatioRows[0].expectedRewardYen).toBeCloseTo(4.054054054054056);
     expect(serializedRatioRows[0].deltaVsCash100Yen).toBeCloseTo(0);
