@@ -70,3 +70,12 @@ it('keeps zero public number text JSON output explicit', () => {
     })
   ).toBe('{"diagnostic":"0","plain":"0"}');
 });
+
+it('keeps large public number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(12345),
+      plain: core.formatNumberPlainText(12345)
+    })
+  ).toBe('{"diagnostic":"12345","plain":"12345"}');
+});
