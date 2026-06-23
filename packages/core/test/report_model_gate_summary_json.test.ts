@@ -129,6 +129,9 @@ describe('generated target solver gate summary report JSON boundary', () => {
     const contributions = toContributionResult(evaluated, solved);
     const digest = definitionModelToBoundaryReportDigest(digipachiFixedEvModel);
     const serializedOutput = JSON.parse(outputResultToJson(output));
+    const outputTex = outputResultToTex(output);
+    const valueFunctionTex = outputResultToValueFunctionTex(output);
+    const contributionTex = contributionResultToTex(contributions);
 
     expect(output.expectedRewardByState[cashSpin]).toBeCloseTo(4.054054054054056);
     expect(output.expectedRewardByState[heldBallSpin]).toBeCloseTo(9.41119691119691);
@@ -136,6 +139,10 @@ describe('generated target solver gate summary report JSON boundary', () => {
     expect(contributions.transitionContributionsByState[cashSpin]![1]!.contribution).toBeCloseTo(-49.84360337816703);
     expect(serializedOutput.expectedRewardByState[cashSpin]).toBeCloseTo(4.054054054054056);
     expect(serializedOutput.expectedRewardByState[heldBallSpin]).toBeCloseTo(9.41119691119691);
+    expect(outputTex).toContain('\\begin{array}{c|r}');
+    expect(valueFunctionTex).toContain('V(\\mathrm{state:\\{lane=cash,outcome=spin\\}})');
+    expect(valueFunctionTex).toContain('V(\\mathrm{state:\\{lane=held\\_ball,outcome=spin\\}})');
+    expect(contributionTex).toContain('state:\\{lane=cash,outcome=spin\\}');
     expect(digest.statusOverview.level).toBe('ok');
     expect(digest.reportText).toContain('Transition Probability Audit');
   });
