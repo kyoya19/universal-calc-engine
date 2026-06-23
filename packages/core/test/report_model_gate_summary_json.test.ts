@@ -64,17 +64,22 @@ describe('generated target solver gate summary report JSON boundary', () => {
     });
   });
 
-  test('keeps fixed digipachi cash and held ball EV stable after JSON serialization', () => {
+  test('keeps representative digipachi cash and held ball EV stable after JSON serialization', () => {
     const cashSpin = 'state:{lane=cash,outcome=spin}';
     const heldBallSpin = 'state:{lane=held_ball,outcome=spin}';
     const cashHit = 'state:{lane=cash,outcome=hit}';
     const cashMiss = 'state:{lane=cash,outcome=miss}';
     const heldBallHit = 'state:{lane=held_ball,outcome=hit}';
     const heldBallMiss = 'state:{lane=held_ball,outcome=miss}';
-    const jackpotProbability = 1 / 200;
-    const cashSpinCostYen = 250;
-    const heldBallSpinCostYen = 200;
-    const averagePayoutYen = 35000;
+    const jackpotProbability = 1 / 319.7;
+    const referenceBorderSpinsPer1000Yen = 18.5;
+    const actualSpinsPer1000Yen = 20;
+    const lendingBallsPer1000Yen = 250;
+    const exchangeBallsPer1000Yen = 280;
+    const expectedPayoutPerSpinYen = 1000 / referenceBorderSpinsPer1000Yen;
+    const cashSpinCostYen = 1000 / actualSpinsPer1000Yen;
+    const heldBallSpinCostYen = (lendingBallsPer1000Yen / actualSpinsPer1000Yen) * (1000 / exchangeBallsPer1000Yen);
+    const averagePayoutYen = expectedPayoutPerSpinYen / jackpotProbability;
     const digipachiFixedEvModel: DefinitionModel = {
       startState: cashSpin,
       states: [
@@ -125,27 +130,33 @@ describe('generated target solver gate summary report JSON boundary', () => {
     const digest = definitionModelToBoundaryReportDigest(digipachiFixedEvModel);
     const serializedOutput = JSON.parse(outputResultToJson(output));
 
-    expect(output.expectedRewardByState[cashSpin]).toBeCloseTo(-75);
-    expect(output.expectedRewardByState[heldBallSpin]).toBeCloseTo(-25);
-    expect(contributions.transitionContributionsByState[cashSpin]![0]!.contribution).toBeCloseTo(173.75);
-    expect(contributions.transitionContributionsByState[cashSpin]![1]!.contribution).toBeCloseTo(-248.75);
-    expect(serializedOutput.expectedRewardByState[cashSpin]).toBeCloseTo(-75);
-    expect(serializedOutput.expectedRewardByState[heldBallSpin]).toBeCloseTo(-25);
+    expect(output.expectedRewardByState[cashSpin]).toBeCloseTo(4.054054054054056);
+    expect(output.expectedRewardByState[heldBallSpin]).toBeCloseTo(9.41119691119691);
+    expect(contributions.transitionContributionsByState[cashSpin]![0]!.contribution).toBeCloseTo(53.89765743222109);
+    expect(contributions.transitionContributionsByState[cashSpin]![1]!.contribution).toBeCloseTo(-49.84360337816703);
+    expect(serializedOutput.expectedRewardByState[cashSpin]).toBeCloseTo(4.054054054054056);
+    expect(serializedOutput.expectedRewardByState[heldBallSpin]).toBeCloseTo(9.41119691119691);
     expect(digest.statusOverview.level).toBe('ok');
     expect(digest.reportText).toContain('Transition Probability Audit');
   });
 
-  test('keeps fixed digipachi cash and held ball ratio comparison stable after JSON serialization', () => {
+  test('keeps representative digipachi cash held ball and hourly ratio comparison stable after JSON serialization', () => {
     const cashSpin = 'state:{lane=cash,outcome=spin}';
     const heldBallSpin = 'state:{lane=held_ball,outcome=spin}';
     const cashHit = 'state:{lane=cash,outcome=hit}';
     const cashMiss = 'state:{lane=cash,outcome=miss}';
     const heldBallHit = 'state:{lane=held_ball,outcome=hit}';
     const heldBallMiss = 'state:{lane=held_ball,outcome=miss}';
-    const jackpotProbability = 1 / 200;
-    const cashSpinCostYen = 250;
-    const heldBallSpinCostYen = 200;
-    const averagePayoutYen = 35000;
+    const jackpotProbability = 1 / 319.7;
+    const referenceBorderSpinsPer1000Yen = 18.5;
+    const actualSpinsPer1000Yen = 20;
+    const lendingBallsPer1000Yen = 250;
+    const exchangeBallsPer1000Yen = 280;
+    const normalSpinsPerHour = 200;
+    const expectedPayoutPerSpinYen = 1000 / referenceBorderSpinsPer1000Yen;
+    const cashSpinCostYen = 1000 / actualSpinsPer1000Yen;
+    const heldBallSpinCostYen = (lendingBallsPer1000Yen / actualSpinsPer1000Yen) * (1000 / exchangeBallsPer1000Yen);
+    const averagePayoutYen = expectedPayoutPerSpinYen / jackpotProbability;
     const digipachiFixedEvModel: DefinitionModel = {
       startState: cashSpin,
       states: [
@@ -200,24 +211,39 @@ describe('generated target solver gate summary report JSON boundary', () => {
       { id: 'cash_50_held_ball_50', label: 'cash 50% / held ball 50%', cashRatio: 0.5, heldBallRatio: 0.5 }
     ].map((row) => {
       const expectedRewardYen = row.cashRatio * cashExpectedRewardYen + row.heldBallRatio * heldBallExpectedRewardYen;
+      const deltaVsCash100Yen = expectedRewardYen - cashExpectedRewardYen;
       return {
         ...row,
         expectedRewardYen,
-        deltaVsCash100Yen: expectedRewardYen - cashExpectedRewardYen
+        deltaVsCash100Yen,
+        hourlyExpectedRewardYen: expectedRewardYen * normalSpinsPerHour,
+        hourlyDeltaVsCash100Yen: deltaVsCash100Yen * normalSpinsPerHour
       };
     });
     const serializedRatioRows = JSON.parse(JSON.stringify(ratioRows));
 
-    expect(cashExpectedRewardYen).toBeCloseTo(-75);
-    expect(heldBallExpectedRewardYen).toBeCloseTo(-25);
+    expect(cashExpectedRewardYen).toBeCloseTo(4.054054054054056);
+    expect(heldBallExpectedRewardYen).toBeCloseTo(9.41119691119691);
     expect(serializedRatioRows.map((row: { id: string }) => row.id)).toEqual([
       'cash_100',
       'held_ball_100',
       'cash_50_held_ball_50'
     ]);
-    expect(serializedRatioRows[0]).toMatchObject({ expectedRewardYen: -75, deltaVsCash100Yen: 0 });
-    expect(serializedRatioRows[1]).toMatchObject({ expectedRewardYen: -25, deltaVsCash100Yen: 50 });
-    expect(serializedRatioRows[2]).toMatchObject({ expectedRewardYen: -50, deltaVsCash100Yen: 25 });
+    expect(serializedRatioRows[0]).toMatchObject({ id: 'cash_100', cashRatio: 1, heldBallRatio: 0 });
+    expect(serializedRatioRows[0].expectedRewardYen).toBeCloseTo(4.054054054054056);
+    expect(serializedRatioRows[0].deltaVsCash100Yen).toBeCloseTo(0);
+    expect(serializedRatioRows[0].hourlyExpectedRewardYen).toBeCloseTo(810.8108108108113);
+    expect(serializedRatioRows[0].hourlyDeltaVsCash100Yen).toBeCloseTo(0);
+    expect(serializedRatioRows[1]).toMatchObject({ id: 'held_ball_100', cashRatio: 0, heldBallRatio: 1 });
+    expect(serializedRatioRows[1].expectedRewardYen).toBeCloseTo(9.41119691119691);
+    expect(serializedRatioRows[1].deltaVsCash100Yen).toBeCloseTo(5.357142857142854);
+    expect(serializedRatioRows[1].hourlyExpectedRewardYen).toBeCloseTo(1882.239382239382);
+    expect(serializedRatioRows[1].hourlyDeltaVsCash100Yen).toBeCloseTo(1071.4285714285709);
+    expect(serializedRatioRows[2]).toMatchObject({ id: 'cash_50_held_ball_50', cashRatio: 0.5, heldBallRatio: 0.5 });
+    expect(serializedRatioRows[2].expectedRewardYen).toBeCloseTo(6.732625482625483);
+    expect(serializedRatioRows[2].deltaVsCash100Yen).toBeCloseTo(2.678571428571427);
+    expect(serializedRatioRows[2].hourlyExpectedRewardYen).toBeCloseTo(1346.5250965250966);
+    expect(serializedRatioRows[2].hourlyDeltaVsCash100Yen).toBeCloseTo(535.7142857142854);
   });
 
   test('keeps Beast mini JSON TeX and digest output boundaries stable', () => {
