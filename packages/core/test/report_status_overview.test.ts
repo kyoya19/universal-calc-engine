@@ -31,6 +31,7 @@ describe('report status overview helpers', () => {
     });
 
     expect(overview.level).toBe('ok');
+    expect(overview.summary.ok).toBeGreaterThan(0);
     expect(overview.summary.warning).toBe(0);
     expect(overview.summary.rejected).toBe(0);
     expect(overview.plainText).toContain('ok:');
