@@ -135,6 +135,91 @@ describe('generated target solver gate summary report JSON boundary', () => {
     expect(digest.reportText).toContain('Transition Probability Audit');
   });
 
+  test('keeps fixed digipachi cash and held ball ratio comparison stable after JSON serialization', () => {
+    const cashSpin = 'state:{lane=cash,outcome=spin}';
+    const heldBallSpin = 'state:{lane=held_ball,outcome=spin}';
+    const cashHit = 'state:{lane=cash,outcome=hit}';
+    const cashMiss = 'state:{lane=cash,outcome=miss}';
+    const heldBallHit = 'state:{lane=held_ball,outcome=hit}';
+    const heldBallMiss = 'state:{lane=held_ball,outcome=miss}';
+    const jackpotProbability = 1 / 200;
+    const cashSpinCostYen = 250;
+    const heldBallSpinCostYen = 200;
+    const averagePayoutYen = 35000;
+    const digipachiFixedEvModel: DefinitionModel = {
+      startState: cashSpin,
+      states: [
+        { id: cashSpin, properties: { lane: 'cash', outcome: 'spin' } },
+        { id: heldBallSpin, properties: { lane: 'held_ball', outcome: 'spin' } },
+        { id: cashHit, terminal: true, properties: { lane: 'cash', outcome: 'hit' } },
+        { id: cashMiss, terminal: true, properties: { lane: 'cash', outcome: 'miss' } },
+        { id: heldBallHit, terminal: true, properties: { lane: 'held_ball', outcome: 'hit' } },
+        { id: heldBallMiss, terminal: true, properties: { lane: 'held_ball', outcome: 'miss' } }
+      ],
+      transitions: [
+        {
+          from: cashSpin,
+          to: cashHit,
+          probability: jackpotProbability,
+          reward: averagePayoutYen - cashSpinCostYen,
+          effects: [{ type: 'set_property', property: 'outcome', value: 'hit' }]
+        },
+        {
+          from: cashSpin,
+          to: cashMiss,
+          probability: 1 - jackpotProbability,
+          reward: -cashSpinCostYen,
+          effects: [{ type: 'set_property', property: 'outcome', value: 'miss' }]
+        },
+        {
+          from: heldBallSpin,
+          to: heldBallHit,
+          probability: jackpotProbability,
+          reward: averagePayoutYen - heldBallSpinCostYen,
+          effects: [{ type: 'set_property', property: 'outcome', value: 'hit' }]
+        },
+        {
+          from: heldBallSpin,
+          to: heldBallMiss,
+          probability: 1 - jackpotProbability,
+          reward: -heldBallSpinCostYen,
+          effects: [{ type: 'set_property', property: 'outcome', value: 'miss' }]
+        }
+      ]
+    };
+
+    const expanded = expandModel(digipachiFixedEvModel);
+    const evaluated = evaluateModel(expanded);
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(digipachiFixedEvModel, solved);
+    const cashExpectedRewardYen = output.expectedRewardByState[cashSpin]!;
+    const heldBallExpectedRewardYen = output.expectedRewardByState[heldBallSpin]!;
+    const ratioRows = [
+      { id: 'cash_100', label: 'cash 100%', cashRatio: 1, heldBallRatio: 0 },
+      { id: 'held_ball_100', label: 'held ball 100%', cashRatio: 0, heldBallRatio: 1 },
+      { id: 'cash_50_held_ball_50', label: 'cash 50% / held ball 50%', cashRatio: 0.5, heldBallRatio: 0.5 }
+    ].map((row) => {
+      const expectedRewardYen = row.cashRatio * cashExpectedRewardYen + row.heldBallRatio * heldBallExpectedRewardYen;
+      return {
+        ...row,
+        expectedRewardYen,
+        deltaVsCash100Yen: expectedRewardYen - cashExpectedRewardYen
+      };
+    });
+    const serializedRatioRows = JSON.parse(JSON.stringify(ratioRows));
+
+    expect(cashExpectedRewardYen).toBeCloseTo(-75);
+    expect(heldBallExpectedRewardYen).toBeCloseTo(-25);
+    expect(serializedRatioRows.map((row: { id: string }) => row.id)).toEqual([
+      'cash_100',
+      'held_ball_100',
+      'cash_50_held_ball_50'
+    ]);
+    expect(serializedRatioRows[0]).toMatchObject({ expectedRewardYen: -75, deltaVsCash100Yen: 0 });
+    expect(serializedRatioRows[1]).toMatchObject({ expectedRewardYen: -25, deltaVsCash100Yen: 50 });
+    expect(serializedRatioRows[2]).toMatchObject({ expectedRewardYen: -50, deltaVsCash100Yen: 25 });
+  });
+
   test('keeps Beast mini JSON TeX and digest output boundaries stable', () => {
     const normal = 'state:{phase=normal}';
     const high = 'state:{phase=high}';
