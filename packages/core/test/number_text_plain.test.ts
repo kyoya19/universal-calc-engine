@@ -79,3 +79,12 @@ it('keeps large public number text JSON output explicit', () => {
     })
   ).toBe('{"diagnostic":"12345","plain":"12345"}');
 });
+
+it('keeps generated public number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(0 / 0),
+      plain: core.formatNumberPlainText(0 / 0)
+    })
+  ).toBe('{"diagnostic":"NaN","plain":"NaN"}');
+});
