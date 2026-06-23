@@ -44,6 +44,23 @@ it('keeps generated number text formatters aligned with the public entrypoint', 
   }
 });
 
+it('keeps finite number text JSON output aligned with the public entrypoint', () => {
+  const values = [1.25, -1.25, 12345];
+
+  for (const value of values) {
+    const directJson = JSON.stringify({
+      diagnostic: formatNumberDiagnosticText(value),
+      plain: formatNumberPlainText(value)
+    });
+    const publicJson = JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(value),
+      plain: core.formatNumberPlainText(value)
+    });
+
+    expect(publicJson).toBe(directJson);
+  }
+});
+
 it('keeps finite number text JSON output explicit', () => {
   expect(
     JSON.stringify({
