@@ -85,6 +85,7 @@ describe('report status summary helpers', () => {
     expect(summary.info).toBeGreaterThan(0);
     expect(summary.warning).toBe(0);
     expect(summary.rejected).toBe(0);
+    expect(isReportStatusSummaryOk(summary)).toBe(true);
   });
 
   it('formats boundary report status summary directly from a definition model', () => {
