@@ -25,6 +25,7 @@ describe('definitionModelToBoundaryReportDigest', () => {
   it('builds boundary reports, report text, and status overview together', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
 
+    expect(digest.reports).toHaveLength(3);
     expect(digest.reports.map((report) => report.kind)).toEqual([
       'state_graph_summary',
       'transition_probability_audit',
