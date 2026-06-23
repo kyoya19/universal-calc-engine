@@ -42,6 +42,7 @@ describe('definitionModelToBoundaryReportDigest', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
     const serializedDigest = JSON.parse(JSON.stringify(digest));
 
+    expect(serializedDigest.reports).toHaveLength(3);
     expect(serializedDigest.reports.map((report: { kind: string }) => report.kind)).toEqual([
       'state_graph_summary',
       'transition_probability_audit',
