@@ -43,3 +43,12 @@ it('keeps finite number text JSON output explicit', () => {
     })
   ).toBe('{"diagnostic":"1.25","plain":"1.25"}');
 });
+
+it('keeps signed finite number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: formatNumberDiagnosticText(-1.25),
+      plain: formatNumberPlainText(-1.25)
+    })
+  ).toBe('{"diagnostic":"-1.25","plain":"-1.25"}');
+});
