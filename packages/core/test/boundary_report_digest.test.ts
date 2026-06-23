@@ -72,5 +72,4 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(text).toContain('statusLevel: ok');
     expect(text).toContain('Generated Target Comparison Report');
   });
-}
-);
+});
