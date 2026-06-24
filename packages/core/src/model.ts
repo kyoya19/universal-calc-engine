@@ -125,6 +125,22 @@ export function evaluateScalarSpec(spec: ScalarSpec): number {
   return spec.value;
 }
 
+export function evaluateProbabilitySpec(spec: ProbabilitySpec): number {
+  return evaluateScalarSpec(spec);
+}
+
+export function serializeProbabilitySpec(spec: ProbabilitySpec): ProbabilitySpec {
+  return serializeScalarSpec(spec);
+}
+
+export function evaluateRewardSpec(spec: RewardSpec): number {
+  return evaluateScalarSpec(spec);
+}
+
+export function serializeRewardSpec(spec: RewardSpec): RewardSpec {
+  return serializeScalarSpec(spec);
+}
+
 export function applyTransitionEffects(
   properties: StateProperties | undefined,
   effects: TransitionEffect[] | undefined
@@ -185,11 +201,11 @@ function evaluateTransition(transition: TransitionDefinition): EvaluatedTransiti
   const evaluated: EvaluatedTransition = {
     from: transition.from,
     to: transition.to,
-    probability: evaluateScalarSpec(transition.probability)
+    probability: evaluateProbabilitySpec(transition.probability)
   };
 
   if (transition.reward !== undefined) {
-    evaluated.reward = evaluateScalarSpec(transition.reward);
+    evaluated.reward = evaluateRewardSpec(transition.reward);
   }
 
   if (transition.effects !== undefined) {
@@ -238,7 +254,7 @@ export function auditTransitionProbabilityTotals(
   const rows = model.states.map((state): TransitionProbabilityAuditRow => {
     const transitions = model.transitionsByState.get(state.id) ?? [];
     const probabilityTotal = transitions.reduce(
-      (sum, transition) => sum + evaluateScalarSpec(transition.probability),
+      (sum, transition) => sum + evaluateProbabilitySpec(transition.probability),
       0
     );
     const terminal = isTerminalState(state);
