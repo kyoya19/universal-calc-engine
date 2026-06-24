@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   definitionModelToBoundaryReportStatusOverview,
+  serializeReportStatusOverview,
   toReportStatusOverview
 } from '../src/report_status_overview';
 
@@ -11,6 +12,12 @@ describe('report status overview helpers', () => {
       level: 'ok',
       plainText: 'ok: 2\nwarning: 0\nrejected: 0\ninfo: 3'
     });
+  });
+
+  it('serializes a report status overview', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+
+    expect(serializeReportStatusOverview(overview)).toEqual(overview);
   });
 
   it('builds a boundary report status overview from a definition model', () => {
