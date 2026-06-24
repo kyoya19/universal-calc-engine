@@ -329,12 +329,24 @@ export function auditTransitionProbabilityTotals(
   };
 }
 
+export function serializeTransitionProbabilityAuditRow(
+  row: TransitionProbabilityAuditRow
+): TransitionProbabilityAuditRow {
+  return { ...row };
+}
+
+export function serializeTransitionProbabilityAuditRows(
+  rows: TransitionProbabilityAuditRow[]
+): TransitionProbabilityAuditRow[] {
+  return rows.map(serializeTransitionProbabilityAuditRow);
+}
+
 export function serializeTransitionProbabilityAuditResult(
   result: TransitionProbabilityAuditResult
 ): TransitionProbabilityAuditResult {
   return {
-    rows: result.rows.map((row) => ({ ...row })),
-    invalidRows: result.invalidRows.map((row) => ({ ...row })),
+    rows: serializeTransitionProbabilityAuditRows(result.rows),
+    invalidRows: serializeTransitionProbabilityAuditRows(result.invalidRows),
     valid: result.valid
   };
 }
