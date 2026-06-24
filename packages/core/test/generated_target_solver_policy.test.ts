@@ -10,7 +10,12 @@ import {
   toOutputResult
 } from '../src';
 import {
+  generatedTargetSolverPlanningValidationResultToJson,
   requireGeneratedMatchPlanningDecision,
+  serializeGeneratedTargetSolverPlanningDecision,
+  serializeGeneratedTargetSolverPlanningEdge,
+  serializeGeneratedTargetSolverPlanningRejection,
+  serializeGeneratedTargetSolverPlanningValidationResult,
   validateGeneratedTargetSolverPlanningBoundary
 } from '../src/generated_target_solver_policy';
 import {
@@ -364,5 +369,131 @@ describe('generated target solver planning boundary', () => {
         }
       }
     });
+  });
+
+  test('serializes planning decisions through the helper as a stable copy', () => {
+    const serializedDecision = serializeGeneratedTargetSolverPlanningDecision(requireGeneratedMatchPlanningDecision);
+
+    expect(serializedDecision).toEqual(requireGeneratedMatchPlanningDecision);
+    expect(serializedDecision).not.toBe(requireGeneratedMatchPlanningDecision);
+  });
+
+  test('serializes planning edges without changing explicit/generated target meaning', () => {
+    const graph = expandGraphFromModel(representativeSugorokuModel);
+    const firstEdge = graph.edges[0]!;
+    const serializedEdge = serializeGeneratedTargetSolverPlanningEdge(firstEdge);
+
+    expect(serializedEdge).toEqual(firstEdge);
+    expect(serializedEdge).not.toBe(firstEdge);
+    expect(serializedEdge.transition).toEqual(firstEdge.transition);
+    expect(serializedEdge.transition).not.toBe(firstEdge.transition);
+    expect(serializedEdge.generatedTo).toBe(positionStateId(1));
+    expect(selectGraphTarget(serializedEdge)).toBe(positionStateId(1));
+  });
+
+  test('serializes accepted validation results through helpers and JSON', () => {
+    const graph = expandGraphFromModel(representativeSugorokuModel);
+    const result = validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedResult = serializeGeneratedTargetSolverPlanningValidationResult(result);
+
+    expect(serializedResult).toEqual({ accepted: true });
+    expect(serializedResult).not.toBe(result);
+    expect(JSON.parse(generatedTargetSolverPlanningValidationResultToJson(result))).toEqual({ accepted: true });
+  });
+
+  test('serializes missing generated target rejections through helpers and JSON', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const graph = expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const result = validateGeneratedTargetSolverPlanningBoundary(graph);
+
+    expect(result.accepted).toBe(false);
+    if (result.accepted) {
+      throw new Error('Expected a missing generated target rejection');
+    }
+
+    const serializedRejection = serializeGeneratedTargetSolverPlanningRejection(result.rejection);
+    const serializedResult = serializeGeneratedTargetSolverPlanningValidationResult(result);
+
+    expect(serializedRejection).toMatchObject({
+      type: 'missing_generated_target',
+      edge: {
+        from: positionStateId(0),
+        explicitTo: positionStateId(1)
+      }
+    });
+    expect(serializedRejection).not.toBe(result.rejection);
+    expect(serializedResult).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'missing_generated_target',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: positionStateId(1)
+        }
+      }
+    });
+    expect(JSON.parse(generatedTargetSolverPlanningValidationResultToJson(result))).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'missing_generated_target',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: positionStateId(1)
+        }
+      }
+    });
+  });
+
+  test('serializes explicit/generated mismatch rejections through helpers and JSON', () => {
+    const graph = expandGraphFromModel({
+      ...representativeSugorokuModel,
+      transitions: [
+        { ...representativeSugorokuModel.transitions[0]!, to: 'legacy_pos_1' },
+        ...representativeSugorokuModel.transitions.slice(1)
+      ]
+    });
+    const result = validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedResult = serializeGeneratedTargetSolverPlanningValidationResult(result);
+
+    expect(serializedResult).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'explicit_generated_mismatch',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: 'legacy_pos_1',
+          generatedTo: positionStateId(1)
+        }
+      }
+    });
+    expect(JSON.parse(generatedTargetSolverPlanningValidationResultToJson(result))).toMatchObject({
+      accepted: false,
+      rejection: {
+        type: 'explicit_generated_mismatch',
+        edge: {
+          from: positionStateId(0),
+          explicitTo: 'legacy_pos_1',
+          generatedTo: positionStateId(1)
+        }
+      }
+    });
+  });
+
+  test('exposes generated target planning serialization helpers from the public entrypoint', () => {
+    const graph = core.expandGraphFromModel(representativeSugorokuModel);
+    const result = core.validateGeneratedTargetSolverPlanningBoundary(graph);
+    const serializedDecision = core.serializeGeneratedTargetSolverPlanningDecision(core.requireGeneratedMatchPlanningDecision);
+    const serializedResult = core.serializeGeneratedTargetSolverPlanningValidationResult(result);
+
+    expect(serializedDecision).toMatchObject({
+      policy: 'require_generated_match',
+      expectedRewardBaseline: 'must_remain_unchanged',
+      contributionOutput: 'report_explicit_target'
+    });
+    expect(serializedResult).toEqual({ accepted: true });
+    expect(JSON.parse(core.generatedTargetSolverPlanningValidationResultToJson(result))).toEqual({ accepted: true });
   });
 });
