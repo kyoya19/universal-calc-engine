@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  boundaryReportCheckResultToJson,
   boundaryReportDigestToCheckResult,
   definitionModelToBoundaryReportCheckResult,
   definitionModelToBoundaryReportCheckResultPlainText,
@@ -23,6 +24,7 @@ describe('boundary report check result helpers', () => {
     const result = definitionModelToBoundaryReportCheckResult(model);
 
     expect(serializeBoundaryReportCheckResult(result)).toEqual(result);
+    expect(JSON.parse(boundaryReportCheckResultToJson(result))).toEqual(result);
   });
 
   it('builds a check result from a definition model', () => {
