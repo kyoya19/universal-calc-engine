@@ -6,6 +6,10 @@ import {
 import type { ReportModel } from '../src/report_model';
 
 describe('boundary report text helpers', () => {
+  it('formats an empty report model list as empty text', () => {
+    expect(formatReportModelsPlainText([])).toBe('');
+  });
+
   it('formats multiple report models with a stable separator', () => {
     const reports: ReportModel[] = [
       {
