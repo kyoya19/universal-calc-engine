@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
+import * as core from '../src';
 import {
+  boundaryReportDigestToJson,
   definitionModelToBoundaryReportDigest,
   definitionModelToBoundaryReportDigestPlainText,
-  formatBoundaryReportDigestPlainText
+  formatBoundaryReportDigestPlainText,
+  serializeBoundaryReportDigest
 } from '../src/boundary_report_digest';
 
 const model = {
@@ -58,6 +61,40 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reportText).toBe(digest.reportText);
   });
 
+  it('serializes boundary report digests through the helper as stable copies', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const serializedDigest = serializeBoundaryReportDigest(digest);
+
+    expect(serializedDigest).toEqual(digest);
+    expect(serializedDigest).not.toBe(digest);
+    expect(serializedDigest.reports).not.toBe(digest.reports);
+    expect(serializedDigest.reports[0]).not.toBe(digest.reports[0]);
+    expect(serializedDigest.reports[0]!.sections).not.toBe(digest.reports[0]!.sections);
+    expect(serializedDigest.reports[0]!.sections[0]!.rows).not.toBe(digest.reports[0]!.sections[0]!.rows);
+    expect(serializedDigest.statusOverview).not.toBe(digest.statusOverview);
+    expect(serializedDigest.statusOverview.summary).not.toBe(digest.statusOverview.summary);
+  });
+
+  it('serializes boundary report digests through the JSON helper', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const serializedDigest = JSON.parse(boundaryReportDigestToJson(digest));
+
+    expect(serializedDigest.reports).toHaveLength(3);
+    expect(serializedDigest.reports.map((report: { kind: string }) => report.kind)).toEqual([
+      'state_graph_summary',
+      'transition_probability_audit',
+      'generated_target_comparison'
+    ]);
+    expect(serializedDigest.statusOverview).toMatchObject({
+      level: 'ok',
+      summary: {
+        rejected: 0,
+        warning: 0
+      }
+    });
+    expect(serializedDigest.reportText).toBe(digest.reportText);
+  });
+
   it('formats a digest as plain text', () => {
     const text = formatBoundaryReportDigestPlainText(definitionModelToBoundaryReportDigest(model));
 
@@ -72,5 +109,21 @@ describe('definitionModelToBoundaryReportDigest', () => {
 
     expect(text).toContain('statusLevel: ok');
     expect(text).toContain('Generated Target Comparison Report');
+  });
+
+  it('exposes boundary report digest serialization helpers from the public entrypoint', () => {
+    const digest = core.definitionModelToBoundaryReportDigest(model);
+    const serializedDigest = core.serializeBoundaryReportDigest(digest);
+
+    expect(serializedDigest).toEqual(digest);
+    expect(JSON.parse(core.boundaryReportDigestToJson(digest))).toMatchObject({
+      statusOverview: {
+        level: 'ok',
+        summary: {
+          rejected: 0,
+          warning: 0
+        }
+      }
+    });
   });
 });
