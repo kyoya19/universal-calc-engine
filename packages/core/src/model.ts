@@ -33,6 +33,8 @@ export type TransitionEffect = {
   value: PropertyValue;
 };
 
+export type TransitionEffectKind = TransitionEffect['type'];
+
 export type StateDefinition = {
   id: StateId;
   terminal?: boolean;
@@ -162,14 +164,31 @@ export function evaluateTerminalCondition(
   return properties?.[condition.property] === condition.value;
 }
 
+export function getTransitionEffectKind(effect: TransitionEffect): TransitionEffectKind {
+  return effect.type;
+}
+
+export function serializeTransitionEffect(effect: TransitionEffect): TransitionEffect {
+  return { ...effect };
+}
+
+export function applyTransitionEffect(
+  properties: StateProperties | undefined,
+  effect: TransitionEffect
+): StateProperties {
+  const nextProperties: StateProperties = { ...(properties ?? {}) };
+  nextProperties[effect.property] = effect.value;
+  return nextProperties;
+}
+
 export function applyTransitionEffects(
   properties: StateProperties | undefined,
   effects: TransitionEffect[] | undefined
 ): StateProperties {
-  const nextProperties: StateProperties = { ...(properties ?? {}) };
+  let nextProperties: StateProperties = { ...(properties ?? {}) };
 
   for (const effect of effects ?? []) {
-    nextProperties[effect.property] = effect.value;
+    nextProperties = applyTransitionEffect(nextProperties, effect);
   }
 
   return nextProperties;
