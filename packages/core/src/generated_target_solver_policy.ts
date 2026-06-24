@@ -51,6 +51,54 @@ export type GeneratedTargetSolverPlanningValidationResult =
       rejection: GeneratedTargetSolverPlanningRejection;
     };
 
+export function serializeGeneratedTargetSolverPlanningDecision(
+  decision: GeneratedTargetSolverPlanningDecision
+): GeneratedTargetSolverPlanningDecision {
+  return { ...decision };
+}
+
+export function serializeGeneratedTargetSolverPlanningEdge(edge: ExpandedStateEdge): ExpandedStateEdge {
+  const transition = edge.transition.effects
+    ? {
+        ...edge.transition,
+        effects: edge.transition.effects.map((effect) => ({ ...effect }))
+      }
+    : { ...edge.transition };
+
+  return {
+    ...edge,
+    transition
+  };
+}
+
+export function serializeGeneratedTargetSolverPlanningRejection(
+  rejection: GeneratedTargetSolverPlanningRejection
+): GeneratedTargetSolverPlanningRejection {
+  return {
+    ...rejection,
+    edge: serializeGeneratedTargetSolverPlanningEdge(rejection.edge)
+  };
+}
+
+export function serializeGeneratedTargetSolverPlanningValidationResult(
+  result: GeneratedTargetSolverPlanningValidationResult
+): GeneratedTargetSolverPlanningValidationResult {
+  if (result.accepted) {
+    return { accepted: true };
+  }
+
+  return {
+    accepted: false,
+    rejection: serializeGeneratedTargetSolverPlanningRejection(result.rejection)
+  };
+}
+
+export function generatedTargetSolverPlanningValidationResultToJson(
+  result: GeneratedTargetSolverPlanningValidationResult
+): string {
+  return JSON.stringify(serializeGeneratedTargetSolverPlanningValidationResult(result));
+}
+
 export function validateGeneratedTargetSolverPlanningBoundary(
   graph: ExpandedStateGraph,
   decision: GeneratedTargetSolverPlanningDecision = requireGeneratedMatchPlanningDecision
