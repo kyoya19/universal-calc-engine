@@ -14,6 +14,14 @@ export function createEmptyReportStatusSummary(): ReportStatusSummary {
   };
 }
 
+export function serializeReportStatusSummary(summary: ReportStatusSummary): ReportStatusSummary {
+  return { ...summary };
+}
+
+export function reportStatusSummaryToJson(summary: ReportStatusSummary): string {
+  return JSON.stringify(serializeReportStatusSummary(summary));
+}
+
 export function summarizeReportModelStatuses(report: ReportModel): ReportStatusSummary {
   const summary = createEmptyReportStatusSummary();
 
