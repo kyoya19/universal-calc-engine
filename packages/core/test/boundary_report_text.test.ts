@@ -20,6 +20,16 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('One\n\n## Summary\na: 1');
   });
 
+  it('formats a title-only report model without section padding', () => {
+    const report: ReportModel = {
+      kind: 'empty',
+      title: 'Empty Report',
+      sections: []
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Empty Report');
+  });
+
   it('formats multiple report models with a stable separator', () => {
     const reports: ReportModel[] = [
       {
