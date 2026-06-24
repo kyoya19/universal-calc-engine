@@ -12,6 +12,17 @@ export type ReportStatusOverview = {
   plainText: string;
 };
 
+export function serializeReportStatusOverview(overview: ReportStatusOverview): ReportStatusOverview {
+  return {
+    ...overview,
+    summary: { ...overview.summary }
+  };
+}
+
+export function reportStatusOverviewToJson(overview: ReportStatusOverview): string {
+  return JSON.stringify(serializeReportStatusOverview(overview));
+}
+
 export function toReportStatusOverview(summary: ReportStatusSummary): ReportStatusOverview {
   return {
     summary,
