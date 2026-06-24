@@ -2,12 +2,14 @@ export type StateId = string;
 export type PropertyValue = number | string | boolean;
 export type StateProperties = Record<string, PropertyValue>;
 
-export type ScalarSpec =
-  | number
-  | {
-      type: 'constant';
-      value: number;
-    };
+export type ConstantScalarSpec = {
+  type: 'constant';
+  value: number;
+};
+
+export type ScalarSpec = number | ConstantScalarSpec;
+
+export type ScalarSpecKind = 'number' | 'constant';
 
 export type ProbabilitySpec = ScalarSpec;
 export type RewardSpec = ScalarSpec;
@@ -102,6 +104,18 @@ export type TransitionProbabilityAuditResult = {
   invalidRows: TransitionProbabilityAuditRow[];
   valid: boolean;
 };
+
+export function getScalarSpecKind(spec: ScalarSpec): ScalarSpecKind {
+  return typeof spec === 'number' ? 'number' : spec.type;
+}
+
+export function serializeScalarSpec(spec: ScalarSpec): ScalarSpec {
+  if (typeof spec === 'number') {
+    return spec;
+  }
+
+  return { ...spec };
+}
 
 export function evaluateScalarSpec(spec: ScalarSpec): number {
   if (typeof spec === 'number') {
