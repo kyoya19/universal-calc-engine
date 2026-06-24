@@ -25,6 +25,8 @@ export type TerminalCondition =
       value: PropertyValue;
     };
 
+export type TerminalConditionKind = TerminalCondition['type'];
+
 export type TransitionEffect = {
   type: 'set_property';
   property: string;
@@ -141,6 +143,25 @@ export function serializeRewardSpec(spec: RewardSpec): RewardSpec {
   return serializeScalarSpec(spec);
 }
 
+export function getTerminalConditionKind(condition: TerminalCondition): TerminalConditionKind {
+  return condition.type;
+}
+
+export function serializeTerminalCondition(condition: TerminalCondition): TerminalCondition {
+  return { ...condition };
+}
+
+export function evaluateTerminalCondition(
+  condition: TerminalCondition,
+  properties: StateProperties | undefined
+): boolean {
+  if (condition.type === 'explicit') {
+    return condition.value;
+  }
+
+  return properties?.[condition.property] === condition.value;
+}
+
 export function applyTransitionEffects(
   properties: StateProperties | undefined,
   effects: TransitionEffect[] | undefined
@@ -168,11 +189,7 @@ export function isTerminalState(state: StateDefinition): boolean {
     return false;
   }
 
-  if (condition.type === 'explicit') {
-    return condition.value;
-  }
-
-  return state.properties?.[condition.property] === condition.value;
+  return evaluateTerminalCondition(condition, state.properties);
 }
 
 export function expandModel(model: DefinitionModel): ExpandedModel {
