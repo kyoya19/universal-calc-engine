@@ -194,6 +194,20 @@ export function applyTransitionEffects(
   return nextProperties;
 }
 
+export function isTransitionProbabilityTotalValid(
+  probabilityTotal: number,
+  tolerance = 1e-9
+): boolean {
+  return Math.abs(probabilityTotal - 1) <= tolerance;
+}
+
+export function formatTransitionProbabilityTotalError(
+  stateId: StateId,
+  probabilityTotal: number
+): string {
+  return `Transition probabilities from ${stateId} sum to ${probabilityTotal}, not 1`;
+}
+
 function selectExplicitSolverTransitionTarget(transition: EvaluatedTransition): StateId {
   return transition.to;
 }
@@ -275,8 +289,8 @@ export function evaluateModel(model: ExpandedModel): EvaluatedModel {
       continue;
     }
     const total = stateTransitions.reduce((sum, transition) => sum + transition.probability, 0);
-    if (Math.abs(total - 1) > 1e-9) {
-      throw new Error(`Transition probabilities from ${stateId} sum to ${total}, not 1`);
+    if (!isTransitionProbabilityTotalValid(total)) {
+      throw new Error(formatTransitionProbabilityTotalError(stateId, total));
     }
   }
 
@@ -295,7 +309,7 @@ export function auditTransitionProbabilityTotals(
     );
     const terminal = isTerminalState(state);
     const deviationFromOne = probabilityTotal - 1;
-    const valid = terminal || Math.abs(deviationFromOne) <= tolerance;
+    const valid = terminal || isTransitionProbabilityTotalValid(probabilityTotal, tolerance);
 
     return {
       stateId: state.id,
