@@ -1,9 +1,13 @@
 import { describe, expect, test } from 'vitest';
 import {
+  serializeTransitionProbabilityAuditDigest,
   serializeTransitionProbabilityAuditResult,
   serializeTransitionProbabilityAuditRow,
   serializeTransitionProbabilityAuditRows,
+  toTransitionProbabilityAuditDigest,
+  transitionProbabilityAuditDigestToJson,
   transitionProbabilityAuditResultToJson,
+  type TransitionProbabilityAuditDigest,
   type TransitionProbabilityAuditResult,
   type TransitionProbabilityAuditRow
 } from '../src';
@@ -86,5 +90,81 @@ describe('transition probability audit serialization boundary', () => {
     expect(serialized.rows[0]).not.toBe(result.rows[0]);
     expect(serialized.invalidRows[0]).not.toBe(result.invalidRows[0]);
     expect(JSON.parse(transitionProbabilityAuditResultToJson(result))).toEqual(result);
+  });
+
+  test('builds and serializes audit digest without changing audit result shape', () => {
+    const result: TransitionProbabilityAuditResult = {
+      rows: [
+        {
+          stateId: 's0',
+          transitionCount: 1,
+          probabilityTotal: 0.5,
+          deviationFromOne: -0.5,
+          terminal: false,
+          valid: false
+        },
+        {
+          stateId: 's1',
+          transitionCount: 0,
+          probabilityTotal: 0,
+          deviationFromOne: -1,
+          terminal: true,
+          valid: true
+        },
+        {
+          stateId: 's2',
+          transitionCount: 2,
+          probabilityTotal: 1.25,
+          deviationFromOne: 0.25,
+          terminal: false,
+          valid: false
+        }
+      ],
+      invalidRows: [
+        {
+          stateId: 's0',
+          transitionCount: 1,
+          probabilityTotal: 0.5,
+          deviationFromOne: -0.5,
+          terminal: false,
+          valid: false
+        },
+        {
+          stateId: 's2',
+          transitionCount: 2,
+          probabilityTotal: 1.25,
+          deviationFromOne: 0.25,
+          terminal: false,
+          valid: false
+        }
+      ],
+      valid: false
+    };
+
+    const digest = toTransitionProbabilityAuditDigest(result);
+
+    expect(digest).toEqual({
+      rowCount: 3,
+      invalidRowCount: 2,
+      valid: false,
+      invalidStateIds: ['s0', 's2']
+    });
+    expect(serializeTransitionProbabilityAuditResult(result)).toEqual(result);
+  });
+
+  test('serializes audit digest without sharing invalidStateIds identity', () => {
+    const digest: TransitionProbabilityAuditDigest = {
+      rowCount: 3,
+      invalidRowCount: 2,
+      valid: false,
+      invalidStateIds: ['s0', 's2']
+    };
+
+    const serialized = serializeTransitionProbabilityAuditDigest(digest);
+
+    expect(serialized).toEqual(digest);
+    expect(serialized).not.toBe(digest);
+    expect(serialized.invalidStateIds).not.toBe(digest.invalidStateIds);
+    expect(JSON.parse(transitionProbabilityAuditDigestToJson(digest))).toEqual(digest);
   });
 });
