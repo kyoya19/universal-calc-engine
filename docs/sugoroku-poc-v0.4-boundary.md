@@ -89,6 +89,27 @@ Sugoroku PoC v0.4 is complete when all of the following remain true:
 7. Generated-target solver integration and runtime target policy changes are still outside the current boundary.
 8. Typecheck and tests pass.
 
+## Completion evidence map
+
+The checklist above is intentionally tied to concrete repository surfaces, not to later domain samples.
+
+| Checklist item | Current evidence surface |
+| --- | --- |
+| 1. Shared representative fixture | `packages/core/test/fixtures/sugoroku.ts` exports `representativeSugorokuModel`, `representativeSugorokuExpectedRewardByState`, `representativeSugorokuStartExpectedReward`, and `positionStateId`. |
+| 2. Expected reward baseline | `packages/core/test/generated_target_solver_policy.test.ts` checks that the start expected reward and per-state values remain aligned with the representative fixture. |
+| 3. Graph diagnostics serialization / JSON | Current graph diagnostics and report boundary tests keep diagnostics inspectable without changing solver targets. |
+| 4. Explicit/generated mismatch diagnostics | `packages/core/test/generated_target_solver_policy.test.ts` covers `explicit_generated_mismatch` rejection and keeps `selectGraphTarget` explicit-only. |
+| 5. Explicit solver and contribution targets | `packages/core/test/generated_target_solver_policy.test.ts` checks `selectGraphTarget(...)` and contribution output against explicit targets. |
+| 6. Public entrypoint policy stability | `packages/core/test/generated_target_solver_policy.test.ts` checks public entrypoint acceptance, rejection JSON stability, and policy JSON stability. |
+| 7. Generated-target solver integration remains outside scope | This document, `docs/solver-exp.md`, `docs/github_workflow.md`, and README all preserve the dedicated policy PR boundary. |
+| 8. Typecheck and tests | GitHub Actions CI remains the merge gate. |
+
+## Completion interpretation
+
+v0.4 is a boundary-completion phase, not a domain-sample expansion phase.
+
+A later PR may add more tests or split diagnostics into clearer files, but that is reinforcement. It is not permission to change runtime target policy.
+
 ## Current completion status
 
 The v0.4 completion checklist is satisfied by the current test suite when:
