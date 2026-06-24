@@ -10,6 +10,16 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([])).toBe('');
   });
 
+  it('formats a single report model without a separator', () => {
+    const report: ReportModel = {
+      kind: 'one',
+      title: 'One',
+      sections: [{ id: 'summary', title: 'Summary', rows: [{ id: 'a', label: 'a', plainText: 'a: 1' }] }]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('One\n\n## Summary\na: 1');
+  });
+
   it('formats multiple report models with a stable separator', () => {
     const reports: ReportModel[] = [
       {
