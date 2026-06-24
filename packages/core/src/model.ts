@@ -109,6 +109,13 @@ export type TransitionProbabilityAuditResult = {
   valid: boolean;
 };
 
+export type TransitionProbabilityAuditDigest = {
+  rowCount: number;
+  invalidRowCount: number;
+  valid: boolean;
+  invalidStateIds: StateId[];
+};
+
 export function getScalarSpecKind(spec: ScalarSpec): ScalarSpecKind {
   return typeof spec === 'number' ? 'number' : spec.type;
 }
@@ -355,6 +362,34 @@ export function transitionProbabilityAuditResultToJson(
   result: TransitionProbabilityAuditResult
 ): string {
   return JSON.stringify(serializeTransitionProbabilityAuditResult(result));
+}
+
+export function toTransitionProbabilityAuditDigest(
+  result: TransitionProbabilityAuditResult
+): TransitionProbabilityAuditDigest {
+  return {
+    rowCount: result.rows.length,
+    invalidRowCount: result.invalidRows.length,
+    valid: result.valid,
+    invalidStateIds: result.invalidRows.map((row) => row.stateId)
+  };
+}
+
+export function serializeTransitionProbabilityAuditDigest(
+  digest: TransitionProbabilityAuditDigest
+): TransitionProbabilityAuditDigest {
+  return {
+    rowCount: digest.rowCount,
+    invalidRowCount: digest.invalidRowCount,
+    valid: digest.valid,
+    invalidStateIds: [...digest.invalidStateIds]
+  };
+}
+
+export function transitionProbabilityAuditDigestToJson(
+  digest: TransitionProbabilityAuditDigest
+): string {
+  return JSON.stringify(serializeTransitionProbabilityAuditDigest(digest));
 }
 
 export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
