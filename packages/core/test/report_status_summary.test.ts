@@ -7,7 +7,9 @@ import {
   definitionModelToBoundaryReportStatusSummaryPlainText,
   formatReportStatusSummaryPlainText,
   isReportStatusSummaryOk,
+  reportStatusSummaryToJson,
   selectReportStatusSummaryLevel,
+  serializeReportStatusSummary,
   summarizeReportModelsStatuses,
   summarizeReportModelStatuses
 } from '../src/report_status_summary';
@@ -59,6 +61,13 @@ describe('report status summary helpers', () => {
 
   it('summarizes report arrays', () => {
     expect(summarizeReportModelsStatuses([one, two])).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
+  });
+
+  it('serializes report status summaries', () => {
+    const summary = summarizeReportModelsStatuses([one, two]);
+
+    expect(serializeReportStatusSummary(summary)).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
+    expect(JSON.parse(reportStatusSummaryToJson(summary))).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
   });
 
   it('selects a summary level', () => {
