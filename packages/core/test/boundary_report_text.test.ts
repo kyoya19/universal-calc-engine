@@ -162,6 +162,31 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText(reports)).toBe('One\n\n## Summary\na: 1\n\n---\n\nTwo\n\n## Summary\nb: 2');
   });
 
+  it('formats multiple report models with multiple section gaps and a stable separator', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_multi_section',
+        title: 'First Report',
+        sections: [
+          { id: 'empty', title: 'Empty', rows: [] },
+          { id: 'summary', title: 'Summary', rows: [{ id: 'a', label: 'a', plainText: 'a: 1' }] }
+        ]
+      },
+      {
+        kind: 'second_multi_section',
+        title: 'Second Report',
+        sections: [
+          { id: 'details', title: 'Details', rows: [{ id: 'b', label: 'b', plainText: 'b: 2' }] },
+          { id: 'tail', title: 'Tail', rows: [{ id: 'tail', label: 'tail', plainText: 'tail: 3' }] }
+        ]
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe(
+      'First Report\n\n## Empty\n\n## Summary\na: 1\n\n---\n\nSecond Report\n\n## Details\nb: 2\n\n## Tail\ntail: 3'
+    );
+  });
+
   it('formats the current boundary reports directly from a definition model', () => {
     const text = definitionModelToBoundaryReportPlainText({
       startState: 'start',
