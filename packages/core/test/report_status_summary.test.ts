@@ -100,6 +100,12 @@ describe('report status summary helpers', () => {
     );
   });
 
+  it('formats an empty status summary as plain text', () => {
+    expect(formatReportStatusSummaryPlainText({ ok: 0, warning: 0, rejected: 0, info: 0 })).toBe(
+      'ok: 0\nwarning: 0\nrejected: 0\ninfo: 0'
+    );
+  });
+
   it('summarizes boundary reports built from a definition model', () => {
     const summary = definitionModelToBoundaryReportStatusSummary(validDefinitionModel);
 
