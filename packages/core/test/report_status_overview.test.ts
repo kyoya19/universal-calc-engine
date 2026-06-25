@@ -15,6 +15,13 @@ describe('report status overview helpers', () => {
     });
   });
 
+  it('keeps summary counts visible in overview plain text', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+
+    expect(overview.plainText).toContain('ok: 2');
+    expect(overview.plainText).toContain('info: 3');
+  });
+
   it('builds an empty overview from a zero status summary', () => {
     expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
