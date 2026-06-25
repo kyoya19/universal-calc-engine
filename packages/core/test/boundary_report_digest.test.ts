@@ -64,6 +64,8 @@ describe('definitionModelToBoundaryReportDigest', () => {
   it('serializes boundary report digests through the helper as stable copies', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
     const serializedDigest = serializeBoundaryReportDigest(digest);
+    const firstDigestRow = digest.reports[0]!.sections[0]!.rows[0]!;
+    const firstSerializedRow = serializedDigest.reports[0]!.sections[0]!.rows[0]!;
 
     expect(serializedDigest).toEqual(digest);
     expect(serializedDigest).not.toBe(digest);
@@ -71,6 +73,9 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reports[0]).not.toBe(digest.reports[0]);
     expect(serializedDigest.reports[0]!.sections).not.toBe(digest.reports[0]!.sections);
     expect(serializedDigest.reports[0]!.sections[0]!.rows).not.toBe(digest.reports[0]!.sections[0]!.rows);
+    expect(firstSerializedRow).not.toBe(firstDigestRow);
+    expect(firstSerializedRow.metadata).toEqual(firstDigestRow.metadata);
+    expect(firstSerializedRow.metadata).not.toBe(firstDigestRow.metadata);
     expect(serializedDigest.statusOverview).not.toBe(digest.statusOverview);
     expect(serializedDigest.statusOverview.summary).not.toBe(digest.statusOverview.summary);
   });
