@@ -29,6 +29,10 @@ describe('report status overview helpers', () => {
     expect(overview.plainText).toContain('rejected: 1');
   });
 
+  it('selects rejected overview level when rejected rows exist', () => {
+    expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 1, info: 3 }).level).toBe('rejected');
+  });
+
   it('builds an empty overview from a zero status summary', () => {
     expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
