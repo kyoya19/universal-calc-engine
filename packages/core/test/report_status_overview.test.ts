@@ -30,6 +30,15 @@ describe('report status overview helpers', () => {
     expect(JSON.parse(reportStatusOverviewToJson(overview))).toEqual(overview);
   });
 
+  it('copies a report status overview summary during serialization', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+    const serialized = serializeReportStatusOverview(overview);
+
+    expect(serialized).toEqual(overview);
+    expect(serialized).not.toBe(overview);
+    expect(serialized.summary).not.toBe(overview.summary);
+  });
+
   it('builds a boundary report status overview from a definition model', () => {
     const overview = definitionModelToBoundaryReportStatusOverview({
       startState: 'start',
