@@ -109,6 +109,21 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(text).toContain('State Graph Summary');
   });
 
+  it('formats a digest as plain text in boundary order', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+
+    expect(formatBoundaryReportDigestPlainText(digest)).toBe(
+      [
+        `statusLevel: ${digest.statusOverview.level}`,
+        digest.statusOverview.plainText,
+        '',
+        '---',
+        '',
+        digest.reportText
+      ].join('\n')
+    );
+  });
+
   it('builds digest plain text directly from a definition model', () => {
     const text = definitionModelToBoundaryReportDigestPlainText(model);
 
