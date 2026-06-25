@@ -30,6 +30,23 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Empty Report');
   });
 
+  it('formats title-only and section reports with a stable separator', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'title_only',
+        title: 'Title Only',
+        sections: []
+      },
+      {
+        kind: 'with_section',
+        title: 'With Section',
+        sections: [{ id: 'summary', title: 'Summary', rows: [{ id: 'row', label: 'row', plainText: 'row: 1' }] }]
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe('Title Only\n\n---\n\nWith Section\n\n## Summary\nrow: 1');
+  });
+
   it('formats an empty section without row padding', () => {
     const report: ReportModel = {
       kind: 'empty_section',
