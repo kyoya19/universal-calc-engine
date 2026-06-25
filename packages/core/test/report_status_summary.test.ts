@@ -63,6 +63,10 @@ describe('report status summary helpers', () => {
     expect(summarizeReportModelsStatuses([one, two])).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
   });
 
+  it('summarizes empty report arrays', () => {
+    expect(summarizeReportModelsStatuses([])).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
+  });
+
   it('serializes report status summaries', () => {
     const summary = summarizeReportModelsStatuses([one, two]);
 
