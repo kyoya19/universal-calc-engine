@@ -285,6 +285,30 @@ describe('boundary report text helpers', () => {
     );
   });
 
+  it('formats section-title-title report models with stable separators', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_section',
+        title: 'First Section',
+        sections: [{ id: 'summary', title: 'Summary', rows: [{ id: 'first-row', label: 'first', plainText: 'first: 1' }] }]
+      },
+      {
+        kind: 'middle_title_only',
+        title: 'Middle Title',
+        sections: []
+      },
+      {
+        kind: 'last_title_only',
+        title: 'Last Title',
+        sections: []
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe(
+      'First Section\n\n## Summary\nfirst: 1\n\n---\n\nMiddle Title\n\n---\n\nLast Title'
+    );
+  });
+
   it('formats title-empty-title report models with stable separators', () => {
     const reports: ReportModel[] = [
       {
