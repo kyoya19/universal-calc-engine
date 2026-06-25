@@ -196,6 +196,30 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText(reports)).toBe('One\n\n## Summary\na: 1\n\n---\n\nTwo\n\n## Summary\nb: 2');
   });
 
+  it('formats three report models with stable separators', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_title_only',
+        title: 'First Title',
+        sections: []
+      },
+      {
+        kind: 'middle_section',
+        title: 'Middle Section',
+        sections: [{ id: 'summary', title: 'Summary', rows: [{ id: 'row', label: 'row', plainText: 'row: 1' }] }]
+      },
+      {
+        kind: 'last_title_only',
+        title: 'Last Title',
+        sections: []
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe(
+      'First Title\n\n---\n\nMiddle Section\n\n## Summary\nrow: 1\n\n---\n\nLast Title'
+    );
+  });
+
   it('formats multiple report models with multiple section gaps and a stable separator', () => {
     const reports: ReportModel[] = [
       {
