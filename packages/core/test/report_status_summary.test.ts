@@ -59,8 +59,21 @@ describe('report status summary helpers', () => {
     expect(summarizeReportModelStatuses(one)).toEqual({ ok: 1, warning: 1, rejected: 1, info: 1 });
   });
 
+  it('summarizes title-only reports as empty status summaries', () => {
+    expect(summarizeReportModelStatuses({ kind: 'empty', title: 'Empty', sections: [] })).toEqual({
+      ok: 0,
+      warning: 0,
+      rejected: 0,
+      info: 0
+    });
+  });
+
   it('summarizes report arrays', () => {
     expect(summarizeReportModelsStatuses([one, two])).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
+  });
+
+  it('summarizes empty report arrays', () => {
+    expect(summarizeReportModelsStatuses([])).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
   });
 
   it('serializes report status summaries', () => {
@@ -84,6 +97,12 @@ describe('report status summary helpers', () => {
   it('formats a status summary as plain text', () => {
     expect(formatReportStatusSummaryPlainText({ ok: 2, warning: 1, rejected: 0, info: 3 })).toBe(
       'ok: 2\nwarning: 1\nrejected: 0\ninfo: 3'
+    );
+  });
+
+  it('formats an empty status summary as plain text', () => {
+    expect(formatReportStatusSummaryPlainText({ ok: 0, warning: 0, rejected: 0, info: 0 })).toBe(
+      'ok: 0\nwarning: 0\nrejected: 0\ninfo: 0'
     );
   });
 

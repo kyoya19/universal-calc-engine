@@ -15,11 +15,64 @@ describe('report status overview helpers', () => {
     });
   });
 
+  it('keeps summary counts visible in overview plain text', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+
+    expect(overview.plainText).toContain('ok: 2');
+    expect(overview.plainText).toContain('info: 3');
+  });
+
+  it('keeps non-ok counts visible in overview plain text', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 1, rejected: 1, info: 3 });
+
+    expect(overview.plainText).toContain('warning: 1');
+    expect(overview.plainText).toContain('rejected: 1');
+  });
+
+  it('selects rejected overview level when rejected rows exist', () => {
+    expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 1, info: 3 }).level).toBe('rejected');
+  });
+
+  it('selects warning overview level when warnings exist without rejections', () => {
+    expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 0, info: 3 }).level).toBe('warning');
+  });
+
+  it('builds an empty overview from a zero status summary', () => {
+    expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
+      summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
+      level: 'ok',
+      plainText: 'ok: 0\nwarning: 0\nrejected: 0\ninfo: 0'
+    });
+  });
+
   it('serializes a report status overview', () => {
     const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
 
     expect(serializeReportStatusOverview(overview)).toEqual(overview);
     expect(JSON.parse(reportStatusOverviewToJson(overview))).toEqual(overview);
+  });
+
+  it('matches the JSON helper output to the serialized overview payload', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+
+    expect(reportStatusOverviewToJson(overview)).toBe(JSON.stringify(serializeReportStatusOverview(overview)));
+  });
+
+  it('serializes an empty report status overview to JSON', () => {
+    expect(JSON.parse(reportStatusOverviewToJson(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })))).toEqual({
+      summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
+      level: 'ok',
+      plainText: 'ok: 0\nwarning: 0\nrejected: 0\ninfo: 0'
+    });
+  });
+
+  it('copies a report status overview summary during serialization', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+    const serialized = serializeReportStatusOverview(overview);
+
+    expect(serialized).toEqual(overview);
+    expect(serialized).not.toBe(overview);
+    expect(serialized.summary).not.toBe(overview.summary);
   });
 
   it('builds a boundary report status overview from a definition model', () => {
