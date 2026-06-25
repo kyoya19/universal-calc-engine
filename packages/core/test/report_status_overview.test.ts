@@ -30,6 +30,12 @@ describe('report status overview helpers', () => {
     expect(JSON.parse(reportStatusOverviewToJson(overview))).toEqual(overview);
   });
 
+  it('matches the JSON helper output to the serialized overview payload', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
+
+    expect(reportStatusOverviewToJson(overview)).toBe(JSON.stringify(serializeReportStatusOverview(overview)));
+  });
+
   it('serializes an empty report status overview to JSON', () => {
     expect(JSON.parse(reportStatusOverviewToJson(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })))).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
