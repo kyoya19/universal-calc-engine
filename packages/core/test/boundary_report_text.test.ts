@@ -57,6 +57,19 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Empty Section Report\n\n## Summary');
   });
 
+  it('formats empty and row sections with a stable section gap', () => {
+    const report: ReportModel = {
+      kind: 'empty_then_rows',
+      title: 'Mixed Sections',
+      sections: [
+        { id: 'empty', title: 'Empty', rows: [] },
+        { id: 'summary', title: 'Summary', rows: [{ id: 'row', label: 'row', plainText: 'row: 1' }] }
+      ]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Mixed Sections\n\n## Empty\n\n## Summary\nrow: 1');
+  });
+
   it('formats section rows directly under the section title', () => {
     const report: ReportModel = {
       kind: 'section_row_gap',
