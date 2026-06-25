@@ -59,6 +59,34 @@ describe('UI consumable report model', () => {
     );
   });
 
+  test('formats report model sections and rows in boundary order', () => {
+    const reportModel = {
+      kind: 'section_row_order',
+      title: 'Section Row Order Report',
+      sections: [
+        {
+          id: 'first',
+          title: 'First',
+          rows: [{ id: 'a', label: 'A', plainText: 'first row' }]
+        },
+        {
+          id: 'empty',
+          title: 'Empty',
+          rows: []
+        },
+        {
+          id: 'last',
+          title: 'Last',
+          rows: [{ id: 'z', label: 'Z', plainText: 'last row' }]
+        }
+      ]
+    };
+
+    expect(formatReportModelPlainText(reportModel)).toBe(
+      ['Section Row Order Report', '', '## First', 'first row', '', '## Empty', '', '## Last', 'last row'].join('\n')
+    );
+  });
+
   test('preserves generated-target comparison metadata without reparsing text', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
     const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
