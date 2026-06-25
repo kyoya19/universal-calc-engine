@@ -57,6 +57,25 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Empty Section Report\n\n## Summary');
   });
 
+  it('formats section rows directly under the section title', () => {
+    const report: ReportModel = {
+      kind: 'section_row_gap',
+      title: 'Gap Report',
+      sections: [
+        {
+          id: 'summary',
+          title: 'Summary',
+          rows: [
+            { id: 'first', label: 'first', plainText: 'first: 1' },
+            { id: 'second', label: 'second', plainText: 'second: 2' }
+          ]
+        }
+      ]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Gap Report\n\n## Summary\nfirst: 1\nsecond: 2');
+  });
+
   it('formats empty-section and title-only reports with a stable separator', () => {
     const reports: ReportModel[] = [
       {
