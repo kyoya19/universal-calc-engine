@@ -30,6 +30,16 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Empty Report');
   });
 
+  it('formats an empty section without row padding', () => {
+    const report: ReportModel = {
+      kind: 'empty_section',
+      title: 'Empty Section Report',
+      sections: [{ id: 'summary', title: 'Summary', rows: [] }]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Empty Section Report\n\n## Summary');
+  });
+
   it('formats multiple report models with a stable separator', () => {
     const reports: ReportModel[] = [
       {
