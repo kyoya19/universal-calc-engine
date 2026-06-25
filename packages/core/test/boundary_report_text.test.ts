@@ -30,6 +30,23 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Empty Report');
   });
 
+  it('formats title-only report models with a stable separator', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_title_only',
+        title: 'First Title',
+        sections: []
+      },
+      {
+        kind: 'second_title_only',
+        title: 'Second Title',
+        sections: []
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe('First Title\n\n---\n\nSecond Title');
+  });
+
   it('formats title-only and section reports with a stable separator', () => {
     const reports: ReportModel[] = [
       {
