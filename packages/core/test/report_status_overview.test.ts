@@ -15,6 +15,14 @@ describe('report status overview helpers', () => {
     });
   });
 
+  it('builds an empty overview from a zero status summary', () => {
+    expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
+      summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
+      level: 'ok',
+      plainText: 'ok: 0\nwarning: 0\nrejected: 0\ninfo: 0'
+    });
+  });
+
   it('serializes a report status overview', () => {
     const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
 
