@@ -22,6 +22,13 @@ describe('report status overview helpers', () => {
     expect(overview.plainText).toContain('info: 3');
   });
 
+  it('keeps non-ok counts visible in overview plain text', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 1, rejected: 1, info: 3 });
+
+    expect(overview.plainText).toContain('warning: 1');
+    expect(overview.plainText).toContain('rejected: 1');
+  });
+
   it('builds an empty overview from a zero status summary', () => {
     expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
