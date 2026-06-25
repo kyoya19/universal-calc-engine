@@ -146,4 +146,11 @@ describe('definitionModelToBoundaryReportDigest', () => {
       }
     });
   });
+
+  it('exposes boundary report digest plain text helpers from the public entrypoint', () => {
+    const digest = core.definitionModelToBoundaryReportDigest(model);
+
+    expect(core.formatBoundaryReportDigestPlainText(digest)).toBe(formatBoundaryReportDigestPlainText(digest));
+    expect(core.definitionModelToBoundaryReportDigestPlainText(model)).toBe(definitionModelToBoundaryReportDigestPlainText(model));
+  });
 });
