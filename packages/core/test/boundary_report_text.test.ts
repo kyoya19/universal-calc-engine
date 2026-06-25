@@ -179,6 +179,23 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText(reports)).toBe('Empty Section\n\n## Summary\n\n---\n\nTitle Only');
   });
 
+  it('formats empty-section report models with a stable separator', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_empty_section',
+        title: 'First Empty',
+        sections: [{ id: 'summary', title: 'Summary', rows: [] }]
+      },
+      {
+        kind: 'second_empty_section',
+        title: 'Second Empty',
+        sections: [{ id: 'details', title: 'Details', rows: [] }]
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe('First Empty\n\n## Summary\n\n---\n\nSecond Empty\n\n## Details');
+  });
+
   it('formats multiple report models with a stable separator', () => {
     const reports: ReportModel[] = [
       {
