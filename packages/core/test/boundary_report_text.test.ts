@@ -96,6 +96,19 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Row Then Empty\n\n## Summary\nrow: 1\n\n## Empty');
   });
 
+  it('formats multiple row sections with a stable section gap', () => {
+    const report: ReportModel = {
+      kind: 'multiple_row_sections',
+      title: 'Multiple Rows',
+      sections: [
+        { id: 'first', title: 'First', rows: [{ id: 'first-row', label: 'first', plainText: 'first: 1' }] },
+        { id: 'second', title: 'Second', rows: [{ id: 'second-row', label: 'second', plainText: 'second: 2' }] }
+      ]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Multiple Rows\n\n## First\nfirst: 1\n\n## Second\nsecond: 2');
+  });
+
   it('formats section rows directly under the section title', () => {
     const report: ReportModel = {
       kind: 'section_row_gap',
