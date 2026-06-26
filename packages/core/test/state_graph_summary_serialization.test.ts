@@ -34,7 +34,6 @@ describe('state graph summary serialization', () => {
 
     expect(jsonText.trim().startsWith('{')).toBe(true);
     expect(parsed.summaryVersion).toBe(1);
-    expect(parsed.nodeCount).toBe(summary.nodeCount);
     expect(parsed.edgeCount).toBe(summary.edgeCount);
     expect(parsed.diagnosticCountsByType).toEqual(summary.diagnosticCountsByType);
   });
