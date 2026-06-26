@@ -100,6 +100,21 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reportText).toBe(digest.reportText);
   });
 
+  it('returns parseable JSON text from the boundary report digest JSON helper', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const jsonText = boundaryReportDigestToJson(digest);
+    const parsedDigest = JSON.parse(jsonText);
+
+    expect(jsonText.trim().startsWith('{')).toBe(true);
+    expect(parsedDigest.statusOverview).toMatchObject({
+      level: 'ok',
+      summary: {
+        rejected: 0,
+        warning: 0
+      }
+    });
+  });
+
   it('formats a digest as plain text', () => {
     const text = formatBoundaryReportDigestPlainText(definitionModelToBoundaryReportDigest(model));
 
