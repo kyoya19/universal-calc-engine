@@ -58,6 +58,15 @@ describe('report status overview helpers', () => {
     expect(reportStatusOverviewToJson(overview)).toBe(JSON.stringify(serializeReportStatusOverview(overview)));
   });
 
+  it('parses overview JSON into a copied summary payload', () => {
+    const overview = toReportStatusOverview({ ok: 1, warning: 1, rejected: 0, info: 2 });
+    const parsed = JSON.parse(reportStatusOverviewToJson(overview));
+
+    expect(parsed).toEqual(serializeReportStatusOverview(overview));
+    expect(parsed).not.toBe(overview);
+    expect(parsed.summary).not.toBe(overview.summary);
+  });
+
   it('serializes an empty report status overview to JSON', () => {
     expect(JSON.parse(reportStatusOverviewToJson(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })))).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
