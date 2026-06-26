@@ -165,6 +165,15 @@ function expectUnique(ids: readonly string[]): void {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
+type RowDraftBoundaryGuardRow = Record<string, unknown>;
+
+function allRowDraftBoundaryRows(): readonly RowDraftBoundaryGuardRow[] {
+  return [
+    ...juoProbabilitySourceBackedProductionValueRowDraftBoundaryInventory.map((row) => ({ ...row })),
+    ...juoRewardSourceBackedProductionValueRowDraftBoundaryInventory.map((row) => ({ ...row }))
+  ];
+}
+
 describe('Juo source-backed production value row draft boundary inventory', () => {
   test('preserves one row draft boundary row per creation gate row', () => {
     expect(
@@ -185,6 +194,20 @@ describe('Juo source-backed production value row draft boundary inventory', () =
         .map((row) => row.sourceBackedProductionValueCreationGateId)
         .sort()
     );
+  });
+
+  test('keeps combined row draft boundary rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowDraftBoundaryInventory,
+      ...juoRewardSourceBackedProductionValueRowDraftBoundaryInventory
+    ];
+    const rows = allRowDraftBoundaryRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
   });
 
   test('keeps row draft boundary rows blocked and non-executable', () => {
