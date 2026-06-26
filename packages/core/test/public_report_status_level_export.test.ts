@@ -23,4 +23,10 @@ describe('public report status level exports', () => {
       ]
     })).toBe('ok');
   });
+
+  it('keeps report status level helper stable for copied summaries from the public entrypoint', () => {
+    const summary = { ok: 1, warning: 1, rejected: 0, info: 1 };
+
+    expect(selectReportStatusSummaryLevel({ ...summary })).toBe(selectReportStatusSummaryLevel(summary));
+  });
 });
