@@ -47,6 +47,28 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText(reports)).toBe('First Title\n\n---\n\nSecond Title');
   });
 
+  it('formats three title-only report models with stable separators', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_title_only',
+        title: 'First Title',
+        sections: []
+      },
+      {
+        kind: 'middle_title_only',
+        title: 'Middle Title',
+        sections: []
+      },
+      {
+        kind: 'last_title_only',
+        title: 'Last Title',
+        sections: []
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe('First Title\n\n---\n\nMiddle Title\n\n---\n\nLast Title');
+  });
+
   it('formats title-only and section reports with a stable separator', () => {
     const reports: ReportModel[] = [
       {
