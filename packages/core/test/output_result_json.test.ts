@@ -55,6 +55,18 @@ describe('output result JSON boundary', () => {
     expect(JSON.parse(outputResultToJson(output))).toEqual(serialized);
   });
 
+  test('returns parseable JSON text from the output result JSON helper', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const output = toOutputResult(representativeSugorokuModel, solved);
+    const jsonText = outputResultToJson(output);
+    const parsed = JSON.parse(jsonText);
+
+    expect(jsonText.trim().startsWith('{')).toBe(true);
+    expect(parsed.startState).toBe(positionStateId(0));
+    expect(parsed.expectedReward).toBe(representativeSugorokuStartExpectedReward);
+  });
+
   test('exposes output JSON helpers from the public entrypoint', () => {
     const evaluated = core.evaluateModel(core.expandModel(representativeSugorokuModel));
     const solved = core.solveExpectedReward(evaluated);
