@@ -645,6 +645,30 @@ describe('boundary report text helpers', () => {
     );
   });
 
+  it('formats empty-empty-section report models with stable separators', () => {
+    const reports: ReportModel[] = [
+      {
+        kind: 'first_empty_section',
+        title: 'First Empty',
+        sections: [{ id: 'summary', title: 'Summary', rows: [] }]
+      },
+      {
+        kind: 'middle_empty_section',
+        title: 'Middle Empty',
+        sections: [{ id: 'details', title: 'Details', rows: [] }]
+      },
+      {
+        kind: 'last_section',
+        title: 'Last Section',
+        sections: [{ id: 'tail', title: 'Tail', rows: [{ id: 'last-row', label: 'last', plainText: 'last: 2' }] }]
+      }
+    ];
+
+    expect(formatReportModelsPlainText(reports)).toBe(
+      'First Empty\n\n## Summary\n\n---\n\nMiddle Empty\n\n## Details\n\n---\n\nLast Section\n\n## Tail\nlast: 2'
+    );
+  });
+
   it('formats empty-empty-title report models with stable separators', () => {
     const reports: ReportModel[] = [
       {
