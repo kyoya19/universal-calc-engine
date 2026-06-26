@@ -79,6 +79,17 @@ it('keeps zero number text JSON output aligned with the public entrypoint', () =
   expect(publicJson).toBe(directJson);
 });
 
+it('keeps parsed public number text JSON output explicit', () => {
+  const parsed = JSON.parse(
+    JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(-1.25),
+      plain: core.formatNumberPlainText(-1.25)
+    })
+  );
+
+  expect(parsed).toEqual({ diagnostic: '-1.25', plain: '-1.25' });
+});
+
 it('keeps finite number text JSON output explicit', () => {
   expect(
     JSON.stringify({
