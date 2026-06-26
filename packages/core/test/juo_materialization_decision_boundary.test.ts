@@ -225,6 +225,10 @@ describe('Juo materialization decision boundary inventory', () => {
     }
   });
 
+  test('keeps probability and reward decision boundary inventories separated by row identity', () => {
+    expect(juoProbabilityMaterializationDecisionBoundaryInventory).not.toBe(juoRewardMaterializationDecisionBoundaryInventory);
+  });
+
   test('carries approval boundary metadata without creating production values', () => {
     const probabilityApprovals = new Map(
       juoProbabilityMaterializationApprovalBoundaryInventory.map((row) => [row.materializationApprovalBoundaryId, row])
