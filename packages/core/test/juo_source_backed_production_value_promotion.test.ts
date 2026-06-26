@@ -58,6 +58,15 @@ function expectUnique(ids: readonly string[]): void {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
+type PromotionGuardRow = Record<string, unknown>;
+
+function allPromotionRows(): readonly PromotionGuardRow[] {
+  return [
+    ...juoProbabilitySourceBackedProductionValuePromotionInventory.map((row) => ({ ...row })),
+    ...juoRewardSourceBackedProductionValuePromotionInventory.map((row) => ({ ...row }))
+  ];
+}
+
 describe('Juo source-backed production value promotion inventory', () => {
   test('preserves one promotion row per draft row', () => {
     expect(juoProbabilitySourceBackedProductionValuePromotionInventory.map((row) => row.sourceBackedProductionValueDraftId).sort()).toEqual(
@@ -66,6 +75,20 @@ describe('Juo source-backed production value promotion inventory', () => {
     expect(juoRewardSourceBackedProductionValuePromotionInventory.map((row) => row.sourceBackedProductionValueDraftId).sort()).toEqual(
       juoRewardSourceBackedProductionValueDraftInventory.map((row) => row.sourceBackedProductionValueDraftId).sort()
     );
+  });
+
+  test('keeps combined promotion rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValuePromotionInventory,
+      ...juoRewardSourceBackedProductionValuePromotionInventory
+    ];
+    const rows = allPromotionRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
   });
 
   test('keeps promotion rows blocked and non-executable', () => {
