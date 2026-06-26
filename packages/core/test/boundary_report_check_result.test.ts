@@ -27,6 +27,16 @@ describe('boundary report check result helpers', () => {
     expect(JSON.parse(boundaryReportCheckResultToJson(result))).toEqual(result);
   });
 
+  it('serializes a check result without preserving object identity', () => {
+    const result = definitionModelToBoundaryReportCheckResult(model);
+    const serialized = serializeBoundaryReportCheckResult(result);
+
+    expect(serialized).toEqual(result);
+    expect(serialized).not.toBe(result);
+    expect(serialized.digest).not.toBe(result.digest);
+    expect(serialized.digest.reports).not.toBe(result.digest.reports);
+  });
+
   it('builds a check result from a definition model', () => {
     const result = definitionModelToBoundaryReportCheckResult(model);
 
