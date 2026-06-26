@@ -57,6 +57,26 @@ describe('Android-oriented TeX display rows', () => {
     });
   });
 
+  test('uses state rewards for non-start rows', () => {
+    const rows = outputResultToValueFunctionDisplayRows({
+      startState: 'position_0',
+      expectedReward: 9.5,
+      expectedRewardByState: {
+        position_0: 2.25,
+        position_1: 1.5
+      }
+    });
+
+    expect(rows[1]!).toMatchObject({
+      stateId: 'position_1',
+      value: 1.5,
+      plainText: 'V(position_1) = 1.5',
+      tex: 'V(\\mathrm{position\\_1}) &= 1.5',
+      isStartState: false,
+      className: 'value-function-row'
+    });
+  });
+
   test('keeps non-start rows sorted after the start state', () => {
     const rows = outputResultToValueFunctionDisplayRows({
       startState: 'position_2',
