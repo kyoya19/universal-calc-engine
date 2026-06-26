@@ -25,4 +25,17 @@ describe('state graph summary serialization', () => {
     expect(json).toContain('"summaryVersion": 1');
     expect(json).toContain('"explicitGeneratedMismatchCount": 0');
   });
+
+  test('returns parseable JSON text from the state graph summary JSON helper', () => {
+    const graph = expandGraphFromModel(representativeSugorokuModel);
+    const summary = summarizeStateGraph(graph);
+    const jsonText = stateGraphSummaryToJson(summary);
+    const parsed = JSON.parse(jsonText);
+
+    expect(jsonText.trim().startsWith('{')).toBe(true);
+    expect(parsed.summaryVersion).toBe(1);
+    expect(parsed.nodeCount).toBe(summary.nodeCount);
+    expect(parsed.edgeCount).toBe(summary.edgeCount);
+    expect(parsed.diagnosticCountsByType).toEqual(summary.diagnosticCountsByType);
+  });
 });
