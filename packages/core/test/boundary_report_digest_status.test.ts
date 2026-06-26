@@ -17,6 +17,15 @@ describe('boundary report digest status JSON boundary', () => {
     expect(serialized.reportText).toBe(digest.reportText);
   });
 
+  it('copies digest status overview through JSON serialization', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const serialized = JSON.parse(JSON.stringify(digest));
+
+    expect(serialized.statusOverview).toEqual(digest.statusOverview);
+    expect(serialized.statusOverview).not.toBe(digest.statusOverview);
+    expect(serialized.statusOverview.summary).not.toBe(digest.statusOverview.summary);
+  });
+
   it('keeps formatted digest text stable after JSON serialization', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
     const serialized = JSON.parse(JSON.stringify(digest));
