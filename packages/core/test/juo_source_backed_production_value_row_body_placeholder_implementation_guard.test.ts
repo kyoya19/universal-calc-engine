@@ -94,6 +94,20 @@ describe('Juo source-backed production value row body placeholder implementation
     }
   });
 
+  test('keeps combined placeholder implementation rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyPlaceholderImplementationInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyPlaceholderImplementationInventory
+    ];
+    const rows = allImplementationRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('adds only placeholder implementation id, eligibility, and status beyond boundary rows', () => {
     const probabilityBoundaryRows = new Map(
       juoProbabilitySourceBackedProductionValueRowBodyPlaceholderBoundaryInventory.map((row) => [
