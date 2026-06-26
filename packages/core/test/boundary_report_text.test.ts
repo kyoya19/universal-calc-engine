@@ -153,6 +153,20 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Empty Row Empty\n\n## Empty\n\n## Middle\nmiddle: 2\n\n## Tail');
   });
 
+  it('formats empty row and row sections with stable section gaps', () => {
+    const report: ReportModel = {
+      kind: 'empty_row_row_sections',
+      title: 'Empty Row Row',
+      sections: [
+        { id: 'empty', title: 'Empty', rows: [] },
+        { id: 'middle', title: 'Middle', rows: [{ id: 'middle-row', label: 'middle', plainText: 'middle: 2' }] },
+        { id: 'last', title: 'Last', rows: [{ id: 'last-row', label: 'last', plainText: 'last: 3' }] }
+      ]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Empty Row Row\n\n## Empty\n\n## Middle\nmiddle: 2\n\n## Last\nlast: 3');
+  });
+
   it('formats empty empty and row sections with stable section gaps', () => {
     const report: ReportModel = {
       kind: 'empty_empty_row_sections',
