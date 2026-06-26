@@ -96,6 +96,20 @@ describe('Juo source-backed production value row body value finalization impleme
     }
   });
 
+  test('keeps combined value finalization implementation rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyValueFinalizationImplementationInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyValueFinalizationImplementationInventory
+    ];
+    const rows = allValueFinalizationImplementationRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('keeps value finalization implementation ids separate from boundary and value ids', () => {
     for (const row of allValueFinalizationImplementationRows()) {
       const implementationId = String(row['sourceBackedProductionValueRowBodyValueFinalizationImplementationId']);
