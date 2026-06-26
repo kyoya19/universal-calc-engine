@@ -37,6 +37,23 @@ describe('Android-oriented TeX display rows', () => {
     expect(rows.filter((row) => row.stateId === 'position_0')).toHaveLength(1);
   });
 
+  test('keeps non-start rows sorted after the start state', () => {
+    const rows = outputResultToValueFunctionDisplayRows({
+      startState: 'position_2',
+      expectedReward: 1,
+      expectedRewardByState: {
+        position_3: 0,
+        position_1: 1.5,
+        position_2: 1,
+        position_0: 2.25
+      }
+    });
+
+    expect(rows.map((row) => row.stateId)).toEqual(['position_2', 'position_0', 'position_1', 'position_3']);
+    expect(rows[0]!.isStartState).toBe(true);
+    expect(rows.slice(1).every((row) => !row.isStartState)).toBe(true);
+  });
+
   test('keeps row-level TeX compact for narrow displays', () => {
     const rows = outputResultToValueFunctionDisplayRows(outputResult);
 
