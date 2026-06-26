@@ -40,4 +40,13 @@ describe('report status overview JSON boundary', () => {
       ['ok: 0', 'warning: 0', 'rejected: 0', 'info: 2'].join('\n')
     );
   });
+
+  test('keeps empty summaries ok after JSON serialization', () => {
+    const overview = toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 });
+    const serialized = JSON.parse(JSON.stringify(overview));
+
+    expect(serialized.level).toBe('ok');
+    expect(serialized.summary).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
+    expect(serialized.plainText).toBe(['ok: 0', 'warning: 0', 'rejected: 0', 'info: 0'].join('\n'));
+  });
 });
