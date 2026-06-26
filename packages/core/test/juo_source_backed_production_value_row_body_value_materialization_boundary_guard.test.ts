@@ -98,6 +98,20 @@ describe('Juo source-backed production value row body value materialization boun
     }
   });
 
+  test('keeps combined value materialization boundary rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyValueMaterializationBoundaryInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyValueMaterializationBoundaryInventory
+    ];
+    const rows = allValueMaterializationBoundaryRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('keeps value materialization boundary ids separate from implementation and value ids', () => {
     for (const row of allValueMaterializationBoundaryRows()) {
       const boundaryId = String(row['sourceBackedProductionValueRowBodyValueMaterializationBoundaryId']);
