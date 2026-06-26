@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { definitionModelToBoundaryReportStatusSummaryPlainText } from '../src';
+import type { DefinitionModel } from '../src';
 
 describe('public boundary status text export', () => {
   it('exports boundary status text helper from the package entrypoint', () => {
@@ -26,7 +27,7 @@ describe('public boundary status text export', () => {
   });
 
   it('keeps boundary status text helper output stable across repeated entrypoint calls', () => {
-    const model = {
+    const model: DefinitionModel = {
       startState: 'start',
       states: [
         { id: 'start', properties: { step: 0 } },
@@ -42,8 +43,9 @@ describe('public boundary status text export', () => {
       ]
     };
 
-    expect(definitionModelToBoundaryReportStatusSummaryPlainText(model)).toBe(
-      definitionModelToBoundaryReportStatusSummaryPlainText(model)
-    );
+    const firstText = definitionModelToBoundaryReportStatusSummaryPlainText(model);
+    const secondText = definitionModelToBoundaryReportStatusSummaryPlainText(model);
+
+    expect(secondText).toBe(firstText);
   });
 });
