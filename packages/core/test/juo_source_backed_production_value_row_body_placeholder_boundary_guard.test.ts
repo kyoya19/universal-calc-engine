@@ -90,6 +90,20 @@ describe('Juo source-backed production value row body placeholder boundary guard
     }
   });
 
+  test('keeps combined placeholder boundary rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyPlaceholderBoundaryInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyPlaceholderBoundaryInventory
+    ];
+    const rows = allPlaceholderRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('adds only placeholder boundary id and status beyond row body readiness rows', () => {
     const probabilityReadinessRows = new Map(
       juoProbabilitySourceBackedProductionValueRowBodyReadinessBoundaryInventory.map((row) => [
