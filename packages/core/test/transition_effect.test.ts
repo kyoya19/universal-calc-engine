@@ -24,6 +24,20 @@ describe('TransitionEffect boundary', () => {
     expect(serializeTransitionEffect(effect)).not.toBe(effect);
   });
 
+  test('keeps transition effect serialization stable after JSON serialization', () => {
+    const effect: TransitionEffect = {
+      type: 'set_property',
+      property: 'done',
+      value: true
+    };
+
+    expect(JSON.parse(JSON.stringify(serializeTransitionEffect(effect)))).toEqual({
+      type: 'set_property',
+      property: 'done',
+      value: true
+    });
+  });
+
   test('applies a single set_property effect without mutating the input properties', () => {
     const properties = { position: 1, label: 'start' };
     const applied = applyTransitionEffect(properties, {
