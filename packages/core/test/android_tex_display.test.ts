@@ -94,6 +94,26 @@ describe('Android-oriented TeX display rows', () => {
     expect(rows.slice(1).every((row) => !row.isStartState)).toBe(true);
   });
 
+  test('keeps plain text aligned with reordered rows', () => {
+    const rows = outputResultToValueFunctionDisplayRows({
+      startState: 'position_2',
+      expectedReward: 1,
+      expectedRewardByState: {
+        position_3: 0,
+        position_1: 1.5,
+        position_2: 1,
+        position_0: 2.25
+      }
+    });
+
+    expect(rows.map((row) => row.plainText)).toEqual([
+      'V(position_2) = 1',
+      'V(position_0) = 2.25',
+      'V(position_1) = 1.5',
+      'V(position_3) = 0'
+    ]);
+  });
+
   test('keeps row-level TeX compact for narrow displays', () => {
     const rows = outputResultToValueFunctionDisplayRows(outputResult);
 
