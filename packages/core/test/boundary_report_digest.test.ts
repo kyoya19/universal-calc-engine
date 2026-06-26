@@ -100,12 +100,12 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reportText).toBe(digest.reportText);
   });
 
-  it('serializes boundary report digests through the JSON helper with the same stable content as serialize', () => {
+  it('serializes boundary report digests through the JSON helper with the same stable JSON content as serialize', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
-    const serializedDigest = serializeBoundaryReportDigest(digest);
+    const serializedDigestJson = JSON.parse(JSON.stringify(serializeBoundaryReportDigest(digest)));
     const jsonDigest = JSON.parse(boundaryReportDigestToJson(digest));
 
-    expect(jsonDigest).toEqual(serializedDigest);
+    expect(jsonDigest).toEqual(serializedDigestJson);
     expect(jsonDigest.reports.map((report: { kind: string }) => report.kind)).toEqual([
       'state_graph_summary',
       'transition_probability_audit',
