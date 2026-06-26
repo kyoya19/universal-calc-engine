@@ -222,6 +222,20 @@ describe('boundary report text helpers', () => {
     expect(formatReportModelsPlainText([report])).toBe('Row Row Empty\n\n## First\nfirst: 1\n\n## Second\nsecond: 2\n\n## Empty');
   });
 
+  it('formats row row and row sections with stable section gaps', () => {
+    const report: ReportModel = {
+      kind: 'row_row_row_sections',
+      title: 'Row Row Row',
+      sections: [
+        { id: 'first', title: 'First', rows: [{ id: 'first-row', label: 'first', plainText: 'first: 1' }] },
+        { id: 'second', title: 'Second', rows: [{ id: 'second-row', label: 'second', plainText: 'second: 2' }] },
+        { id: 'third', title: 'Third', rows: [{ id: 'third-row', label: 'third', plainText: 'third: 3' }] }
+      ]
+    };
+
+    expect(formatReportModelsPlainText([report])).toBe('Row Row Row\n\n## First\nfirst: 1\n\n## Second\nsecond: 2\n\n## Third\nthird: 3');
+  });
+
   it('formats multiple row sections with a stable section gap', () => {
     const report: ReportModel = {
       kind: 'multiple_row_sections',
