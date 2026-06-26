@@ -83,6 +83,14 @@ describe('report status summary helpers', () => {
     expect(JSON.parse(reportStatusSummaryToJson(summary))).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
   });
 
+  it('returns parseable JSON text from the report status summary JSON helper', () => {
+    const summary = summarizeReportModelsStatuses([one, two]);
+    const jsonText = reportStatusSummaryToJson(summary);
+
+    expect(jsonText.trim().startsWith('{')).toBe(true);
+    expect(JSON.parse(jsonText)).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
+  });
+
   it('copies report status summaries during serialization', () => {
     const summary = summarizeReportModelsStatuses([one, two]);
     const serialized = serializeReportStatusSummary(summary);
