@@ -95,6 +95,17 @@ describe('terminal contribution JSON boundary', () => {
     expect(JSON.parse(contributionResultToJson(contributions))).toEqual(serialized);
   });
 
+  test('returns parseable JSON text from the contribution result JSON helper', () => {
+    const evaluated = evaluateModel(expandModel(representativeSugorokuModel));
+    const solved = solveExpectedReward(evaluated);
+    const contributions = toContributionResult(evaluated, solved);
+    const jsonText = contributionResultToJson(contributions);
+    const parsed = JSON.parse(jsonText);
+
+    expect(jsonText.trim().startsWith('{')).toBe(true);
+    expect(parsed.transitionContributionsByState[positionStateId(3)]).toEqual([]);
+  });
+
   test('exposes JSON helpers from the public entrypoint', () => {
     const evaluated = core.evaluateModel(core.expandModel(representativeSugorokuModel));
     const solved = core.solveExpectedReward(evaluated);
