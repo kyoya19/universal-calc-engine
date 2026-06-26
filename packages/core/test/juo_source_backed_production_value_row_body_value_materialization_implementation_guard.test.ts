@@ -95,6 +95,20 @@ describe('Juo source-backed production value row body value materialization impl
     }
   });
 
+  test('keeps combined value materialization implementation rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyValueMaterializationImplementationInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyValueMaterializationImplementationInventory
+    ];
+    const rows = allValueMaterializationImplementationRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('keeps value materialization implementation ids separate from boundary and value ids', () => {
     for (const row of allValueMaterializationImplementationRows()) {
       const implementationId = String(row['sourceBackedProductionValueRowBodyValueMaterializationImplementationId']);
