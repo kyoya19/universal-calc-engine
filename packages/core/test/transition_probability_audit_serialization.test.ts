@@ -167,4 +167,17 @@ describe('transition probability audit serialization boundary', () => {
     expect(serialized.invalidStateIds).not.toBe(digest.invalidStateIds);
     expect(JSON.parse(transitionProbabilityAuditDigestToJson(digest))).toEqual(digest);
   });
+
+  test('returns parseable JSON text from the audit digest JSON helper', () => {
+    const digest: TransitionProbabilityAuditDigest = {
+      rowCount: 0,
+      invalidRowCount: 0,
+      valid: true,
+      invalidStateIds: []
+    };
+    const jsonText = transitionProbabilityAuditDigestToJson(digest);
+
+    expect(jsonText.trim().startsWith('{')).toBe(true);
+    expect(JSON.parse(jsonText)).toEqual(digest);
+  });
 });
