@@ -21,6 +21,13 @@ describe('ScalarSpec boundary', () => {
     expect(serializeScalarSpec(constant)).toEqual({ type: 'constant', value: 3.5 });
   });
 
+  test('keeps scalar serialization stable after JSON serialization', () => {
+    const constant: ConstantScalarSpec = { type: 'constant', value: 2.75 };
+
+    expect(JSON.parse(JSON.stringify(serializeScalarSpec(0.5)))).toBe(0.5);
+    expect(JSON.parse(JSON.stringify(serializeScalarSpec(constant)))).toEqual({ type: 'constant', value: 2.75 });
+  });
+
   test('serializes constant scalar as a copy', () => {
     const constant: ConstantScalarSpec = { type: 'constant', value: 1 };
     const serialized = serializeScalarSpec(constant);
