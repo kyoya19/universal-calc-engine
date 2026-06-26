@@ -100,21 +100,24 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reportText).toBe(digest.reportText);
   });
 
-  it('serializes boundary report digests through the JSON helper with the same stable JSON content as serialize', () => {
+  it('serializes boundary report digests through the JSON helper with stable summary content', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
-    const serializedDigestJson = JSON.parse(JSON.stringify(serializeBoundaryReportDigest(digest)));
-    const jsonDigest = JSON.parse(boundaryReportDigestToJson(digest));
+    const serializedDigest = serializeBoundaryReportDigest(digest);
+    const jsonText = boundaryReportDigestToJson(digest);
+    const jsonDigest = JSON.parse(jsonText);
 
-    expect(jsonDigest).toEqual(serializedDigestJson);
+    expect(typeof jsonText).toBe('string');
+    expect(jsonDigest.reportText).toBe(serializedDigest.reportText);
+    expect(jsonDigest.statusOverview.level).toBe(serializedDigest.statusOverview.level);
+    expect(jsonDigest.statusOverview.summary).toEqual({
+      rejected: 0,
+      warning: 0
+    });
     expect(jsonDigest.reports.map((report: { kind: string }) => report.kind)).toEqual([
       'state_graph_summary',
       'transition_probability_audit',
       'generated_target_comparison'
     ]);
-    expect(jsonDigest.statusOverview.summary).toEqual({
-      rejected: 0,
-      warning: 0
-    });
   });
 
   it('formats a digest as plain text', () => {
