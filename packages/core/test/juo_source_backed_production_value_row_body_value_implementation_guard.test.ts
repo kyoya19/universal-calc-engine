@@ -95,6 +95,20 @@ describe('Juo source-backed production value row body value implementation guard
     }
   });
 
+  test('keeps combined value implementation rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyValueImplementationInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyValueImplementationInventory
+    ];
+    const rows = allValueImplementationRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('keeps value implementation ids separate from boundary and value ids', () => {
     for (const row of allValueImplementationRows()) {
       const implementationId = String(row['sourceBackedProductionValueRowBodyValueImplementationId']);
