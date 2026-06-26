@@ -34,6 +34,20 @@ describe('TerminalCondition boundary', () => {
     });
   });
 
+  test('keeps terminal condition serialization stable after JSON serialization', () => {
+    const condition: TerminalCondition = {
+      type: 'property_equals',
+      property: 'done',
+      value: true
+    };
+
+    expect(JSON.parse(JSON.stringify(serializeTerminalCondition(condition)))).toEqual({
+      type: 'property_equals',
+      property: 'done',
+      value: true
+    });
+  });
+
   test('keeps terminal flag precedence unchanged', () => {
     expect(isTerminalState({
       id: 's0',
