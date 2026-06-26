@@ -108,6 +108,20 @@ describe('Juo source-backed production value row body value sealed boundary guar
     }
   });
 
+  test('keeps combined sealed boundary rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueRowBodyValueSealedBoundaryInventory,
+      ...juoRewardSourceBackedProductionValueRowBodyValueSealedBoundaryInventory
+    ];
+    const rows = allSealedBoundaryRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
+  });
+
   test('keeps sealed boundary ids separate from finalization, implementation, boundary, and value ids', () => {
     for (const row of allSealedBoundaryRows()) {
       const boundaryId = String(row['sourceBackedProductionValueRowBodyValueSealedBoundaryId']);
