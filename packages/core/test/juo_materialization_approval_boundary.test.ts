@@ -150,6 +150,15 @@ function expectUnique(ids: readonly string[]): void {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
+type ApprovalBoundaryGuardRow = Record<string, unknown>;
+
+function allApprovalBoundaryRows(): readonly ApprovalBoundaryGuardRow[] {
+  return [
+    ...juoProbabilityMaterializationApprovalBoundaryInventory.map((row) => ({ ...row })),
+    ...juoRewardMaterializationApprovalBoundaryInventory.map((row) => ({ ...row }))
+  ];
+}
+
 describe('Juo materialization approval boundary inventory', () => {
   test('preserves one approval boundary row per guarded candidate review boundary row', () => {
     expect(
@@ -170,6 +179,20 @@ describe('Juo materialization approval boundary inventory', () => {
         .map((row) => row.guardedSourceBackedProductionValueMaterializationCandidateReviewBoundaryId)
         .sort()
     );
+  });
+
+  test('keeps combined approval boundary rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilityMaterializationApprovalBoundaryInventory,
+      ...juoRewardMaterializationApprovalBoundaryInventory
+    ];
+    const rows = allApprovalBoundaryRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
   });
 
   test('keeps approval boundary rows blocked and non-executable', () => {
