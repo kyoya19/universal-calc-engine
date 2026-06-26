@@ -159,6 +159,15 @@ function expectUnique(ids: readonly string[]): void {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
+type CreationGateGuardRow = Record<string, unknown>;
+
+function allCreationGateRows(): readonly CreationGateGuardRow[] {
+  return [
+    ...juoProbabilitySourceBackedProductionValueCreationGateInventory.map((row) => ({ ...row })),
+    ...juoRewardSourceBackedProductionValueCreationGateInventory.map((row) => ({ ...row }))
+  ];
+}
+
 describe('Juo source-backed production value creation gate inventory', () => {
   test('preserves one creation gate row per materialization decision boundary row', () => {
     expect(
@@ -173,6 +182,20 @@ describe('Juo source-backed production value creation gate inventory', () => {
         .map((row) => row.materializationDecisionBoundaryId)
         .sort()
     ).toEqual(juoRewardMaterializationDecisionBoundaryInventory.map((row) => row.materializationDecisionBoundaryId).sort());
+  });
+
+  test('keeps combined creation gate rows detached from fixture rows', () => {
+    const fixtureRows = [
+      ...juoProbabilitySourceBackedProductionValueCreationGateInventory,
+      ...juoRewardSourceBackedProductionValueCreationGateInventory
+    ];
+    const rows = allCreationGateRows();
+
+    expect(rows).toHaveLength(fixtureRows.length);
+    rows.forEach((row, index) => {
+      expect(row).toEqual(fixtureRows[index]);
+      expect(row).not.toBe(fixtureRows[index]);
+    });
   });
 
   test('keeps creation gate rows blocked and non-executable', () => {
