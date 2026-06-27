@@ -130,6 +130,15 @@ it('keeps zero public number text JSON output explicit', () => {
   ).toBe('{"diagnostic":"0","plain":"0"}');
 });
 
+it('keeps negative zero public number text JSON output explicit', () => {
+  expect(
+    JSON.stringify({
+      diagnostic: core.formatNumberDiagnosticText(-0),
+      plain: core.formatNumberPlainText(-0)
+    })
+  ).toBe('{"diagnostic":"0","plain":"0"}');
+});
+
 it('keeps large public number text JSON output explicit', () => {
   expect(
     JSON.stringify({
