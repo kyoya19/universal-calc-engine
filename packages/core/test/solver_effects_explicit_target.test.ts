@@ -54,5 +54,5 @@ test('copies explicit-target solver contributions through JSON by value only', (
   expect(copied).toEqual(contribution);
   expect(copied).not.toBe(contribution);
   expect(copied.transitionContributionsByState).not.toBe(contribution.transitionContributionsByState);
-  expect(copied.transitionContributionsByState.start[0].contribution).toBe(7);
+  expect(copied.transitionContributionsByState.start).toEqual(contribution.transitionContributionsByState.start);
 });
