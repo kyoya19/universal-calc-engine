@@ -8,3 +8,7 @@ it('nt2', () => {
 it('formats a non-zero integer as plain text', () => {
   expect(f(42)).toBe('42');
 });
+
+it('formats a one-digit integer as plain text', () => {
+  expect(f(7)).toBe('7');
+});
