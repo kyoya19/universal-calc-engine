@@ -33,4 +33,13 @@ describe('boundary report digest status JSON boundary', () => {
     expect(formatBoundaryReportDigestPlainText(serialized)).toBe(formatBoundaryReportDigestPlainText(digest));
     expect(formatBoundaryReportDigestPlainText(serialized)).toContain('statusLevel: rejected');
   });
+
+  it('copies digest reports through JSON serialization', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const serialized = JSON.parse(JSON.stringify(digest));
+
+    expect(serialized.reports).toEqual(digest.reports);
+    expect(serialized.reports).not.toBe(digest.reports);
+    expect(serialized.reports).toHaveLength(digest.reports.length);
+  });
 });
