@@ -5,4 +5,8 @@ describe('countReportStatusSummaryRows', () => {
   it('counts all status rows', () => {
     expect(countReportStatusSummaryRows({ ok: 2, warning: 1, rejected: 3, info: 4 })).toBe(10);
   });
+
+  it('counts zero status rows', () => {
+    expect(countReportStatusSummaryRows({ ok: 0, warning: 0, rejected: 0, info: 0 })).toBe(0);
+  });
 });
