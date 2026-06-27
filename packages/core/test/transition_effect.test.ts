@@ -73,4 +73,10 @@ describe('TransitionEffect boundary', () => {
 
     expect(applied).toEqual({ position: 2, done: true });
   });
+
+  test('applies a single effect list to empty input properties', () => {
+    const applied = applyTransitionEffects({}, [{ type: 'set_property', property: 'position', value: 1 }]);
+
+    expect(applied).toEqual({ position: 1 });
+  });
 });
