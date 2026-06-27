@@ -97,4 +97,24 @@ describe('auditTransitionProbabilityTotals', () => {
       })
     ]);
   });
+
+  it('copies audit rows through JSON serialization', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.4 },
+        { from: 'start', to: 'lose', probability: 0.4 }
+      ]
+    });
+    const serializedAudit = JSON.parse(JSON.stringify(audit)) as typeof audit;
+
+    expect(serializedAudit.rows).toEqual(audit.rows);
+    expect(serializedAudit.rows).not.toBe(audit.rows);
+    expect(serializedAudit.rows).toHaveLength(audit.rows.length);
+  });
 });
