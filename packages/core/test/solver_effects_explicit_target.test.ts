@@ -44,3 +44,15 @@ test('keeps solver targets explicit when effects generate a different candidate'
     }
   ]);
 });
+
+test('copies explicit-target solver contributions through JSON by value only', () => {
+  const evaluated = evaluateModel(expandModel(model));
+  const solved = solveExpectedReward(evaluated);
+  const contribution = toContributionResult(evaluated, solved);
+  const copied = JSON.parse(JSON.stringify(contribution)) as typeof contribution;
+
+  expect(copied).toEqual(contribution);
+  expect(copied).not.toBe(contribution);
+  expect(copied.transitionContributionsByState).not.toBe(contribution.transitionContributionsByState);
+  expect(copied.transitionContributionsByState.start).toEqual(contribution.transitionContributionsByState.start);
+});
