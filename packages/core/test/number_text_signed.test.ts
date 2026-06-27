@@ -8,3 +8,7 @@ it('formats a signed number as plain text', () => {
 it('formats a positive number without an explicit plus sign', () => {
   expect(formatNumberPlainText(3)).toBe('3');
 });
+
+it('formats a signed decimal number as plain text', () => {
+  expect(formatNumberPlainText(-1.5)).toBe('-1.5');
+});
