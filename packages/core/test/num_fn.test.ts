@@ -4,3 +4,7 @@ import { formatNumberPlainText as f } from '../src/number_text';
 it('num fn', () => {
   expect(typeof f).toBe('function');
 });
+
+it('formats zero as plain text', () => {
+  expect(f(0)).toBe('0');
+});
