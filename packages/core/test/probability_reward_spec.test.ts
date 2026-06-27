@@ -31,6 +31,19 @@ describe('ProbabilitySpec and RewardSpec boundaries', () => {
     expect(serializeRewardSpec(constantReward)).toEqual({ type: 'constant', value: 3 });
   });
 
+  test('serializes constant specs as copied objects', () => {
+    const constantProbability: ProbabilitySpec = { type: 'constant', value: 0.75 };
+    const constantReward: RewardSpec = { type: 'constant', value: 5 };
+
+    const serializedProbability = serializeProbabilitySpec(constantProbability);
+    const serializedReward = serializeRewardSpec(constantReward);
+
+    expect(serializedProbability).toEqual(constantProbability);
+    expect(serializedReward).toEqual(constantReward);
+    expect(serializedProbability).not.toBe(constantProbability);
+    expect(serializedReward).not.toBe(constantReward);
+  });
+
   test('evaluates model transitions through separated probability and reward helpers', () => {
     const evaluated = evaluateModel(expandModel({
       startState: 's0',
