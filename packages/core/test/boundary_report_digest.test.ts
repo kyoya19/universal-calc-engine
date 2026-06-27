@@ -162,6 +162,25 @@ describe('definitionModelToBoundaryReportDigest', () => {
     });
   });
 
+  it('keeps public boundary report digest JSON helper aligned with serialized copies', () => {
+    const digest = core.definitionModelToBoundaryReportDigest(model);
+    const serializedDigest = core.serializeBoundaryReportDigest(digest);
+    const jsonText = core.boundaryReportDigestToJson(digest);
+    const parsedDigest = JSON.parse(jsonText);
+    const firstDigestRow = digest.reports[0]!.sections[0]!.rows[0]!;
+    const firstParsedRow = parsedDigest.reports[0]!.sections[0]!.rows[0]!;
+
+    expect(jsonText).toBe(JSON.stringify(serializedDigest));
+    expect(parsedDigest).toEqual(serializedDigest);
+    expect(parsedDigest).not.toBe(digest);
+    expect(parsedDigest.reports).not.toBe(digest.reports);
+    expect(firstParsedRow).not.toBe(firstDigestRow);
+    expect(firstParsedRow.metadata).toEqual(firstDigestRow.metadata);
+    expect(firstParsedRow.metadata).not.toBe(firstDigestRow.metadata);
+    expect(parsedDigest.statusOverview).not.toBe(digest.statusOverview);
+    expect(parsedDigest.statusOverview.summary).not.toBe(digest.statusOverview.summary);
+  });
+
   it('exposes boundary report digest plain text helpers from the public entrypoint', () => {
     const digest = core.definitionModelToBoundaryReportDigest(model);
 
