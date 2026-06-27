@@ -39,3 +39,11 @@ test('formats a serialized state graph summary as JSON text', () => {
 test('copies serialized diagnostic counts by value', () => {
   expect(serializeStateGraphSummary(summary).diagnosticCountsByType).not.toBe(summary.diagnosticCountsByType);
 });
+
+test('parses state graph summary JSON without sharing nested diagnostic counts', () => {
+  const parsed = JSON.parse(stateGraphSummaryToJson(summary));
+  const serialized = serializeStateGraphSummary(summary);
+
+  expect(parsed).toEqual(serialized);
+  expect(parsed.diagnosticCountsByType).not.toBe(serialized.diagnosticCountsByType);
+});
