@@ -8,3 +8,7 @@ it('n decimal', () => {
 it('keeps the leading zero for a fractional decimal', () => {
   expect(f(0.5)).toBe('0.5');
 });
+
+it('keeps leading digits for a decimal number', () => {
+  expect(f(10.25)).toBe('10.25');
+});
