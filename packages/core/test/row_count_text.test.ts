@@ -8,3 +8,7 @@ it('formats row count', () => {
 it('formats zero row count', () => {
   expect(formatRowCountPlainText(0)).toBe('rows: 0');
 });
+
+it('formats single row count', () => {
+  expect(formatRowCountPlainText(1)).toBe('rows: 1');
+});
