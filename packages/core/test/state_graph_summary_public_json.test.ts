@@ -52,6 +52,17 @@ test('serializes state graph diagnostics as a public summary object', () => {
   });
 });
 
+test('state graph summary JSON copies diagnostic counts by value only', () => {
+  const graph = expandGraphFromModel(model);
+  const summary = serializeStateGraphSummary(summarizeStateGraph(graph));
+  const copied = JSON.parse(JSON.stringify(summary)) as typeof summary;
+
+  expect(copied).toEqual(summary);
+  expect(copied).not.toBe(summary);
+  expect(copied.diagnosticCountsByType).not.toBe(summary.diagnosticCountsByType);
+  expect(copied.diagnosticCountsByType.explicit_generated_mismatch).toBe(1);
+});
+
 test('state graph summary JSON does not expose raw graph collections', () => {
   const graph = expandGraphFromModel(model);
   const json = stateGraphSummaryToJson(summarizeStateGraph(graph));
