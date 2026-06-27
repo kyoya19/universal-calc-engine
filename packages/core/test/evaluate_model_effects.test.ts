@@ -29,3 +29,12 @@ test('keeps transition effects on evaluated transitions without rewriting target
     effects: [{ type: 'set_property', property: 'position', value: 2 }]
   });
 });
+
+test('evaluates transition effects consistently across repeated expansions', () => {
+  const first = evaluateModel(expandModel(model));
+  const second = evaluateModel(expandModel(model));
+
+  expect(second.transitions).toEqual(first.transitions);
+  expect(second.transitions).not.toBe(first.transitions);
+  expect(second.transitions[0]).toEqual(first.transitions[0]);
+});
