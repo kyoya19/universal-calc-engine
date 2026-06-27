@@ -39,4 +39,13 @@ describe('boundary report checks', () => {
     expect(copied.statusOverview).not.toBe(digest.statusOverview);
     expect(isBoundaryReportDigestOk(copied)).toBe(true);
   });
+
+  it('checks a copied definition model directly', () => {
+    const copied = JSON.parse(JSON.stringify(model)) as typeof model;
+
+    expect(copied).toEqual(model);
+    expect(copied).not.toBe(model);
+    expect(copied.states).not.toBe(model.states);
+    expect(definitionModelToBoundaryReportDigestIsOk(copied)).toBe(true);
+  });
 });
