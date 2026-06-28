@@ -32,3 +32,7 @@ it('formats negative decimals as plain text', () => {
 it('formats fractional decimals as plain text', () => {
   expect(f(0.125)).toBe('0.125');
 });
+
+it('formats negative fractional decimals as plain text', () => {
+  expect(f(-0.125)).toBe('-0.125');
+});
