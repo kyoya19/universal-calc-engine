@@ -214,6 +214,26 @@ describe('UI consumable report model', () => {
     });
   });
 
+  test('keeps generated-target solver gate summary report model copied after JSON serialization', () => {
+    const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+    const serializedReportModel = JSON.parse(JSON.stringify(reportModel));
+
+    expect(serializedReportModel).toEqual(reportModel);
+    expect(serializedReportModel).not.toBe(reportModel);
+    expect(serializedReportModel.sections).not.toBe(reportModel.sections);
+    expect(serializedReportModel.sections[0]).not.toBe(reportModel.sections[0]);
+    expect(serializedReportModel.sections[0]!.rows).not.toBe(reportModel.sections[0]!.rows);
+    expect(serializedReportModel.sections[0]!.rows[0]).not.toBe(reportModel.sections[0]!.rows[0]);
+    expect(serializedReportModel.sections[0]!.rows[0]!.metadata).toEqual(
+      reportModel.sections[0]!.rows[0]!.metadata
+    );
+    expect(serializedReportModel.sections[0]!.rows[0]!.metadata).not.toBe(
+      reportModel.sections[0]!.rows[0]!.metadata
+    );
+  });
+
   test('keeps gate summary plain text fallback aligned with the existing formatter body', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
     const summary = summarizeGeneratedTargetSolverGateResult(result);
