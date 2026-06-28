@@ -56,3 +56,7 @@ it('formats NaN as diagnostic text', () => {
 it('formats positive infinity as diagnostic text', () => {
   expect(d(Infinity)).toBe('Infinity');
 });
+
+it('formats negative infinity as diagnostic text', () => {
+  expect(d(-Infinity)).toBe('-Infinity');
+});
