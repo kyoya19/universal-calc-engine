@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { formatNumberPlainText as f } from '../src/number_text';
+import { formatNumberDiagnosticText as d, formatNumberPlainText as f } from '../src/number_text';
 
 it('num fn', () => {
   expect(typeof f).toBe('function');
@@ -47,4 +47,8 @@ it('formats negative infinity as plain text', () => {
 
 it('formats NaN as plain text', () => {
   expect(f(NaN)).toBe('NaN');
+});
+
+it('formats NaN as diagnostic text', () => {
+  expect(d(NaN)).toBe('NaN');
 });
