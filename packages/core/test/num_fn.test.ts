@@ -105,6 +105,10 @@ it('formats epsilon as plain text', () => {
   expect(f(Number.EPSILON)).toBe('2.220446049250313e-16');
 });
 
+it('formats negative epsilon as plain text', () => {
+  expect(f(-Number.EPSILON)).toBe('-2.220446049250313e-16');
+});
+
 it('formats max value as diagnostic text', () => {
   expect(d(Number.MAX_VALUE)).toBe('1.7976931348623157e+308');
 });
