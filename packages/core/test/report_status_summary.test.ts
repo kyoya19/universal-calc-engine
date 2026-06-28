@@ -118,6 +118,10 @@ describe('report status summary helpers', () => {
     expect(isReportStatusSummaryOk({ ok: 1, warning: 1, rejected: 0, info: 1 })).toBe(false);
   });
 
+  it('checks rejected summaries are not ok', () => {
+    expect(isReportStatusSummaryOk({ ok: 0, warning: 0, rejected: 1, info: 0 })).toBe(false);
+  });
+
   it('formats a status summary as plain text', () => {
     expect(formatReportStatusSummaryPlainText({ ok: 2, warning: 1, rejected: 0, info: 3 })).toBe(
       'ok: 2\nwarning: 1\nrejected: 0\ninfo: 3'
