@@ -52,3 +52,7 @@ it('formats NaN as plain text', () => {
 it('formats NaN as diagnostic text', () => {
   expect(d(NaN)).toBe('NaN');
 });
+
+it('formats positive infinity as diagnostic text', () => {
+  expect(d(Infinity)).toBe('Infinity');
+});
