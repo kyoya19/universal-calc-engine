@@ -109,6 +109,10 @@ describe('report status summary helpers', () => {
     expect(selectReportStatusSummaryLevel({ ok: 0, warning: 0, rejected: 0, info: 1 })).toBe('ok');
   });
 
+  it('selects ok for empty summaries', () => {
+    expect(selectReportStatusSummaryLevel({ ok: 0, warning: 0, rejected: 0, info: 0 })).toBe('ok');
+  });
+
   it('selects rejected before warning', () => {
     expect(selectReportStatusSummaryLevel({ ok: 0, warning: 1, rejected: 1, info: 0 })).toBe('rejected');
   });
