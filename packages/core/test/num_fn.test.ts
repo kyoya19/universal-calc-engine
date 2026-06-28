@@ -121,6 +121,10 @@ it('formats negative min value as diagnostic text', () => {
   expect(d(-Number.MIN_VALUE)).toBe('-5e-324');
 });
 
+it('formats epsilon as diagnostic text', () => {
+  expect(d(Number.EPSILON)).toBe('2.220446049250313e-16');
+});
+
 it('formats positive infinity as plain text', () => {
   expect(f(Infinity)).toBe('Infinity');
 });
