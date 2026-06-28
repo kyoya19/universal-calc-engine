@@ -110,4 +110,28 @@ describe('report status overview helpers', () => {
     expect(overview.plainText).toContain('warning: 0');
     expect(overview.plainText).toContain('rejected: 0');
   });
+
+  it('keeps definition-model boundary status overview copied after JSON serialization', () => {
+    const overview = definitionModelToBoundaryReportStatusOverview({
+      startState: 'start',
+      states: [
+        { id: 'start', properties: { step: 0 } },
+        { id: 'state:{step=1}', terminal: true, properties: { step: 1 } }
+      ],
+      transitions: [
+        {
+          from: 'start',
+          to: 'state:{step=1}',
+          probability: 1,
+          effects: [{ type: 'set_property', property: 'step', value: 1 }]
+        }
+      ]
+    });
+    const parsed = JSON.parse(reportStatusOverviewToJson(overview));
+
+    expect(parsed).toEqual(serializeReportStatusOverview(overview));
+    expect(parsed).not.toBe(overview);
+    expect(parsed.summary).not.toBe(overview.summary);
+    expect(parsed.plainText).toBe(overview.plainText);
+  });
 });
