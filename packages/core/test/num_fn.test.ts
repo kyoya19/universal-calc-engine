@@ -33,6 +33,10 @@ it('formats positive integers as diagnostic text', () => {
   expect(d(123)).toBe('123');
 });
 
+it('formats max safe integer as diagnostic text', () => {
+  expect(d(Number.MAX_SAFE_INTEGER)).toBe('9007199254740991');
+});
+
 it('formats negative integers as plain text', () => {
   expect(f(-123)).toBe('-123');
 });
