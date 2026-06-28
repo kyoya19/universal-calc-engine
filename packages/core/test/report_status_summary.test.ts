@@ -132,6 +132,18 @@ describe('report status summary helpers', () => {
     expect(isReportStatusSummaryOk(summary)).toBe(true);
   });
 
+  it('keeps definition-model boundary status summary copied after JSON serialization', () => {
+    const summary = definitionModelToBoundaryReportStatusSummary(validDefinitionModel);
+    const parsed = JSON.parse(reportStatusSummaryToJson(summary));
+
+    expect(parsed).toEqual(serializeReportStatusSummary(summary));
+    expect(parsed).not.toBe(summary);
+    expect(parsed.ok).toBe(summary.ok);
+    expect(parsed.warning).toBe(0);
+    expect(parsed.rejected).toBe(0);
+    expect(isReportStatusSummaryOk(parsed)).toBe(true);
+  });
+
   it('formats boundary report status summary directly from a definition model', () => {
     const text = definitionModelToBoundaryReportStatusSummaryPlainText(validDefinitionModel);
 
