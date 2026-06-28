@@ -85,6 +85,10 @@ it('formats negative fractional decimals as diagnostic text', () => {
   expect(d(-0.125)).toBe('-0.125');
 });
 
+it('formats max value as plain text', () => {
+  expect(f(Number.MAX_VALUE)).toBe('1.7976931348623157e+308');
+});
+
 it('formats positive infinity as plain text', () => {
   expect(f(Infinity)).toBe('Infinity');
 });
