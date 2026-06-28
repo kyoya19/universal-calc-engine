@@ -24,3 +24,7 @@ it('formats negative integers as plain text', () => {
 it('formats positive decimals as plain text', () => {
   expect(f(12.5)).toBe('12.5');
 });
+
+it('formats negative decimals as plain text', () => {
+  expect(f(-12.5)).toBe('-12.5');
+});
