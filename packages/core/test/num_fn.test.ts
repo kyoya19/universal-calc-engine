@@ -29,6 +29,10 @@ it('formats max safe integer as plain text', () => {
   expect(f(Number.MAX_SAFE_INTEGER)).toBe('9007199254740991');
 });
 
+it('formats min safe integer as plain text', () => {
+  expect(f(Number.MIN_SAFE_INTEGER)).toBe('-9007199254740991');
+});
+
 it('formats positive integers as diagnostic text', () => {
   expect(d(123)).toBe('123');
 });
