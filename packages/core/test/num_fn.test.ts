@@ -89,6 +89,10 @@ it('formats max value as plain text', () => {
   expect(f(Number.MAX_VALUE)).toBe('1.7976931348623157e+308');
 });
 
+it('formats min value as plain text', () => {
+  expect(f(Number.MIN_VALUE)).toBe('5e-324');
+});
+
 it('formats max value as diagnostic text', () => {
   expect(d(Number.MAX_VALUE)).toBe('1.7976931348623157e+308');
 });
