@@ -57,6 +57,10 @@ it('formats fractional decimals as plain text', () => {
   expect(f(0.125)).toBe('0.125');
 });
 
+it('formats fractional decimals as diagnostic text', () => {
+  expect(d(0.125)).toBe('0.125');
+});
+
 it('formats negative fractional decimals as plain text', () => {
   expect(f(-0.125)).toBe('-0.125');
 });
