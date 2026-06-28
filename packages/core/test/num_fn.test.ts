@@ -16,3 +16,7 @@ it('formats negative zero as plain text zero', () => {
 it('formats positive integers as plain text', () => {
   expect(f(123)).toBe('123');
 });
+
+it('formats negative integers as plain text', () => {
+  expect(f(-123)).toBe('-123');
+});
