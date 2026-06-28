@@ -40,3 +40,7 @@ it('formats negative fractional decimals as plain text', () => {
 it('formats positive infinity as plain text', () => {
   expect(f(Infinity)).toBe('Infinity');
 });
+
+it('formats negative infinity as plain text', () => {
+  expect(f(-Infinity)).toBe('-Infinity');
+});
