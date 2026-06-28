@@ -25,6 +25,10 @@ it('formats positive integers as plain text', () => {
   expect(f(123)).toBe('123');
 });
 
+it('formats positive integers as diagnostic text', () => {
+  expect(d(123)).toBe('123');
+});
+
 it('formats negative integers as plain text', () => {
   expect(f(-123)).toBe('-123');
 });
