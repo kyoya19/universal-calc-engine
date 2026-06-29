@@ -139,6 +139,12 @@ describe('definitionModelToBoundaryReportDigest', () => {
     );
   });
 
+  it('keeps digest plain text stable after JSON serialization', () => {
+    const text = formatBoundaryReportDigestPlainText(definitionModelToBoundaryReportDigest(model));
+
+    expect(JSON.parse(JSON.stringify(text))).toBe(text);
+  });
+
   it('builds digest plain text directly from a definition model', () => {
     const text = definitionModelToBoundaryReportDigestPlainText(model);
 
