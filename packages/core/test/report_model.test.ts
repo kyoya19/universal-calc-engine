@@ -87,6 +87,16 @@ describe('UI consumable report model', () => {
     );
   });
 
+  test('formats a single empty report section without trailing rows', () => {
+    const reportModel = {
+      kind: 'empty_section_report',
+      title: 'Empty Section Report',
+      sections: [{ id: 'summary', title: 'Summary', rows: [] }]
+    };
+
+    expect(formatReportModelPlainText(reportModel)).toBe(['Empty Section Report', '', '## Summary'].join('\n'));
+  });
+
   test('keeps formatted report model plain text stable after JSON serialization', () => {
     const reportModel = {
       kind: 'json_text_report',
