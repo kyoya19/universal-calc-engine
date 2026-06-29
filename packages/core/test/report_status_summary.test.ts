@@ -92,6 +92,25 @@ describe('report status summary helpers', () => {
     expect(summarizeReportModelsStatuses([unset])).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
   });
 
+  it('counts set rows while summarizing report arrays', () => {
+    const mixed: ReportModel = {
+      kind: 'mixed-array',
+      title: 'Mixed Array',
+      sections: [
+        {
+          id: 's',
+          title: 'S',
+          rows: [
+            { id: 'a', label: 'a', plainText: 'a' },
+            { id: 'b', label: 'b', plainText: 'b', status: 'ok' }
+          ]
+        }
+      ]
+    };
+
+    expect(summarizeReportModelsStatuses([mixed])).toEqual({ ok: 1, warning: 0, rejected: 0, info: 0 });
+  });
+
   it('summarizes empty report arrays', () => {
     expect(summarizeReportModelsStatuses([])).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
   });
