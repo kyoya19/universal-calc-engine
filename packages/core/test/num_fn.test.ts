@@ -180,3 +180,11 @@ it('keeps finite boundary plain text stable through JSON serialization', () => {
     '2.220446049250313e-16'
   ]);
 });
+
+it('keeps finite boundary diagnostic text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([d(Number.MAX_SAFE_INTEGER), d(Number.MIN_SAFE_INTEGER), d(Number.EPSILON)]))).toEqual([
+    '9007199254740991',
+    '-9007199254740991',
+    '2.220446049250313e-16'
+  ]);
+});
