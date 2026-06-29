@@ -204,3 +204,10 @@ it('keeps magnitude diagnostic text stable through JSON serialization', () => {
     '5e-324'
   ]);
 });
+
+it('keeps negative epsilon text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(-Number.EPSILON), d(-Number.EPSILON)]))).toEqual([
+    '-2.220446049250313e-16',
+    '-2.220446049250313e-16'
+  ]);
+});
