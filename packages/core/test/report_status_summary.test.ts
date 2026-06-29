@@ -82,6 +82,16 @@ describe('report status summary helpers', () => {
     expect(summarizeReportModelsStatuses([one, two])).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
   });
 
+  it('ignores rows without status while summarizing report arrays', () => {
+    const unset: ReportModel = {
+      kind: 'unset-array',
+      title: 'Unset Array',
+      sections: [{ id: 's', title: 'S', rows: [{ id: 'a', label: 'a', plainText: 'a' }] }]
+    };
+
+    expect(summarizeReportModelsStatuses([unset])).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
+  });
+
   it('summarizes empty report arrays', () => {
     expect(summarizeReportModelsStatuses([])).toEqual({ ok: 0, warning: 0, rejected: 0, info: 0 });
   });
