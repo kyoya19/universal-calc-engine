@@ -72,6 +72,12 @@ describe('report status overview helpers', () => {
     });
   });
 
+  it('keeps empty overview plain text stable after JSON serialization', () => {
+    const overview = toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 });
+
+    expect(JSON.parse(JSON.stringify(overview.plainText))).toBe(overview.plainText);
+  });
+
   it('serializes a report status overview', () => {
     const overview = toReportStatusOverview({ ok: 2, warning: 0, rejected: 0, info: 3 });
 
