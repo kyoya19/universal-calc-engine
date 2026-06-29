@@ -130,6 +130,15 @@ describe('report status summary helpers', () => {
     expect(JSON.parse(jsonText)).toEqual({ ok: 2, warning: 1, rejected: 1, info: 1 });
   });
 
+  it('returns parseable JSON text for empty status summaries', () => {
+    expect(JSON.parse(reportStatusSummaryToJson({ ok: 0, warning: 0, rejected: 0, info: 0 }))).toEqual({
+      ok: 0,
+      warning: 0,
+      rejected: 0,
+      info: 0
+    });
+  });
+
   it('copies report status summaries during serialization', () => {
     const summary = summarizeReportModelsStatuses([one, two]);
     const serialized = serializeReportStatusSummary(summary);
