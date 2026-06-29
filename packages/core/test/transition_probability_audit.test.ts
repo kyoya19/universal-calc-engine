@@ -142,6 +142,33 @@ describe('auditTransitionProbabilityTotals', () => {
     ]);
   });
 
+  it('reports invalid totals above one without throwing', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.6 },
+        { from: 'start', to: 'lose', probability: 0.6 }
+      ]
+    });
+
+    expect(audit.valid).toBe(false);
+    expect(audit.invalidRows).toEqual([
+      expect.objectContaining({
+        stateId: 'start',
+        transitionCount: 2,
+        probabilityTotal: 1.2,
+        deviationFromOne: 0.19999999999999996,
+        terminal: false,
+        valid: false
+      })
+    ]);
+  });
+
   it('keeps invalid audit rows stable after JSON serialization', () => {
     const audit = auditModel({
       startState: 'start',
