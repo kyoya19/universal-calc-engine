@@ -145,6 +145,13 @@ describe('definitionModelToBoundaryReportDigest', () => {
     );
   });
 
+  it('formats copied digest text', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const copy = serializeBoundaryReportDigest(digest);
+
+    expect(formatBoundaryReportDigestPlainText(copy)).toBe(formatBoundaryReportDigestPlainText(digest));
+  });
+
   it('keeps digest plain text stable after JSON serialization', () => {
     const text = formatBoundaryReportDigestPlainText(definitionModelToBoundaryReportDigest(model));
 
