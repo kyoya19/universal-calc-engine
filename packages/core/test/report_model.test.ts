@@ -274,6 +274,40 @@ describe('UI consumable report model', () => {
     });
   });
 
+  test('keeps rejected gate summary report model copied after JSON serialization', () => {
+    const { effects: _effects, ...transitionWithoutEffects } = representativeSugorokuModel.transitions[0]!;
+    const result = solveExpectedRewardWithGeneratedTargetGate({
+      ...representativeSugorokuModel,
+      transitions: [transitionWithoutEffects, ...representativeSugorokuModel.transitions.slice(1)]
+    });
+    const summary = summarizeGeneratedTargetSolverGateResult(result);
+    const reportModel = generatedTargetSolverGateResultSummaryToReportModel(summary);
+    const serializedReportModel = JSON.parse(JSON.stringify(reportModel));
+    const serializedRows = serializedReportModel.sections[0]!.rows;
+    const acceptedRow = serializedRows.find((row: { id: string }) => row.id === 'accepted')!;
+    const rejectionCodeRow = serializedRows.find((row: { id: string }) => row.id === 'rejectionCode')!;
+
+    expect(serializedReportModel).toEqual(reportModel);
+    expect(serializedReportModel).not.toBe(reportModel);
+    expect(serializedReportModel.sections).not.toBe(reportModel.sections);
+    expect(serializedReportModel.sections[0]).not.toBe(reportModel.sections[0]);
+    expect(serializedRows).not.toBe(reportModel.sections[0]!.rows);
+    expect(acceptedRow).toMatchObject({
+      plainText: 'accepted: false',
+      status: 'rejected',
+      metadata: { value: false }
+    });
+    expect(rejectionCodeRow).toMatchObject({
+      plainText: 'rejectionCode: missing_generated_target',
+      status: 'rejected',
+      metadata: { value: 'missing_generated_target' }
+    });
+    expect(acceptedRow.metadata).not.toBe(reportModel.sections[0]!.rows.find((row) => row.id === 'accepted')!.metadata);
+    expect(rejectionCodeRow.metadata).not.toBe(
+      reportModel.sections[0]!.rows.find((row) => row.id === 'rejectionCode')!.metadata
+    );
+  });
+
   test('does not change generated-target solver gate behavior or baseline values', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
 
