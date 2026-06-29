@@ -156,3 +156,19 @@ it('formats positive infinity as diagnostic text', () => {
 it('formats negative infinity as diagnostic text', () => {
   expect(d(-Infinity)).toBe('-Infinity');
 });
+
+it('keeps non-finite plain text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(Infinity), f(-Infinity), f(NaN)]))).toEqual([
+    'Infinity',
+    '-Infinity',
+    'NaN'
+  ]);
+});
+
+it('keeps non-finite diagnostic text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([d(Infinity), d(-Infinity), d(NaN)]))).toEqual([
+    'Infinity',
+    '-Infinity',
+    'NaN'
+  ]);
+});
