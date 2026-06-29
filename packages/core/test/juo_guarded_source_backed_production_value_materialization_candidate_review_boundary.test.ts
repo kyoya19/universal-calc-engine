@@ -133,6 +133,17 @@ function expectUnique(ids: readonly string[]): void {
   expect(new Set(ids).size).toBe(ids.length);
 }
 
+type CandidateReviewBoundaryGuardRow = Record<string, unknown>;
+
+function allGuardedCandidateReviewBoundaryRows(): readonly CandidateReviewBoundaryGuardRow[] {
+  return [
+    ...juoProbabilityGuardedSourceBackedProductionValueMaterializationCandidateReviewBoundaryInventory.map((row) => ({
+      ...row
+    })),
+    ...juoRewardGuardedSourceBackedProductionValueMaterializationCandidateReviewBoundaryInventory.map((row) => ({ ...row }))
+  ];
+}
+
 describe('Juo guarded source-backed production value materialization candidate review boundary inventory', () => {
   test('preserves one guarded candidate review boundary row per guarded candidate boundary row', () => {
     expect(
@@ -153,6 +164,20 @@ describe('Juo guarded source-backed production value materialization candidate r
         .map((row) => row.guardedSourceBackedProductionValueMaterializationCandidateBoundaryId)
         .sort()
     );
+  });
+
+  test('keeps guarded candidate review boundary rows copied after JSON serialization', () => {
+    const rows = allGuardedCandidateReviewBoundaryRows();
+    const serializedRows = JSON.parse(JSON.stringify(rows)) as typeof rows;
+
+    expect(serializedRows).toEqual(rows);
+    expect(serializedRows).not.toBe(rows);
+    serializedRows.forEach((row, index) => {
+      expect(row).not.toBe(rows[index]);
+      expectNoForbiddenKeys(row);
+      expectNoForbiddenKeyFragments(row);
+      expectNoReadyStates(row);
+    });
   });
 
   test('keeps guarded candidate review boundary rows blocked and non-executable', () => {
