@@ -33,6 +33,13 @@ describe('report status overview helpers', () => {
     expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 1, info: 3 }).level).toBe('rejected');
   });
 
+  it('selects rejected overview level for rejected summaries', () => {
+    const overview = toReportStatusOverview({ ok: 0, warning: 0, rejected: 1, info: 0 });
+
+    expect(overview.level).toBe('rejected');
+    expect(overview.plainText).toContain('rejected: 1');
+  });
+
   it('selects warning overview level when warnings exist without rejections', () => {
     expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 0, info: 3 }).level).toBe('warning');
   });
