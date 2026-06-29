@@ -100,6 +100,12 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reportText).toBe(digest.reportText);
   });
 
+  it('aligns digest JSON helper output', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+
+    expect(boundaryReportDigestToJson(digest)).toBe(JSON.stringify(serializeBoundaryReportDigest(digest)));
+  });
+
   it('returns parseable JSON text from the boundary report digest JSON helper', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
     const jsonText = boundaryReportDigestToJson(digest);
