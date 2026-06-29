@@ -152,6 +152,12 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(text).toContain('Generated Target Comparison Report');
   });
 
+  it('keeps definition-model digest plain text stable after JSON serialization', () => {
+    const text = definitionModelToBoundaryReportDigestPlainText(model);
+
+    expect(JSON.parse(JSON.stringify(text))).toBe(text);
+  });
+
   it('formats model digest text through the formatter', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
 
