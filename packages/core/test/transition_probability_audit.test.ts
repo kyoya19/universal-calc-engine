@@ -46,6 +46,28 @@ describe('auditTransitionProbabilityTotals', () => {
     );
   });
 
+  it('keeps valid audit JSON copied', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.25 },
+        { from: 'start', to: 'lose', probability: { type: 'constant', value: 0.75 } }
+      ]
+    });
+    const serializedAudit = JSON.parse(JSON.stringify(audit)) as typeof audit;
+
+    expect(serializedAudit.valid).toBe(true);
+    expect(serializedAudit.invalidRows).toEqual([]);
+    expect(serializedAudit.invalidRows).not.toBe(audit.invalidRows);
+    expect(serializedAudit.rows).toEqual(audit.rows);
+    expect(serializedAudit.rows).not.toBe(audit.rows);
+  });
+
   it('reports invalid non-terminal totals without throwing', () => {
     const audit = auditModel({
       startState: 'start',
