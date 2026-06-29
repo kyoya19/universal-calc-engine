@@ -173,6 +173,16 @@ describe('report status summary helpers', () => {
     expect(selectReportStatusSummaryLevel({ ok: 0, warning: 1, rejected: 1, info: 0 })).toBe('rejected');
   });
 
+  it('keeps selected summary levels stable after JSON serialization', () => {
+    const levels = [
+      selectReportStatusSummaryLevel({ ok: 1, warning: 0, rejected: 0, info: 0 }),
+      selectReportStatusSummaryLevel({ ok: 0, warning: 1, rejected: 0, info: 0 }),
+      selectReportStatusSummaryLevel({ ok: 0, warning: 0, rejected: 1, info: 0 })
+    ];
+
+    expect(JSON.parse(JSON.stringify(levels))).toEqual(['ok', 'warning', 'rejected']);
+  });
+
   it('checks whether a summary is ok', () => {
     expect(isReportStatusSummaryOk({ ok: 1, warning: 0, rejected: 0, info: 1 })).toBe(true);
     expect(isReportStatusSummaryOk({ ok: 1, warning: 1, rejected: 0, info: 1 })).toBe(false);
