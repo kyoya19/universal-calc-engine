@@ -215,3 +215,12 @@ it('keeps negative epsilon text stable through JSON serialization', () => {
 it('keeps negative min text stable through JSON serialization', () => {
   expect(JSON.parse(JSON.stringify([f(-Number.MIN_VALUE), d(-Number.MIN_VALUE)]))).toEqual(['-5e-324', '-5e-324']);
 });
+
+it('keeps fractional text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(0.125), d(0.125), f(-0.125), d(-0.125)]))).toEqual([
+    '0.125',
+    '0.125',
+    '-0.125',
+    '-0.125'
+  ]);
+});
