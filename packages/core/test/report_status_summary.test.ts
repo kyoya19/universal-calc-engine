@@ -122,6 +122,10 @@ describe('report status summary helpers', () => {
     expect(isReportStatusSummaryOk({ ok: 1, warning: 1, rejected: 0, info: 1 })).toBe(false);
   });
 
+  it('checks empty summaries are ok', () => {
+    expect(isReportStatusSummaryOk({ ok: 0, warning: 0, rejected: 0, info: 0 })).toBe(true);
+  });
+
   it('checks rejected summaries are not ok', () => {
     expect(isReportStatusSummaryOk({ ok: 0, warning: 0, rejected: 1, info: 0 })).toBe(false);
   });
