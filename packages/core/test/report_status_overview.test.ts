@@ -64,6 +64,16 @@ describe('report status overview helpers', () => {
     expect(overview.plainText).toContain('info: 1');
   });
 
+  it('keeps overview levels stable after JSON serialization', () => {
+    const levels = [
+      toReportStatusOverview({ ok: 1, warning: 0, rejected: 0, info: 0 }).level,
+      toReportStatusOverview({ ok: 0, warning: 1, rejected: 0, info: 0 }).level,
+      toReportStatusOverview({ ok: 0, warning: 0, rejected: 1, info: 0 }).level
+    ];
+
+    expect(JSON.parse(JSON.stringify(levels))).toEqual(['ok', 'warning', 'rejected']);
+  });
+
   it('builds an empty overview from a zero status summary', () => {
     expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
