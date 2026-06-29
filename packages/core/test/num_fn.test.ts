@@ -188,3 +188,11 @@ it('keeps finite boundary diagnostic text stable through JSON serialization', ()
     '2.220446049250313e-16'
   ]);
 });
+
+it('keeps magnitude plain text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(Number.MAX_VALUE), f(-Number.MAX_VALUE), f(Number.MIN_VALUE)]))).toEqual([
+    '1.7976931348623157e+308',
+    '-1.7976931348623157e+308',
+    '5e-324'
+  ]);
+});
