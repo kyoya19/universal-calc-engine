@@ -169,6 +169,30 @@ describe('auditTransitionProbabilityTotals', () => {
     ]);
   });
 
+  it('keeps invalid totals above one stable after JSON serialization', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.6 },
+        { from: 'start', to: 'lose', probability: 0.6 }
+      ]
+    });
+    const serializedAudit = JSON.parse(JSON.stringify(audit));
+
+    expect(serializedAudit.invalidRows).toEqual([
+      expect.objectContaining({
+        stateId: 'start',
+        probabilityTotal: 1.2,
+        valid: false
+      })
+    ]);
+  });
+
   it('keeps invalid audit rows stable after JSON serialization', () => {
     const audit = auditModel({
       startState: 'start',
