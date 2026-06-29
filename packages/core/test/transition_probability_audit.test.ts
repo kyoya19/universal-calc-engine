@@ -67,6 +67,28 @@ describe('auditTransitionProbabilityTotals', () => {
     );
   });
 
+  it('keeps single deterministic transition totals stable after JSON serialization', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [{ id: 'start' }, { id: 'done', terminal: true }],
+      transitions: [{ from: 'start', to: 'done', probability: 1 }]
+    });
+    const serializedAudit = JSON.parse(JSON.stringify(audit)) as typeof audit;
+
+    expect(serializedAudit.valid).toBe(true);
+    expect(serializedAudit.invalidRows).toEqual([]);
+    expect(serializedAudit.rows).toContainEqual(
+      expect.objectContaining({
+        stateId: 'start',
+        transitionCount: 1,
+        probabilityTotal: 1,
+        deviationFromOne: 0,
+        terminal: false,
+        valid: true
+      })
+    );
+  });
+
   it('keeps valid audit JSON copied', () => {
     const audit = auditModel({
       startState: 'start',
