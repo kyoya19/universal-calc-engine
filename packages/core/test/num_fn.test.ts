@@ -172,3 +172,11 @@ it('keeps non-finite diagnostic text stable through JSON serialization', () => {
     'NaN'
   ]);
 });
+
+it('keeps finite boundary plain text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(Number.MAX_SAFE_INTEGER), f(Number.MIN_SAFE_INTEGER), f(Number.EPSILON)]))).toEqual([
+    '9007199254740991',
+    '-9007199254740991',
+    '2.220446049250313e-16'
+  ]);
+});
