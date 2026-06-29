@@ -68,6 +68,31 @@ describe('auditTransitionProbabilityTotals', () => {
     expect(serializedAudit.rows).not.toBe(audit.rows);
   });
 
+  it('keeps terminal audit rows stable after JSON serialization', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.25 },
+        { from: 'start', to: 'lose', probability: { type: 'constant', value: 0.75 } }
+      ]
+    });
+    const serializedAudit = JSON.parse(JSON.stringify(audit)) as typeof audit;
+
+    expect(serializedAudit.rows.find((row) => row.stateId === 'win')).toEqual(
+      expect.objectContaining({
+        stateId: 'win',
+        transitionCount: 0,
+        terminal: true,
+        valid: true
+      })
+    );
+  });
+
   it('reports invalid non-terminal totals without throwing', () => {
     const audit = auditModel({
       startState: 'start',
