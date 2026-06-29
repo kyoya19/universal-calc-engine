@@ -5,6 +5,7 @@ import {
   serializeReportStatusOverview,
   toReportStatusOverview
 } from '../src/report_status_overview';
+import { formatReportStatusSummaryPlainText, selectReportStatusSummaryLevel } from '../src/report_status_summary';
 
 describe('report status overview helpers', () => {
   it('builds an overview from a status summary', () => {
@@ -13,6 +14,14 @@ describe('report status overview helpers', () => {
       level: 'ok',
       plainText: 'ok: 2\nwarning: 0\nrejected: 0\ninfo: 3'
     });
+  });
+
+  it('aligns overview level and plain text with shared summary helpers', () => {
+    const summary = { ok: 2, warning: 1, rejected: 0, info: 3 };
+    const overview = toReportStatusOverview(summary);
+
+    expect(overview.level).toBe(selectReportStatusSummaryLevel(summary));
+    expect(overview.plainText).toBe(formatReportStatusSummaryPlainText(summary));
   });
 
   it('keeps summary counts visible in overview plain text', () => {
