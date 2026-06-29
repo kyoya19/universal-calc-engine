@@ -159,4 +159,25 @@ describe('auditTransitionProbabilityTotals', () => {
     expect(serializedAudit.rows).not.toBe(audit.rows);
     expect(serializedAudit.rows).toHaveLength(audit.rows.length);
   });
+
+  it('copies audit row objects through JSON serialization', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [
+        { id: 'start' },
+        { id: 'win', terminal: true },
+        { id: 'lose', terminal: true }
+      ],
+      transitions: [
+        { from: 'start', to: 'win', probability: 0.4 },
+        { from: 'start', to: 'lose', probability: 0.4 }
+      ]
+    });
+    const serializedAudit = JSON.parse(JSON.stringify(audit)) as typeof audit;
+
+    expect(serializedAudit.rows[0]).toEqual(audit.rows[0]);
+    expect(serializedAudit.rows[0]).not.toBe(audit.rows[0]);
+    expect(serializedAudit.rows.at(-1)).toEqual(audit.rows.at(-1));
+    expect(serializedAudit.rows.at(-1)).not.toBe(audit.rows.at(-1));
+  });
 });
