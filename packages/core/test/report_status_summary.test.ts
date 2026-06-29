@@ -130,6 +130,10 @@ describe('report status summary helpers', () => {
     expect(isReportStatusSummaryOk({ ok: 0, warning: 0, rejected: 0, info: 1 })).toBe(true);
   });
 
+  it('checks warning-only summaries are not ok', () => {
+    expect(isReportStatusSummaryOk({ ok: 0, warning: 1, rejected: 0, info: 0 })).toBe(false);
+  });
+
   it('checks rejected summaries are not ok', () => {
     expect(isReportStatusSummaryOk({ ok: 0, warning: 0, rejected: 1, info: 0 })).toBe(false);
   });
