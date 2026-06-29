@@ -211,4 +211,11 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(core.formatBoundaryReportDigestPlainText(digest)).toBe(formatBoundaryReportDigestPlainText(digest));
     expect(core.definitionModelToBoundaryReportDigestPlainText(model)).toBe(definitionModelToBoundaryReportDigestPlainText(model));
   });
+
+  it('keeps public boundary report digest plain text stable after JSON serialization', () => {
+    const text = core.definitionModelToBoundaryReportDigestPlainText(model);
+
+    expect(JSON.parse(JSON.stringify(text))).toBe(text);
+    expect(text).toBe(definitionModelToBoundaryReportDigestPlainText(model));
+  });
 });
