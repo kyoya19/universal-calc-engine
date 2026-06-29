@@ -87,6 +87,17 @@ describe('UI consumable report model', () => {
     );
   });
 
+  test('keeps formatted report model plain text stable after JSON serialization', () => {
+    const reportModel = {
+      kind: 'json_text_report',
+      title: 'JSON Text Report',
+      sections: [{ id: 'summary', title: 'Summary', rows: [{ id: 'a', label: 'A', plainText: 'a: 1' }] }]
+    };
+    const text = formatReportModelPlainText(reportModel);
+
+    expect(JSON.parse(JSON.stringify(text))).toBe(text);
+  });
+
   test('preserves generated-target comparison metadata without reparsing text', () => {
     const result = solveExpectedRewardWithGeneratedTargetGate(representativeSugorokuModel);
     const comparisonReport = buildGeneratedTargetComparisonReport(result.graph);
