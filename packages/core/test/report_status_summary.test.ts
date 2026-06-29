@@ -249,6 +249,12 @@ describe('report status summary helpers', () => {
     expect(definitionModelToBoundaryReportStatusLevel(validDefinitionModel)).toBe('ok');
   });
 
+  it('selects boundary report status level through the shared selector', () => {
+    const summary = definitionModelToBoundaryReportStatusSummary(validDefinitionModel);
+
+    expect(definitionModelToBoundaryReportStatusLevel(validDefinitionModel)).toBe(selectReportStatusSummaryLevel(summary));
+  });
+
   it('checks boundary report status directly from a definition model', () => {
     expect(definitionModelToBoundaryReportStatusIsOk(validDefinitionModel)).toBe(true);
   });
