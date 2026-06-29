@@ -283,6 +283,12 @@ describe('report status summary helpers', () => {
     );
   });
 
+  it('keeps boundary report status summary plain text stable after JSON serialization', () => {
+    const text = definitionModelToBoundaryReportStatusSummaryPlainText(validDefinitionModel);
+
+    expect(JSON.parse(JSON.stringify(text))).toBe(text);
+  });
+
   it('selects boundary report status level directly from a definition model', () => {
     expect(definitionModelToBoundaryReportStatusLevel(validDefinitionModel)).toBe('ok');
   });
