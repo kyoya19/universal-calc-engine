@@ -211,3 +211,7 @@ it('keeps negative epsilon text stable through JSON serialization', () => {
     '-2.220446049250313e-16'
   ]);
 });
+
+it('keeps negative min text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(-Number.MIN_VALUE), d(-Number.MIN_VALUE)]))).toEqual(['-5e-324', '-5e-324']);
+});
