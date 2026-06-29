@@ -296,4 +296,10 @@ describe('report status summary helpers', () => {
   it('checks boundary report status directly from a definition model', () => {
     expect(definitionModelToBoundaryReportStatusIsOk(validDefinitionModel)).toBe(true);
   });
+
+  it('checks boundary report status through the shared summary check', () => {
+    const summary = definitionModelToBoundaryReportStatusSummary(validDefinitionModel);
+
+    expect(definitionModelToBoundaryReportStatusIsOk(validDefinitionModel)).toBe(isReportStatusSummaryOk(summary));
+  });
 });
