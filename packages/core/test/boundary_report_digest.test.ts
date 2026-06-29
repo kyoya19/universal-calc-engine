@@ -219,6 +219,14 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(core.definitionModelToBoundaryReportDigestPlainText(model)).toBe(definitionModelToBoundaryReportDigestPlainText(model));
   });
 
+  it('formats copied entrypoint digest text', () => {
+    const digest = core.definitionModelToBoundaryReportDigest(model);
+    const copy = core.serializeBoundaryReportDigest(digest);
+
+    expect(core.formatBoundaryReportDigestPlainText(copy)).toBe(core.formatBoundaryReportDigestPlainText(digest));
+    expect(core.formatBoundaryReportDigestPlainText(copy)).toBe(formatBoundaryReportDigestPlainText(copy));
+  });
+
   it('keeps public boundary report digest plain text stable after JSON serialization', () => {
     const text = core.definitionModelToBoundaryReportDigestPlainText(model);
 
