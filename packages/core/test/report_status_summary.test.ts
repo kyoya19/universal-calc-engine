@@ -237,6 +237,14 @@ describe('report status summary helpers', () => {
     expect(text).toContain('info:');
   });
 
+  it('formats boundary report status summary through the shared formatter', () => {
+    const summary = definitionModelToBoundaryReportStatusSummary(validDefinitionModel);
+
+    expect(definitionModelToBoundaryReportStatusSummaryPlainText(validDefinitionModel)).toBe(
+      formatReportStatusSummaryPlainText(summary)
+    );
+  });
+
   it('selects boundary report status level directly from a definition model', () => {
     expect(definitionModelToBoundaryReportStatusLevel(validDefinitionModel)).toBe('ok');
   });
