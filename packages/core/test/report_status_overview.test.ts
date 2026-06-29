@@ -37,6 +37,13 @@ describe('report status overview helpers', () => {
     expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 0, info: 3 }).level).toBe('warning');
   });
 
+  it('selects ok overview level for info-only summaries', () => {
+    const overview = toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 1 });
+
+    expect(overview.level).toBe('ok');
+    expect(overview.plainText).toContain('info: 1');
+  });
+
   it('builds an empty overview from a zero status summary', () => {
     expect(toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 0 })).toEqual({
       summary: { ok: 0, warning: 0, rejected: 0, info: 0 },
