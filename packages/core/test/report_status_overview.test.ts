@@ -29,6 +29,12 @@ describe('report status overview helpers', () => {
     expect(overview.plainText).toContain('rejected: 1');
   });
 
+  it('keeps overview plain text stable after JSON serialization', () => {
+    const overview = toReportStatusOverview({ ok: 2, warning: 1, rejected: 0, info: 3 });
+
+    expect(JSON.parse(JSON.stringify(overview.plainText))).toBe(overview.plainText);
+  });
+
   it('selects rejected overview level when rejected rows exist', () => {
     expect(toReportStatusOverview({ ok: 2, warning: 1, rejected: 1, info: 3 }).level).toBe('rejected');
   });
