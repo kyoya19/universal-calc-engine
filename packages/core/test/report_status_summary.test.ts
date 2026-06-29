@@ -212,6 +212,12 @@ describe('report status summary helpers', () => {
     expect(JSON.parse(JSON.stringify(text))).toBe(text);
   });
 
+  it('keeps empty formatted status summary plain text stable after JSON serialization', () => {
+    const text = formatReportStatusSummaryPlainText({ ok: 0, warning: 0, rejected: 0, info: 0 });
+
+    expect(JSON.parse(JSON.stringify(text))).toBe(text);
+  });
+
   it('summarizes boundary reports built from a definition model', () => {
     const summary = definitionModelToBoundaryReportStatusSummary(validDefinitionModel);
 
