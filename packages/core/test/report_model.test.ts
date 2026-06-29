@@ -97,6 +97,16 @@ describe('UI consumable report model', () => {
     expect(formatReportModelPlainText(reportModel)).toBe(['Empty Section Report', '', '## Summary'].join('\n'));
   });
 
+  test('formats a title-only report without section gaps', () => {
+    const reportModel = {
+      kind: 'title_only_report',
+      title: 'Title Only Report',
+      sections: []
+    };
+
+    expect(formatReportModelPlainText(reportModel)).toBe('Title Only Report');
+  });
+
   test('keeps formatted report model plain text stable after JSON serialization', () => {
     const reportModel = {
       kind: 'json_text_report',
