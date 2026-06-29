@@ -195,6 +195,20 @@ describe('Juo materialization approval boundary inventory', () => {
     });
   });
 
+  test('keeps approval boundary rows copied after JSON serialization', () => {
+    const rows = allApprovalBoundaryRows();
+    const serializedRows = JSON.parse(JSON.stringify(rows)) as typeof rows;
+
+    expect(serializedRows).toEqual(rows);
+    expect(serializedRows).not.toBe(rows);
+    serializedRows.forEach((row, index) => {
+      expect(row).not.toBe(rows[index]);
+      expectNoForbiddenKeys(row);
+      expectNoForbiddenKeyFragments(row);
+      expectNoReadyStates(row);
+    });
+  });
+
   test('keeps approval boundary rows blocked and non-executable', () => {
     for (const row of [
       ...juoProbabilityMaterializationApprovalBoundaryInventory,
