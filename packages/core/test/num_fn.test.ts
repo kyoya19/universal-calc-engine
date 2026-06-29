@@ -196,3 +196,11 @@ it('keeps magnitude plain text stable through JSON serialization', () => {
     '5e-324'
   ]);
 });
+
+it('keeps magnitude diagnostic text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([d(Number.MAX_VALUE), d(-Number.MAX_VALUE), d(Number.MIN_VALUE)]))).toEqual([
+    '1.7976931348623157e+308',
+    '-1.7976931348623157e+308',
+    '5e-324'
+  ]);
+});
