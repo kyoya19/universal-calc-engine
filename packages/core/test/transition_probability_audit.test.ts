@@ -46,6 +46,27 @@ describe('auditTransitionProbabilityTotals', () => {
     );
   });
 
+  it('reports single deterministic transition totals as valid', () => {
+    const audit = auditModel({
+      startState: 'start',
+      states: [{ id: 'start' }, { id: 'done', terminal: true }],
+      transitions: [{ from: 'start', to: 'done', probability: 1 }]
+    });
+
+    expect(audit.valid).toBe(true);
+    expect(audit.invalidRows).toEqual([]);
+    expect(audit.rows).toContainEqual(
+      expect.objectContaining({
+        stateId: 'start',
+        transitionCount: 1,
+        probabilityTotal: 1,
+        deviationFromOne: 0,
+        terminal: false,
+        valid: true
+      })
+    );
+  });
+
   it('keeps valid audit JSON copied', () => {
     const audit = auditModel({
       startState: 'start',
