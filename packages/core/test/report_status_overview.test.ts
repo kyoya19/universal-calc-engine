@@ -151,6 +151,16 @@ describe('report status overview helpers', () => {
     expect(serialized.summary).not.toBe(overview.summary);
   });
 
+  it('copies a rejected report status overview summary during serialization', () => {
+    const overview = toReportStatusOverview({ ok: 0, warning: 0, rejected: 1, info: 0 });
+    const serialized = serializeReportStatusOverview(overview);
+
+    expect(serialized).toEqual(overview);
+    expect(serialized).not.toBe(overview);
+    expect(serialized.summary).not.toBe(overview.summary);
+    expect(serialized.level).toBe('rejected');
+  });
+
   it('builds a boundary report status overview from a definition model', () => {
     const overview = definitionModelToBoundaryReportStatusOverview({
       startState: 'start',
