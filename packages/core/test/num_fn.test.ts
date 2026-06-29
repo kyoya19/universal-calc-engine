@@ -204,3 +204,7 @@ it('keeps magnitude diagnostic text stable through JSON serialization', () => {
     '5e-324'
   ]);
 });
+
+it('keeps signed minimum value text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(-Number.MIN_VALUE), d(-Number.MIN_VALUE)]))).toEqual(['-5e-324', '-5e-324']);
+});
