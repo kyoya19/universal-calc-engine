@@ -145,6 +145,13 @@ describe('report status summary helpers', () => {
     });
   });
 
+  it('returns parseable JSON text for info-only status summaries', () => {
+    const parsed = JSON.parse(reportStatusSummaryToJson({ ok: 0, warning: 0, rejected: 0, info: 1 }));
+
+    expect(parsed).toEqual({ ok: 0, warning: 0, rejected: 0, info: 1 });
+    expect(selectReportStatusSummaryLevel(parsed)).toBe('ok');
+  });
+
   it('returns parseable JSON text for warning-only status summaries', () => {
     const parsed = JSON.parse(reportStatusSummaryToJson({ ok: 0, warning: 1, rejected: 0, info: 0 }));
 
