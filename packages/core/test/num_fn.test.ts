@@ -189,6 +189,15 @@ it('keeps finite boundary diagnostic text stable through JSON serialization', ()
   ]);
 });
 
+it('keeps safe integer text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(Number.MAX_SAFE_INTEGER), d(Number.MAX_SAFE_INTEGER), f(Number.MIN_SAFE_INTEGER), d(Number.MIN_SAFE_INTEGER)]))).toEqual([
+    '9007199254740991',
+    '9007199254740991',
+    '-9007199254740991',
+    '-9007199254740991'
+  ]);
+});
+
 it('keeps magnitude plain text stable through JSON serialization', () => {
   expect(JSON.parse(JSON.stringify([f(Number.MAX_VALUE), f(-Number.MAX_VALUE), f(Number.MIN_VALUE)]))).toEqual([
     '1.7976931348623157e+308',
