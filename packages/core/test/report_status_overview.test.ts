@@ -116,6 +116,13 @@ describe('report status overview helpers', () => {
     expect(reportStatusOverviewToJson(overview)).toBe(JSON.stringify(serializeReportStatusOverview(overview)));
   });
 
+  it('matches info-only overview JSON helper output to the serialized payload', () => {
+    const overview = toReportStatusOverview({ ok: 0, warning: 0, rejected: 0, info: 1 });
+
+    expect(reportStatusOverviewToJson(overview)).toBe(JSON.stringify(serializeReportStatusOverview(overview)));
+    expect(JSON.parse(reportStatusOverviewToJson(overview)).level).toBe('ok');
+  });
+
   it('matches warning overview JSON helper output to the serialized payload', () => {
     const overview = toReportStatusOverview({ ok: 0, warning: 1, rejected: 0, info: 0 });
 
