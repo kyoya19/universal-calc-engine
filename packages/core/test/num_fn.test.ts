@@ -233,3 +233,12 @@ it('keeps decimal text stable through JSON serialization', () => {
     '-12.5'
   ]);
 });
+
+it('keeps integer text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(123), d(123), f(-123), d(-123)]))).toEqual([
+    '123',
+    '123',
+    '-123',
+    '-123'
+  ]);
+});
