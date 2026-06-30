@@ -224,3 +224,12 @@ it('keeps fractional text stable through JSON serialization', () => {
     '-0.125'
   ]);
 });
+
+it('keeps decimal text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(12.5), d(12.5), f(-12.5), d(-12.5)]))).toEqual([
+    '12.5',
+    '12.5',
+    '-12.5',
+    '-12.5'
+  ]);
+});
