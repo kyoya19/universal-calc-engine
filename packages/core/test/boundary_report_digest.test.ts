@@ -100,6 +100,22 @@ describe('definitionModelToBoundaryReportDigest', () => {
     expect(serializedDigest.reportText).toBe(digest.reportText);
   });
 
+  it('parses boundary report digest JSON into copied nested payloads', () => {
+    const digest = definitionModelToBoundaryReportDigest(model);
+    const parsedDigest = JSON.parse(boundaryReportDigestToJson(digest));
+    const firstDigestRow = digest.reports[0]!.sections[0]!.rows[0]!;
+    const firstParsedRow = parsedDigest.reports[0]!.sections[0]!.rows[0]!;
+
+    expect(parsedDigest).toEqual(serializeBoundaryReportDigest(digest));
+    expect(parsedDigest).not.toBe(digest);
+    expect(parsedDigest.reports).not.toBe(digest.reports);
+    expect(parsedDigest.statusOverview).not.toBe(digest.statusOverview);
+    expect(parsedDigest.statusOverview.summary).not.toBe(digest.statusOverview.summary);
+    expect(firstParsedRow).not.toBe(firstDigestRow);
+    expect(firstParsedRow.metadata).toEqual(firstDigestRow.metadata);
+    expect(firstParsedRow.metadata).not.toBe(firstDigestRow.metadata);
+  });
+
   it('aligns digest JSON helper output', () => {
     const digest = definitionModelToBoundaryReportDigest(model);
 
