@@ -242,3 +242,7 @@ it('keeps integer text stable through JSON serialization', () => {
     '-123'
   ]);
 });
+
+it('keeps zero text stable through JSON serialization', () => {
+  expect(JSON.parse(JSON.stringify([f(0), d(0), f(-0), d(-0)]))).toEqual(['0', '0', '0', '0']);
+});
