@@ -175,6 +175,15 @@ describe('report status summary helpers', () => {
     expect(serialized).not.toBe(summary);
   });
 
+  it('copies rejected report status summaries during serialization', () => {
+    const summary = { ok: 0, warning: 0, rejected: 1, info: 0 };
+    const serialized = serializeReportStatusSummary(summary);
+
+    expect(serialized).toEqual(summary);
+    expect(serialized).not.toBe(summary);
+    expect(selectReportStatusSummaryLevel(serialized)).toBe('rejected');
+  });
+
   it('selects a summary level', () => {
     expect(selectReportStatusSummaryLevel({ ok: 1, warning: 0, rejected: 0, info: 1 })).toBe('ok');
     expect(selectReportStatusSummaryLevel({ ok: 1, warning: 1, rejected: 0, info: 1 })).toBe('warning');
