@@ -101,6 +101,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Evaluate model effects boundary](docs/evaluate-model-effects-boundary.md)
 - [成果還元関数](docs/outcome-return-function.md)
 - [成果還元関数 roadmap](docs/outcome-roadmap.md)
+- [成果還元関数 restart and diffusion guide](docs/outcome-restart-and-diffusion.md)
 - [成果還元関数 current identifier map](docs/outcome-current-identifier-map.md)
 
 ## Historical / legacy docs notes
