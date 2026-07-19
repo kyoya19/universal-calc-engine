@@ -78,6 +78,11 @@ export type SolvedModel = {
   expectedRewardByState: Map<StateId, number>;
 };
 
+export type ReachabilityResult = {
+  targetStates: StateId[];
+  reachabilityProbabilityByState: Map<StateId, number>;
+};
+
 export type OutputResult = {
   startState: StateId;
   expectedReward: number;
@@ -428,6 +433,56 @@ export function solveExpectedReward(model: EvaluatedModel): SolvedModel {
   }
 
   throw new Error('Expected reward solver did not converge');
+}
+
+export function solveReachabilityProbability(
+  model: EvaluatedModel,
+  targetStates: Iterable<StateId>
+): ReachabilityResult {
+  const targetStateSet = new Set(targetStates);
+  const targetStateIds = [...targetStateSet];
+  const reachabilityProbabilityByState = new Map<StateId, number>();
+
+  for (const targetStateId of targetStateIds) {
+    if (!model.stateById.has(targetStateId)) {
+      throw new Error(`Unknown reachability target state: ${targetStateId}`);
+    }
+  }
+
+  for (const state of model.states) {
+    reachabilityProbabilityByState.set(state.id, targetStateSet.has(state.id) ? 1 : 0);
+  }
+
+  for (let iteration = 0; iteration < 10_000; iteration += 1) {
+    let maxDelta = 0;
+
+    for (const state of model.states) {
+      const previous = reachabilityProbabilityByState.get(state.id) ?? 0;
+      let nextValue: number;
+
+      if (targetStateSet.has(state.id)) {
+        nextValue = 1;
+      } else if (isTerminalState(state)) {
+        nextValue = 0;
+      } else {
+        const transitions = model.transitionsByState.get(state.id) ?? [];
+        nextValue = transitions.reduce((sum, transition) => {
+          const target = selectExplicitSolverTransitionTarget(transition);
+          const downstream = reachabilityProbabilityByState.get(target) ?? 0;
+          return sum + transition.probability * downstream;
+        }, 0);
+      }
+
+      maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));
+      reachabilityProbabilityByState.set(state.id, nextValue);
+    }
+
+    if (maxDelta < 1e-12) {
+      return { targetStates: targetStateIds, reachabilityProbabilityByState };
+    }
+  }
+
+  throw new Error('Reachability probability solver did not converge');
 }
 
 export function toOutputResult(model: DefinitionModel, solved: SolvedModel): OutputResult {
