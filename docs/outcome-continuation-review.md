@@ -24,6 +24,9 @@ The current implementation already has a small but working forward-evaluation ba
 - expanded model types
 - evaluated model types
 - expected reward solving
+- reachability probability solving
+- unit-aware transition elapsed time normalized to seconds
+- expected elapsed time solving through downstream transitions
 - output result conversion
 - contribution result conversion
 - transition probability audits
@@ -59,9 +62,8 @@ The project is not yet a complete general-purpose 成果還元関数 engine.
 
 Important gaps include:
 
-- reachability probability
-- win probability
-- time-based evaluation
+- reward-per-time and time-cost output semantics
+- domain-labeled win probability output
 - multiple reward axes
 - structured validation results
 - solver convergence diagnostics
@@ -124,16 +126,16 @@ Further micro-tests should be added only when they protect a new feature, fix a 
 
 The next production work should move the engine closer to a minimal Kiyotan-style forward evaluator.
 
-Recommended candidates, in order:
+Reachability probability and expected elapsed time are now present in the core. Recommended next candidates, in order:
 
-1. Reachability probability or win probability.
-2. Time-based reward or time-cost evaluation.
-3. Multiple reward axes.
-4. Structured model validation result.
-5. Solver convergence diagnostics.
+1. Reward-per-time or time-cost output with explicit ratio semantics.
+2. Multiple reward axes.
+3. Structured model validation result.
+4. Solver convergence diagnostics.
+5. Parameter references and richer scalar specs.
 6. Clear input template for external users.
 
-The first recommended candidate is reachability or win probability because it reuses the existing state transition model and adds an important result type beyond expected reward.
+The first recommended candidate is reward-per-time or time-cost output because the engine now has both expected reward and expected elapsed time. The implementation must distinguish a ratio of expectations from an expectation of per-run rates rather than treating those quantities as interchangeable.
 
 ## Avoided paths
 
@@ -164,4 +166,4 @@ The project should not be aggressively diffused yet.
 
 It also should not be discarded solely because its immediately estimated impact is modest.
 
-The best current path is to preserve enough structured information for a good continuation decision, then add one production feature that improves the engine's reviewable usefulness.
+The best current path is to preserve enough structured information for a good continuation decision, then add production features that improve the engine's reviewable usefulness.
