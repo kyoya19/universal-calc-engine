@@ -28,6 +28,10 @@ The current implementation already has a small but working forward-evaluation ba
 - unit-aware transition elapsed time normalized to seconds
 - expected elapsed time solving through downstream transitions
 - reward-per-time output with explicit ratio-of-expectations semantics
+- named reward-axis definitions with explicit unit and benefit / cost / neutral metadata
+- independent expected-reward solving for multiple named axes
+- reward-axis output and contribution results without implicit cross-axis aggregation
+- legacy scalar reward behavior preserved separately from named reward axes
 - output result conversion
 - contribution result conversion
 - transition probability audits
@@ -63,7 +67,6 @@ The project is not yet a complete general-purpose 成果還元関数 engine.
 
 Important gaps include:
 
-- multiple reward axes
 - structured validation results
 - solver convergence diagnostics
 - parameter references
@@ -126,22 +129,24 @@ Further micro-tests should be added only when they protect a new feature, fix a 
 
 The next production work should move the engine closer to a minimal Kiyotan-style forward evaluator.
 
-Reachability probability, expected elapsed time, and ratio-of-expectations reward rate are now present in the core. Recommended next candidates, in order:
+Reachability probability, expected elapsed time, ratio-of-expectations reward rate, and named multiple reward axes are now present in the core. Recommended next candidates, in order:
 
-1. Multiple reward axes.
-2. Structured model validation result.
-3. Solver convergence diagnostics.
-4. Parameter references and richer scalar specs.
-5. Clear input template for external users.
-6. Observation input surface preparation for later reverse estimation.
+1. Structured model validation result.
+2. Solver convergence diagnostics.
+3. Parameter references and richer scalar specs.
+4. Clear input template for external users.
+5. Observation input surface preparation for later reverse estimation.
+6. Domain-labeled win probability output where a domain-facing label adds value beyond generic reachability.
 
-The first recommended candidate is multiple reward axes because the current `reward` scalar still collapses distinct outcome meanings into one numeric channel. Supporting named outcome axes is the next step toward keeping money, score, cost, or other outcomes distinct while still using the same transition model.
+The first recommended candidate is structured validation because current model integrity failures are still mostly represented by thrown errors. A structured result should separate machine-readable issue codes, severity, location, and message so third-party callers can inspect invalid input without parsing exception strings.
 
 ## Avoided paths
 
 Avoid these paths unless a later PR explicitly narrows the scope:
 
 - adding micro-tests just because a small gap can be found
+- implicitly combining named reward axes with different meanings or units
+- changing legacy scalar `reward` semantics as a side effect of the multiple-axis feature
 - moving into digipachi or Juoh before the core forward engine is clearer
 - moving into Seikatan before the forward model surface is stronger
 - mixing personal or financial circumstances into technical repository docs
@@ -153,7 +158,7 @@ Avoid these paths unless a later PR explicitly narrows the scope:
 A future assistant or contributor can start with this prompt:
 
 ```text
-Read README.md, docs/sugoroku-poc-v0.4-boundary.md, and docs/outcome-continuation-review.md.
+Read README.md, docs/sugoroku-poc-v0.4-boundary.md, docs/reward-axes.md, and docs/outcome-continuation-review.md.
 Summarize the current phase of kyoya19/universal-calc-engine.
 Do not continue adding near-duplicate JSON/copy boundary tests.
 Choose the smallest PR that improves continuation judgment or moves the core toward a minimal Kiyotan-style forward evaluator.
