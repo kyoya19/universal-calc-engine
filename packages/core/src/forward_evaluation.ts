@@ -123,6 +123,12 @@ type CommonForwardEvaluation = {
   reachability?: ForwardReachabilityOutput;
 };
 
+function isForwardEvaluationFailure(
+  value: CommonForwardEvaluation | ForwardEvaluationFailure
+): value is ForwardEvaluationFailure {
+  return 'ok' in value && value.ok === false;
+}
+
 function numberMapToRecord(map: Map<StateId, number>): Record<StateId, number> {
   const record: Record<StateId, number> = {};
   for (const [stateId, value] of map) {
@@ -315,7 +321,7 @@ function evaluatePreparedBaseModel(
       prepared.validation,
       options
     );
-    if ('ok' in common && common.ok === false) {
+    if (isForwardEvaluationFailure(common)) {
       return common;
     }
 
@@ -344,7 +350,7 @@ function evaluatePreparedRewardAxesModel(
       prepared.validation,
       options
     );
-    if ('ok' in common && common.ok === false) {
+    if (isForwardEvaluationFailure(common)) {
       return common;
     }
 
