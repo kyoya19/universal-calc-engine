@@ -18,7 +18,7 @@ The repository should not treat broad diffusion, commercial use, product UI, or 
 
 ## Current implemented surface
 
-The current implementation has a coherent forward-evaluation path:
+The current implementation has a coherent forward-evaluation and scenario-comparison path:
 
 - definition / expanded / evaluated model types
 - expected reward solving
@@ -44,13 +44,16 @@ The current implementation has a coherent forward-evaluation path:
 - observation JSON parsing and model-linked reference validation
 - an additive forward-evaluation facade composing checked input, resolution, validation, evaluation, solvers, reward rate, contributions, named axes, and diagnostics
 - explicit `ok: true / converged: false` behavior when a valid model does not converge within the selected iteration limit
-- a non-domain-specific representative example that reuses one model structure with different parameter values
+- structured scenario comparison that reuses one model structure under baseline and candidate parameter sets
+- resolved parameter deltas and forward-result deltas using `candidate - baseline`
+- legacy and named reward-axis contribution-row deltas labeled as descriptive differences rather than unique causal attribution
+- non-domain-specific representative examples for forward evaluation and scenario comparison
 - JSON serialization helpers
 - TeX and report boundary pieces
 - a representative Sugoroku PoC boundary
 - explicit-only solver target policy coverage
 
-This is enough to show that the project is not only a note or isolated PoC. It now has a reusable forward calculation path that a third party can enter from checked external input without manually composing every internal API.
+This is enough to show that the project is not only a note or isolated PoC. It now has a reusable forward calculation path and a first-class scenario-comparison layer that a third party can enter from checked external input.
 
 ## Forward v1 candidate status
 
@@ -70,9 +73,21 @@ checked model input
 → structured result
 ```
 
+The scenario-comparison layer extends that boundary to:
+
+```text
+one model
++ baseline parameters
++ candidate parameters
+→ two forward results
+→ parameter deltas
+→ outcome deltas
+→ descriptive contribution-row deltas
+```
+
 This does not mean the whole 成果還元関数 research concept is complete.
 
-It means the minimal Kiyotan-style forward path is now integrated enough that additional work should be justified by a specific missing capability rather than by finding another isolated API or boundary test.
+It means the minimal Kiyotan-style forward path is integrated enough that additional work should be justified by a specific missing analytical capability rather than by finding another isolated API or boundary test.
 
 ## Current non-goals
 
@@ -93,11 +108,11 @@ Important remaining gaps are now different from the earlier forward-core gaps.
 
 ### High-value gaps
 
-- scenario comparison across two or more parameter sets
-- sensitivity output that reports how a selected parameter change affects forward results
-- counterfactual / contribution-difference explanation that does not force mathematically invalid additive attribution
+- one-at-a-time sensitivity output that changes exactly one selected parameter while holding the others at a declared baseline
+- counterfactual comparison helpers that make the changed variable and comparison rule explicit
+- multi-parameter attribution methods only after a method such as ordered marginal, Shapley-style, or another defined rule is selected
+- a concise v1 support matrix / handoff map stating what the current engine supports and what it does not
 - a minimal reverse-estimation contract built on the existing ObservationDataset boundary
-- handoff-ready implementation/support matrix stating what v1 supports and what it does not
 
 ### Conditional gaps
 
@@ -117,13 +132,13 @@ These maintenance items should not outrank missing outcome capabilities merely b
 
 ## Observation / reverse boundary
 
-Observations are now first-class data, but reverse inference is not yet implemented.
+Observations are first-class data, but reverse inference is not yet implemented.
 
 The intended separation is:
 
 ```text
 model definition + supplied parameters
-→ forward evaluation
+→ forward evaluation / scenario comparison
 ```
 
 versus:
@@ -135,32 +150,47 @@ parameterized model + ObservationDataset + candidates / constraints
 
 Observed counts must not be silently converted into model parameters just to avoid designing the reverse boundary.
 
-## Why scenario comparison is now the leading forward candidate
+## Why one-at-a-time sensitivity is now the leading forward candidate
 
-The representative forward example can already evaluate the same model under two parameter sets.
+Structured scenario comparison now exists, but a multi-parameter comparison still cannot identify a unique cause for the total outcome change.
 
-What it does not yet provide is a first-class result describing the difference between those scenarios.
-
-For example, the engine can independently produce:
+For example, a candidate can simultaneously change:
 
 ```text
-baseline reward rate = 2400/hour
-improved reward rate = 4800/hour
+success probability
+attempt time
+reward amount
 ```
 
-but it does not yet return a structured comparison such as:
+and the comparison layer can report the resulting deltas, but it deliberately does not claim a unique additive parameter attribution.
+
+The next low-risk analytical step is a one-at-a-time sensitivity layer:
 
 ```text
-delta expected reward
-delta expected elapsed time
-delta reward rate
-delta reachability
-changed parameter values
+baseline parameter set
++ selected parameter
++ candidate value(s)
+→ scenarios where only that parameter changes
+→ forward deltas for each candidate
 ```
 
-A comparison layer would directly support sensitivity analysis and later contribution-difference work while reusing the already stable parameterized input and forward facade.
+That gives a clear counterfactual meaning without requiring a full Shapley or path-dependent attribution engine.
 
-The comparison layer must not claim that every multi-parameter result difference has a unique additive cause. Where interactions matter, the API should preserve that ambiguity until a defined marginal, counterfactual, or Shapley-style method is selected.
+It also directly supports later sensitivity tables and parameter sweeps while reusing the current parameterized model and scenario-comparison boundaries.
+
+## Contribution semantics
+
+The current scenario comparison returns:
+
+```text
+contributionDeltaKind: difference_of_existing_contributions
+```
+
+This is intentionally weaker than a causal-attribution claim.
+
+The existing contribution rows explain how each transition contributes within each solved scenario. Their difference is useful descriptive evidence, but when several model parameters change together, interaction effects may prevent a unique additive explanation.
+
+Any later attribution feature must state its method explicitly.
 
 ## Continuation criteria
 
@@ -170,8 +200,9 @@ Continuation becomes easier to justify when at least one of the following improv
 2. The output explains a change in outcome, not only an absolute value.
 3. A future contributor can reproduce a full path without private context.
 4. A third party can supply checked model input and receive structured results.
-5. Observations remain cleanly separated for later reverse inference.
-6. A representative generic example demonstrates a feature before a large domain-specific model is added.
+5. Scenario changes have explicit counterfactual semantics.
+6. Observations remain cleanly separated for later reverse inference.
+7. A representative generic example demonstrates a feature before a large domain-specific model is added.
 
 Continuation is weaker when work only adds more near-duplicate boundary tests or formatting variants without changing calculation capability or reviewability.
 
@@ -183,7 +214,7 @@ If handoff is considered later, the repository should first satisfy these condit
 
 - README explains the current phase.
 - active docs identify implemented and unsupported behavior.
-- a new contributor can run or read a representative end-to-end forward example.
+- a new contributor can run or read representative end-to-end forward and scenario-comparison examples.
 - external model input can be traced from document shape to validated resolved model and facade result.
 - ObservationDataset is documented separately from model parameters.
 - the next production candidates are ranked by missing capability, not PR count.
@@ -201,10 +232,10 @@ Further micro-tests should be added only when they protect a new feature, fix a 
 
 Recommended next candidates, in order:
 
-1. Structured scenario comparison for the same parameterized model across two supplied parameter sets.
-2. Minimal sensitivity / counterfactual output built on that comparison without pretending additive attribution is always unique.
-3. A concise v1 support matrix / handoff map once the comparison boundary is stable.
-4. Minimal reverse-estimation contracts using ObservationDataset, candidate parameters, score/likelihood, and estimation result types without jumping directly to a large Bayesian engine.
+1. One-at-a-time sensitivity / parameter sweep built on the structured scenario-comparison API.
+2. A concise v1 support matrix / handoff map once the sensitivity boundary is stable.
+3. Minimal reverse-estimation contracts using ObservationDataset, candidate parameters, score/likelihood, and estimation result types without jumping directly to a large Bayesian engine.
+4. Multi-parameter attribution only after an explicit method is selected and documented.
 5. Richer transition effects only when a generic example demonstrates a real blocker.
 6. Internal solver-loop unification as maintenance work after user-facing capability gaps are smaller.
 
@@ -231,10 +262,10 @@ Avoid these paths unless a later PR explicitly narrows the scope:
 A future assistant or contributor can start with this prompt:
 
 ```text
-Read README.md, docs/forward-evaluation.md, docs/observations.md, docs/external-input.md, docs/parameterized-scalars.md, docs/solver-diagnostics.md, and docs/outcome-continuation-review.md.
+Read README.md, docs/forward-evaluation.md, docs/scenario-comparison.md, docs/observations.md, docs/external-input.md, docs/parameterized-scalars.md, and docs/outcome-continuation-review.md.
 Summarize the current forward-v1 candidate boundary of kyoya19/universal-calc-engine.
 Do not continue adding near-duplicate JSON/copy boundary tests.
-Choose the production PR that most improves scenario comparison, sensitivity/explanation, or the minimal contract needed for later reverse estimation.
+Choose the production PR that most improves one-at-a-time sensitivity, explicit counterfactual explanation, v1 support/handoff clarity, or the minimal contract needed for later reverse estimation.
 Keep digipachi, Juoh, large Seikatan inference, GUI, and monetization out of scope unless a later instruction explicitly changes the phase.
 ```
 
@@ -244,4 +275,4 @@ The project should not be aggressively diffused yet.
 
 It also should not be discarded solely because its immediately estimated impact is modest.
 
-The current best path is to treat the integrated forward engine as a v1 candidate, prove structured comparison/explanation on a generic model, then reassess whether the next highest-value step is deeper forward attribution or minimal reverse estimation.
+The current best path is to treat the integrated forward engine plus structured scenario comparison as a v1 candidate, add one-at-a-time sensitivity with explicit counterfactual semantics, then reassess whether the next highest-value step is v1 handoff hardening or minimal reverse estimation.
