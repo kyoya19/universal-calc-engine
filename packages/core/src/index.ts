@@ -5,6 +5,7 @@ export * from './validation';
 export * from './solver_diagnostics';
 export * from './parameterized_scalars';
 export * from './external_input';
+export * from './observations';
 export * from './tex';
 export * from './android_tex_display';
 export * from './state_generation';
