@@ -1,0 +1,394 @@
+import {
+  ExternalInputStage,
+  ExternalModelPreparationResult,
+  PreparedExternalModel,
+  prepareExternalModelInput,
+  prepareExternalModelJson
+} from './external_input';
+import {
+  DefinitionModel,
+  EvaluatedModel,
+  ExpectedElapsedTimeResult,
+  OutputResult,
+  ReachabilityResult,
+  StateId,
+  evaluateModel,
+  expandModel,
+  toOutputResult
+} from './model';
+import {
+  RewardAxesDefinitionModel,
+  RewardAxesEvaluatedModel,
+  RewardAxesOutputResult,
+  evaluateRewardAxesModel,
+  expandRewardAxesModel,
+  toRewardAxesOutputResult
+} from './reward_axes';
+import { RewardRateResult, toRewardRateResult } from './reward_rate';
+import {
+  SolverConvergenceDiagnostics,
+  SolverDiagnosticsOptions,
+  solveExpectedElapsedTimeWithDiagnostics,
+  solveExpectedRewardAxesWithDiagnostics,
+  solveExpectedRewardWithDiagnostics,
+  solveReachabilityProbabilityWithDiagnostics
+} from './solver_diagnostics';
+import { ModelValidationResult } from './validation';
+
+export type ForwardEvaluationStage = ExternalInputStage | 'evaluation_options' | 'evaluation';
+
+export type ForwardEvaluationIssue = {
+  stage: ForwardEvaluationStage;
+  code: string;
+  path: string;
+  message: string;
+};
+
+export type ForwardEvaluationOptions = {
+  reachabilityTargets?: StateId[];
+  solver?: SolverDiagnosticsOptions;
+};
+
+export type ForwardElapsedTimeOutput = {
+  startState: StateId;
+  expectedElapsedTimeSeconds: number;
+  expectedElapsedTimeSecondsByState: Record<StateId, number>;
+};
+
+export type ForwardReachabilityOutput = {
+  targetStates: StateId[];
+  probabilityFromStart: number;
+  probabilityByState: Record<StateId, number>;
+};
+
+export type ForwardEvaluationDiagnostics = {
+  expectedReward: SolverConvergenceDiagnostics;
+  expectedElapsedTime: SolverConvergenceDiagnostics;
+  reachability?: SolverConvergenceDiagnostics;
+  rewardAxes?: Record<string, SolverConvergenceDiagnostics>;
+};
+
+export type ForwardBaseEvaluationSuccess = {
+  ok: true;
+  modelKind: 'base';
+  converged: boolean;
+  validation: ModelValidationResult;
+  expectedReward: OutputResult;
+  expectedElapsedTime: ForwardElapsedTimeOutput;
+  rewardRate: RewardRateResult;
+  diagnostics: ForwardEvaluationDiagnostics;
+  reachability?: ForwardReachabilityOutput;
+};
+
+export type ForwardRewardAxesEvaluationSuccess = {
+  ok: true;
+  modelKind: 'reward_axes';
+  converged: boolean;
+  validation: ModelValidationResult;
+  expectedReward: OutputResult;
+  expectedElapsedTime: ForwardElapsedTimeOutput;
+  rewardRate: RewardRateResult;
+  rewardAxes: RewardAxesOutputResult;
+  diagnostics: ForwardEvaluationDiagnostics;
+  reachability?: ForwardReachabilityOutput;
+};
+
+export type ForwardEvaluationFailure = {
+  ok: false;
+  stage: ForwardEvaluationStage;
+  issues: ForwardEvaluationIssue[];
+  validation?: ModelValidationResult;
+};
+
+export type ForwardEvaluationResult =
+  | ForwardBaseEvaluationSuccess
+  | ForwardRewardAxesEvaluationSuccess
+  | ForwardEvaluationFailure;
+
+type CommonForwardEvaluation = {
+  converged: boolean;
+  validation: ModelValidationResult;
+  expectedReward: OutputResult;
+  expectedElapsedTime: ForwardElapsedTimeOutput;
+  rewardRate: RewardRateResult;
+  diagnostics: ForwardEvaluationDiagnostics;
+  reachability?: ForwardReachabilityOutput;
+};
+
+function numberMapToRecord(map: Map<StateId, number>): Record<StateId, number> {
+  const record: Record<StateId, number> = {};
+  for (const [stateId, value] of map) {
+    record[stateId] = value;
+  }
+  return record;
+}
+
+function toElapsedTimeOutput(
+  model: DefinitionModel,
+  result: ExpectedElapsedTimeResult
+): ForwardElapsedTimeOutput {
+  return {
+    startState: model.startState,
+    expectedElapsedTimeSeconds:
+      result.expectedElapsedTimeSecondsByState.get(model.startState) ?? 0,
+    expectedElapsedTimeSecondsByState: numberMapToRecord(
+      result.expectedElapsedTimeSecondsByState
+    )
+  };
+}
+
+function toReachabilityOutput(
+  model: DefinitionModel,
+  result: ReachabilityResult
+): ForwardReachabilityOutput {
+  return {
+    targetStates: [...result.targetStates],
+    probabilityFromStart:
+      result.reachabilityProbabilityByState.get(model.startState) ?? 0,
+    probabilityByState: numberMapToRecord(result.reachabilityProbabilityByState)
+  };
+}
+
+function preparationFailure(
+  result: Extract<ExternalModelPreparationResult, { ok: false }>
+): ForwardEvaluationFailure {
+  return {
+    ok: false,
+    stage: result.stage,
+    issues: result.issues.map((issue) => ({ ...issue })),
+    ...(result.validation !== undefined ? { validation: result.validation } : {})
+  };
+}
+
+function optionFailure(
+  code: string,
+  path: string,
+  message: string
+): ForwardEvaluationFailure {
+  return {
+    ok: false,
+    stage: 'evaluation_options',
+    issues: [{ stage: 'evaluation_options', code, path, message }]
+  };
+}
+
+function validateOptions(
+  model: DefinitionModel,
+  options: ForwardEvaluationOptions
+): ForwardEvaluationFailure | undefined {
+  const maxIterations = options.solver?.maxIterations;
+  if (
+    maxIterations !== undefined &&
+    (!Number.isInteger(maxIterations) || maxIterations <= 0)
+  ) {
+    return optionFailure(
+      'invalid_max_iterations',
+      'options.solver.maxIterations',
+      'maxIterations must be a positive integer'
+    );
+  }
+
+  const tolerance = options.solver?.tolerance;
+  if (
+    tolerance !== undefined &&
+    (!Number.isFinite(tolerance) || tolerance <= 0)
+  ) {
+    return optionFailure(
+      'invalid_tolerance',
+      'options.solver.tolerance',
+      'tolerance must be a finite positive number'
+    );
+  }
+
+  if (options.reachabilityTargets !== undefined) {
+    for (let index = 0; index < options.reachabilityTargets.length; index += 1) {
+      const target = options.reachabilityTargets[index];
+      if (target === undefined || !model.states.some((state) => state.id === target)) {
+        return optionFailure(
+          'unknown_reachability_target',
+          `options.reachabilityTargets[${index}]`,
+          `Unknown reachability target state: ${String(target)}`
+        );
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function runCommonForwardEvaluation(
+  model: DefinitionModel,
+  evaluated: EvaluatedModel,
+  validation: ModelValidationResult,
+  options: ForwardEvaluationOptions
+): CommonForwardEvaluation | ForwardEvaluationFailure {
+  const invalidOptions = validateOptions(model, options);
+  if (invalidOptions !== undefined) {
+    return invalidOptions;
+  }
+
+  const solverOptions = options.solver ?? {};
+  const expectedRewardDetailed = solveExpectedRewardWithDiagnostics(
+    evaluated,
+    solverOptions
+  );
+  const elapsedTimeDetailed = solveExpectedElapsedTimeWithDiagnostics(
+    evaluated,
+    solverOptions
+  );
+
+  const expectedReward = toOutputResult(model, expectedRewardDetailed.result);
+  const expectedElapsedTime = toElapsedTimeOutput(model, elapsedTimeDetailed.result);
+  const rewardRate = toRewardRateResult(
+    model,
+    expectedRewardDetailed.result,
+    elapsedTimeDetailed.result
+  );
+
+  const diagnostics: ForwardEvaluationDiagnostics = {
+    expectedReward: expectedRewardDetailed.diagnostics,
+    expectedElapsedTime: elapsedTimeDetailed.diagnostics
+  };
+
+  let converged =
+    expectedRewardDetailed.diagnostics.converged &&
+    elapsedTimeDetailed.diagnostics.converged;
+
+  const common: CommonForwardEvaluation = {
+    converged,
+    validation,
+    expectedReward,
+    expectedElapsedTime,
+    rewardRate,
+    diagnostics
+  };
+
+  if (options.reachabilityTargets !== undefined) {
+    const reachabilityDetailed = solveReachabilityProbabilityWithDiagnostics(
+      evaluated,
+      options.reachabilityTargets,
+      solverOptions
+    );
+    diagnostics.reachability = reachabilityDetailed.diagnostics;
+    common.reachability = toReachabilityOutput(model, reachabilityDetailed.result);
+    converged = converged && reachabilityDetailed.diagnostics.converged;
+    common.converged = converged;
+  }
+
+  return common;
+}
+
+function evaluationFailure(error: unknown): ForwardEvaluationFailure {
+  return {
+    ok: false,
+    stage: 'evaluation',
+    issues: [
+      {
+        stage: 'evaluation',
+        code: 'forward_evaluation_failed',
+        path: '$.model',
+        message: error instanceof Error ? error.message : 'Forward evaluation failed'
+      }
+    ]
+  };
+}
+
+function evaluatePreparedBaseModel(
+  prepared: Extract<PreparedExternalModel, { modelKind: 'base' }>,
+  options: ForwardEvaluationOptions
+): ForwardEvaluationResult {
+  try {
+    const evaluated = evaluateModel(expandModel(prepared.resolvedModel));
+    const common = runCommonForwardEvaluation(
+      prepared.resolvedModel,
+      evaluated,
+      prepared.validation,
+      options
+    );
+    if ('ok' in common && common.ok === false) {
+      return common;
+    }
+
+    return {
+      ok: true,
+      modelKind: 'base',
+      ...common
+    };
+  } catch (error) {
+    return evaluationFailure(error);
+  }
+}
+
+function evaluatePreparedRewardAxesModel(
+  prepared: Extract<PreparedExternalModel, { modelKind: 'reward_axes' }>,
+  options: ForwardEvaluationOptions
+): ForwardEvaluationResult {
+  try {
+    const model: RewardAxesDefinitionModel = prepared.resolvedModel;
+    const evaluated: RewardAxesEvaluatedModel = evaluateRewardAxesModel(
+      expandRewardAxesModel(model)
+    );
+    const common = runCommonForwardEvaluation(
+      model,
+      evaluated,
+      prepared.validation,
+      options
+    );
+    if ('ok' in common && common.ok === false) {
+      return common;
+    }
+
+    const solverOptions = options.solver ?? {};
+    const rewardAxesDetailed = solveExpectedRewardAxesWithDiagnostics(
+      evaluated,
+      solverOptions
+    );
+    const rewardAxes = toRewardAxesOutputResult(model, rewardAxesDetailed.result);
+    common.diagnostics.rewardAxes = { ...rewardAxesDetailed.diagnosticsByAxis };
+    common.converged = common.converged && rewardAxesDetailed.converged;
+
+    return {
+      ok: true,
+      modelKind: 'reward_axes',
+      ...common,
+      rewardAxes
+    };
+  } catch (error) {
+    return evaluationFailure(error);
+  }
+}
+
+export function evaluatePreparedExternalModel(
+  prepared: PreparedExternalModel,
+  options: ForwardEvaluationOptions = {}
+): ForwardEvaluationResult {
+  return prepared.modelKind === 'base'
+    ? evaluatePreparedBaseModel(prepared, options)
+    : evaluatePreparedRewardAxesModel(prepared, options);
+}
+
+export function evaluateExternalModelInput(
+  input: unknown,
+  options: ForwardEvaluationOptions = {}
+): ForwardEvaluationResult {
+  const prepared = prepareExternalModelInput(input);
+  return prepared.ok
+    ? evaluatePreparedExternalModel(prepared, options)
+    : preparationFailure(prepared);
+}
+
+export function evaluateExternalModelJson(
+  json: string,
+  options: ForwardEvaluationOptions = {}
+): ForwardEvaluationResult {
+  const prepared = prepareExternalModelJson(json);
+  return prepared.ok
+    ? evaluatePreparedExternalModel(prepared, options)
+    : preparationFailure(prepared);
+}
+
+export function forwardEvaluationResultToJson(
+  result: ForwardEvaluationResult
+): string {
+  return JSON.stringify(result);
+}
