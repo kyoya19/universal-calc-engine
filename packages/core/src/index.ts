@@ -8,6 +8,7 @@ export * from './external_input';
 export * from './observations';
 export * from './forward_evaluation';
 export * from './scenario_comparison';
+export * from './parameter_sensitivity';
 export * from './tex';
 export * from './android_tex_display';
 export * from './state_generation';
