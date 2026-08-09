@@ -38,6 +38,12 @@ The current implementation already has a small but working forward-evaluation ba
 - solver convergence diagnostics with solver kind, convergence status, iterations, tolerance, last max delta, and contextual target or reward-axis metadata
 - diagnostic solver variants for expected reward, reachability, expected elapsed time, and named reward axes
 - explicit non-convergence results that preserve the last approximation while legacy solver exception behavior remains unchanged
+- parameter definitions with optional defaults and descriptive label / unit metadata
+- explicit parameter-reference scalar nodes
+- explicit add / subtract / multiply / divide formula scalar nodes
+- parameter and formula resolution for probability, legacy reward, elapsed time, and named reward-axis values
+- repeated resolution of one model with different supplied parameter values
+- circular / missing / unknown / non-finite parameter-resolution guards
 - output result conversion
 - contribution result conversion
 - transition probability audits
@@ -73,15 +79,15 @@ The project is not yet a complete general-purpose 成果還元関数 engine.
 
 Important gaps include:
 
-- parameter references
-- formula or expression scalar specs
-- external user input templates
+- external user input templates and parse boundary
 - observation input surfaces
 - reverse estimation design
-- richer transition effects
+- richer transition effects where a generic example requires them
 - domain-labeled win probability output
+- automatic dimensional analysis / unit conversion
 - GUI contracts
 - handoff-ready implementation map
+- legacy/diagnostic solver-loop unification after the diagnostic contract stabilizes
 
 ## Review question
 
@@ -131,18 +137,18 @@ Further micro-tests should be added only when they protect a new feature, fix a 
 
 ## Preferred next production candidates
 
-The next production work should move the engine closer to a minimal Kiyotan-style forward evaluator.
+The next production work should move the engine closer to a minimal Kiyotan-style forward evaluator and a third-party-usable input boundary.
 
-Reachability probability, expected elapsed time, ratio-of-expectations reward rate, named multiple reward axes, structured model validation, and solver convergence diagnostics are now present in the core. Recommended next candidates, in order:
+Reachability probability, expected elapsed time, ratio-of-expectations reward rate, named multiple reward axes, structured model validation, solver convergence diagnostics, and parameter/formula scalar resolution are now present. Recommended next candidates, in order:
 
-1. Parameter references and richer scalar specs.
-2. Clear external input template and parse boundary.
-3. Observation input surface preparation for later reverse estimation.
-4. Richer transition effects where a representative generic model demonstrates the requirement.
-5. Domain-labeled win probability output where a domain-facing label adds value beyond generic reachability.
-6. Internal solver-loop unification after the diagnostics contract is stable.
+1. Clear external input template and parse boundary.
+2. Observation input surface preparation for later reverse estimation.
+3. Richer transition effects where a representative generic model demonstrates the requirement.
+4. Domain-labeled win probability output where a domain-facing label adds value beyond generic reachability.
+5. Internal solver-loop unification after the diagnostics contract is stable.
+6. Dimensional analysis only if concrete models show that descriptive unit metadata is insufficient.
 
-The first recommended candidate is parameter references and richer scalar specs because probability, reward, time, and reward-axis values still resolve only from direct numbers or constant scalar objects. A reusable forward model should be able to reference named input parameters without hard-coding those values into every transition.
+The first recommended candidate is an external input template and parse boundary because the engine now has enough model concepts to benefit from a stable JSON-facing contract. Third-party input should be parsed into parameterized model types, checked for shape and parameter-resolution failures, resolved, then passed through structured model validation before evaluation.
 
 ## Avoided paths
 
@@ -153,8 +159,9 @@ Avoid these paths unless a later PR explicitly narrows the scope:
 - changing legacy scalar `reward` semantics as a side effect of the multiple-axis feature
 - silently replacing existing expand/evaluate exception behavior with validation-result behavior
 - silently changing legacy solver defaults or non-convergence exception behavior while adding diagnostics
+- using string `eval` or executable formula text for parameter expressions
 - moving into digipachi or Juoh before the core forward engine is clearer
-- moving into Seikatan before the forward model surface is stronger
+- moving into Seikatan before the forward model surface and input boundary are stronger
 - mixing personal or financial circumstances into technical repository docs
 - claiming large social impact before the project can demonstrate reusable value
 - treating handoff as already decided
@@ -164,10 +171,10 @@ Avoid these paths unless a later PR explicitly narrows the scope:
 A future assistant or contributor can start with this prompt:
 
 ```text
-Read README.md, docs/sugoroku-poc-v0.4-boundary.md, docs/reward-axes.md, docs/structured-validation.md, docs/solver-diagnostics.md, and docs/outcome-continuation-review.md.
+Read README.md, docs/sugoroku-poc-v0.4-boundary.md, docs/reward-axes.md, docs/structured-validation.md, docs/solver-diagnostics.md, docs/parameterized-scalars.md, and docs/outcome-continuation-review.md.
 Summarize the current phase of kyoya19/universal-calc-engine.
 Do not continue adding near-duplicate JSON/copy boundary tests.
-Choose the smallest PR that improves continuation judgment or moves the core toward a minimal Kiyotan-style forward evaluator.
+Choose the smallest PR that improves continuation judgment or moves the core toward a minimal Kiyotan-style forward evaluator or stable third-party input boundary.
 Keep digipachi, Juoh, Seikatan, GUI, and monetization out of scope unless a later instruction explicitly changes the phase.
 ```
 
