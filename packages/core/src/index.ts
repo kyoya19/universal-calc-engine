@@ -2,6 +2,7 @@ export * from './model';
 export * from './reward_rate';
 export * from './reward_axes';
 export * from './validation';
+export * from './solver_diagnostics';
 export * from './tex';
 export * from './android_tex_display';
 export * from './state_generation';
