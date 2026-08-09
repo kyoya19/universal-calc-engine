@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・寄与分解・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・寄与分解・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -32,9 +32,9 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして実用的な評価軸へ広げることです。
 
-期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間、`ratio_of_expectations` を明示した単位時間成果、名前付き複数成果軸、structured validationに加え、forward solverの収束状態を `solverKind / converged / iterations / tolerance / lastMaxDelta / context` で取得できるdiagnostics APIを追加しています。legacy solverの戻り値・既定収束条件・非収束時の例外挙動は変更しません。
+期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間、`ratio_of_expectations` を明示した単位時間成果、名前付き複数成果軸、structured validation、solver convergence diagnosticsに加え、parameter referenceと明示的な加減乗除formulaを既存DefinitionModelへ解決する前処理層を追加しています。同じモデル構造を入力値だけ変えて繰り返し評価でき、既存solver群は変更せず再利用します。
 
-次段階では parameter references / richer scalar specs、外部入力テンプレート、observation input surface preparation を優先します。
+次段階では外部入力テンプレート / parse boundary、observation input surface preparation、必要性が確認できるricher transition effectsを優先します。
 
 デジパチ・獣王・セイカタンを先に拡張せず、まず汎用モデル層と最小キヨタン順方向評価を完成形へ近づけます。
 
@@ -60,6 +60,10 @@ RewardAxesOutputResult
 RewardAxesContributionResult
 ModelValidationResult / ModelValidationIssue
 SolverConvergenceDiagnostics / SolverDetailedResult
+ParameterizedDefinitionModel
+ParameterizedRewardAxesDefinitionModel
+ParameterizedScalarSpec
+ParameterDefinition / ParameterRefScalarSpec / ScalarFormulaSpec
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
@@ -86,6 +90,10 @@ solveReachabilityProbabilityWithDiagnostics
 solveExpectedElapsedTimeWithDiagnostics
 solveExpectedRewardAxesWithDiagnostics
 solverConvergenceDiagnosticsToJson
+resolveParameterizedScalarSpec
+resolveParameterValues
+resolveParameterizedDefinitionModel
+resolveParameterizedRewardAxesDefinitionModel
 toOutputResult
 toContributionResult
 JSON helper
@@ -120,6 +128,8 @@ named reward axes are never implicitly aggregated across meanings or units
 legacy reward remains separate from rewardsByAxis
 structured validation is additive; existing expand/evaluate exception behavior is unchanged
 solver diagnostics are additive; legacy solver result and exception contracts are unchanged
+parameter/formula scalars resolve before the existing DefinitionModel pipeline
+parameter unit metadata is descriptive; automatic dimensional analysis is not implemented
 reverse estimation / Seikatan behavior is out of scope for the current phase
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
@@ -145,6 +155,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Named reward axes](docs/reward-axes.md)
 - [Structured validation](docs/structured-validation.md)
 - [Solver convergence diagnostics](docs/solver-diagnostics.md)
+- [Parameter references and formula scalars](docs/parameterized-scalars.md)
 
 ## Historical / legacy docs notes
 
