@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・scenario比較・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・scenario比較・one-at-a-time sensitivity・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -30,7 +30,7 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、最小キヨタン順方向エンジンを「個別APIの集合」から「第三者が一続きに入力・評価・比較・説明できるforward v1境界」へまとめることです。
+現在の焦点は、最小キヨタン順方向エンジンを「個別APIの集合」から「第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1境界」へまとめることです。
 
 外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。
 
@@ -40,9 +40,11 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 scenario comparisonは、**同一model structure**へbaseline/candidateの2つのparameter setを与え、resolved parameter差、expected reward/time/rate/reachability差、legacy contribution行の差、named reward-axis差を構造化して返します。差の符号は `candidate - baseline` です。
 
-contribution差は `difference_of_existing_contributions` と明示し、複数parameterが同時に変化した場合にそれを一意な因果分解とは扱いません。
+one-at-a-time sensitivityはbaseline parameter setを固定し、指定した1 parameterだけをcandidate valueへ差し替えたscenario comparisonを複数実行します。これにより「他のsupplied parameterを固定したとき、このparameterの変更で結果がどう変わるか」という明示的なcounterfactualを扱えます。
 
-次の優先候補は、このscenario比較を使ったone-at-a-time sensitivity / counterfactual評価です。その後、v1 support matrixを固めるか、ObservationDataset上に最小reverse-estimation contractを置くかを再評価します。大型のデジパチ・獣王モデルを先に進めません。
+contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。
+
+次の優先判断はforward v1のsupport matrix / handoff mapを固定するか、ObservationDataset上に最小reverse-estimation contractを置くかです。multi-parameter attributionはmethodを先に定義し、大型のデジパチ・獣王モデルを先に進めません。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -79,6 +81,8 @@ ForwardElapsedTimeOutput / ForwardReachabilityOutput
 ScenarioComparisonResult / ScenarioComparisonParameterSets
 ScenarioForwardDelta / ScenarioContributionDelta
 ScenarioRewardAxesDelta / ScenarioRewardAxesContributionDelta
+ParameterSensitivityResult / ParameterSensitivityRequest
+ParameterSensitivityKind
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
@@ -125,6 +129,8 @@ evaluateExternalModelJson
 forwardEvaluationResultToJson
 compareExternalModelScenarios
 scenarioComparisonResultToJson
+analyzeParameterSensitivity
+parameterSensitivityResultToJson
 toOutputResult
 toContributionResult
 JSON helper
@@ -167,7 +173,19 @@ one checked external model
 → optional reward-axis deltas
 ```
 
-観測データはこの順方向pathやscenario比較へparameterとして注入しません。後の逆方向推定層から別入力として参照する前提です。
+## One-at-a-time sensitivity path
+
+```text
+one checked external model
++ baseline parameter set
++ selected parameter
++ candidate values
+→ one scenario comparison per candidate
+→ exactly one supplied parameter changed per point
+→ structured counterfactual deltas
+```
+
+観測データはこれらの順方向pathへparameterとして注入しません。後の逆方向推定層から別入力として参照する前提です。
 
 ## Phase order
 
@@ -201,6 +219,7 @@ observations remain separate from model parameters and solver results
 forward facade composes existing layers; it does not replace the lower-level APIs
 non-convergence remains visible through diagnostics and is not silently treated as a final converged result
 scenario comparison reuses one model structure and compares candidate - baseline
+one-at-a-time sensitivity changes one selected supplied parameter per comparison point
 contribution-row deltas are descriptive differences, not automatic unique causal attribution
 full reverse estimation / Seikatan behavior is not implemented yet
 product UI / monetization is out of scope for this repository phase
@@ -232,6 +251,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Observation input surface](docs/observations.md)
 - [Forward evaluation facade](docs/forward-evaluation.md)
 - [Scenario comparison](docs/scenario-comparison.md)
+- [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
 
 ## Representative examples
 
@@ -240,7 +260,7 @@ packages/core/examples/forward_evaluation.ts
 packages/core/examples/scenario_comparison.ts
 ```
 
-同じmodel structureに対してparameter値を差し替え、複数forward結果とscenario差分を評価する例です。特定ゲーム固有の値やルールはcoreへ持ち込みません。
+同じmodel structureに対してparameter値を差し替え、複数forward結果とscenario差分を評価する例です。sensitivity APIも同じscenario比較経路を再利用します。特定ゲーム固有の値やルールはcoreへ持ち込みません。
 
 ## Historical / legacy docs notes
 
