@@ -6,6 +6,7 @@ import {
   prepareExternalModelJson
 } from './external_input';
 import {
+  ContributionResult,
   DefinitionModel,
   EvaluatedModel,
   ExpectedElapsedTimeResult,
@@ -14,14 +15,17 @@ import {
   StateId,
   evaluateModel,
   expandModel,
+  toContributionResult,
   toOutputResult
 } from './model';
 import {
+  RewardAxesContributionResult,
   RewardAxesDefinitionModel,
   RewardAxesEvaluatedModel,
   RewardAxesOutputResult,
   evaluateRewardAxesModel,
   expandRewardAxesModel,
+  toRewardAxesContributionResult,
   toRewardAxesOutputResult
 } from './reward_axes';
 import { RewardRateResult, toRewardRateResult } from './reward_rate';
@@ -76,6 +80,7 @@ export type ForwardBaseEvaluationSuccess = {
   expectedReward: OutputResult;
   expectedElapsedTime: ForwardElapsedTimeOutput;
   rewardRate: RewardRateResult;
+  contribution: ContributionResult;
   diagnostics: ForwardEvaluationDiagnostics;
   reachability?: ForwardReachabilityOutput;
 };
@@ -88,7 +93,9 @@ export type ForwardRewardAxesEvaluationSuccess = {
   expectedReward: OutputResult;
   expectedElapsedTime: ForwardElapsedTimeOutput;
   rewardRate: RewardRateResult;
+  contribution: ContributionResult;
   rewardAxes: RewardAxesOutputResult;
+  rewardAxesContribution: RewardAxesContributionResult;
   diagnostics: ForwardEvaluationDiagnostics;
   reachability?: ForwardReachabilityOutput;
 };
@@ -111,6 +118,7 @@ type CommonForwardEvaluation = {
   expectedReward: OutputResult;
   expectedElapsedTime: ForwardElapsedTimeOutput;
   rewardRate: RewardRateResult;
+  contribution: ContributionResult;
   diagnostics: ForwardEvaluationDiagnostics;
   reachability?: ForwardReachabilityOutput;
 };
@@ -244,6 +252,7 @@ function runCommonForwardEvaluation(
     expectedRewardDetailed.result,
     elapsedTimeDetailed.result
   );
+  const contribution = toContributionResult(evaluated, expectedRewardDetailed.result);
 
   const diagnostics: ForwardEvaluationDiagnostics = {
     expectedReward: expectedRewardDetailed.diagnostics,
@@ -260,6 +269,7 @@ function runCommonForwardEvaluation(
     expectedReward,
     expectedElapsedTime,
     rewardRate,
+    contribution,
     diagnostics
   };
 
@@ -344,6 +354,10 @@ function evaluatePreparedRewardAxesModel(
       solverOptions
     );
     const rewardAxes = toRewardAxesOutputResult(model, rewardAxesDetailed.result);
+    const rewardAxesContribution = toRewardAxesContributionResult(
+      evaluated,
+      rewardAxesDetailed.result
+    );
     common.diagnostics.rewardAxes = { ...rewardAxesDetailed.diagnosticsByAxis };
     common.converged = common.converged && rewardAxesDetailed.converged;
 
@@ -351,7 +365,8 @@ function evaluatePreparedRewardAxesModel(
       ok: true,
       modelKind: 'reward_axes',
       ...common,
-      rewardAxes
+      rewardAxes,
+      rewardAxesContribution
     };
   } catch (error) {
     return evaluationFailure(error);
