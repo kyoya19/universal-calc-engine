@@ -1,4 +1,11 @@
-import { DefinitionModel, PropertyValue, StateDefinition, TerminalCondition, TimeUnit, TransitionEffect } from './model';
+import {
+  DefinitionModel,
+  PropertyValue,
+  StateDefinition,
+  TerminalCondition,
+  TimeUnit,
+  TransitionEffect
+} from './model';
 import {
   ParameterDefinition,
   ParameterValues,
@@ -11,7 +18,11 @@ import {
   resolveParameterizedDefinitionModel,
   resolveParameterizedRewardAxesDefinitionModel
 } from './parameterized_scalars';
-import { RewardAxesDefinitionModel, RewardAxisDefinition, RewardAxisKind } from './reward_axes';
+import {
+  RewardAxesDefinitionModel,
+  RewardAxisDefinition,
+  RewardAxisKind
+} from './reward_axes';
 import {
   ModelValidationResult,
   validateDefinitionModel,
@@ -83,13 +94,31 @@ export type ExternalModelPreparationResult =
       validation?: ModelValidationResult;
     };
 
-type ShapeIssueSink = ExternalInputIssue[];
-
 type UnknownRecord = Record<string, unknown>;
+type ShapeIssueSink = ExternalInputIssue[];
+type CommonModelFields = {
+  startState: string | undefined;
+  states: StateDefinition[] | undefined;
+  parameters: ParameterDefinition[] | undefined;
+};
 
-const TIME_UNITS = new Set<TimeUnit>(['milliseconds', 'seconds', 'minutes', 'hours']);
-const REWARD_AXIS_KINDS = new Set<RewardAxisKind>(['benefit', 'cost', 'neutral']);
-const FORMULA_OPERATORS = new Set(['add', 'subtract', 'multiply', 'divide']);
+const TIME_UNITS: ReadonlySet<string> = new Set([
+  'milliseconds',
+  'seconds',
+  'minutes',
+  'hours'
+]);
+const REWARD_AXIS_KINDS: ReadonlySet<string> = new Set([
+  'benefit',
+  'cost',
+  'neutral'
+]);
+const FORMULA_OPERATORS: ReadonlySet<string> = new Set([
+  'add',
+  'subtract',
+  'multiply',
+  'divide'
+]);
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -121,10 +150,7 @@ function readOptionalString(
   path: string,
   issues: ShapeIssueSink
 ): string | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-  return readString(value, path, issues);
+  return value === undefined ? undefined : readString(value, path, issues);
 }
 
 function readFiniteNumber(
@@ -159,6 +185,26 @@ function readPropertyValue(
   return undefined;
 }
 
+function parseArray<T>(
+  value: unknown,
+  path: string,
+  issues: ShapeIssueSink,
+  parseItem: (item: unknown, itemPath: string, issues: ShapeIssueSink) => T | undefined
+): T[] | undefined {
+  if (!Array.isArray(value)) {
+    addShapeIssue(issues, 'expected_array', path, 'Expected an array');
+    return undefined;
+  }
+  const result: T[] = [];
+  value.forEach((item, index) => {
+    const parsed = parseItem(item, `${path}[${index}]`, issues);
+    if (parsed !== undefined) {
+      result.push(parsed);
+    }
+  });
+  return result;
+}
+
 function parseScalar(
   value: unknown,
   path: string,
@@ -167,32 +213,20 @@ function parseScalar(
   if (typeof value === 'number') {
     return readFiniteNumber(value, path, issues);
   }
-
   if (!isRecord(value)) {
-    addShapeIssue(
-      issues,
-      'expected_scalar',
-      path,
-      'Expected a number or scalar object'
-    );
+    addShapeIssue(issues, 'expected_scalar', path, 'Expected a number or scalar object');
     return undefined;
   }
 
   const type = readString(value.type, `${path}.type`, issues);
-  if (type === undefined) {
-    return undefined;
-  }
-
   if (type === 'constant') {
     const constantValue = readFiniteNumber(value.value, `${path}.value`, issues);
     return constantValue === undefined ? undefined : { type: 'constant', value: constantValue };
   }
-
   if (type === 'parameter_ref') {
     const parameter = readString(value.parameter, `${path}.parameter`, issues);
     return parameter === undefined ? undefined : { type: 'parameter_ref', parameter };
   }
-
   if (type === 'formula') {
     const operator = readString(value.operator, `${path}.operator`, issues);
     if (operator === undefined || !FORMULA_OPERATORS.has(operator)) {
@@ -219,7 +253,14 @@ function parseScalar(
     };
   }
 
-  addShapeIssue(issues, 'invalid_scalar_type', `${path}.type`, `Unsupported scalar type: ${type}`);
+  if (type !== undefined) {
+    addShapeIssue(
+      issues,
+      'invalid_scalar_type',
+      `${path}.type`,
+      `Unsupported scalar type: ${type}`
+    );
+  }
   return undefined;
 }
 
@@ -268,7 +309,6 @@ function parseState(
     addShapeIssue(issues, 'expected_object', path, 'Expected a state object');
     return undefined;
   }
-
   const id = readString(value.id, `${path}.id`, issues);
   if (id === undefined) {
     return undefined;
@@ -282,7 +322,6 @@ function parseState(
       state.terminal = value.terminal;
     }
   }
-
   if (value.terminalCondition !== undefined) {
     const terminalCondition = parseTerminalCondition(
       value.terminalCondition,
@@ -293,7 +332,6 @@ function parseState(
       state.terminalCondition = terminalCondition;
     }
   }
-
   if (value.properties !== undefined) {
     if (!isRecord(value.properties)) {
       addShapeIssue(issues, 'expected_object', `${path}.properties`, 'Expected an object');
@@ -308,7 +346,6 @@ function parseState(
       state.properties = properties;
     }
   }
-
   return state;
 }
 
@@ -352,7 +389,7 @@ function parseTimeSpec(
   }
   const scalar = parseScalar(value.value, `${path}.value`, issues);
   const unit = readString(value.unit, `${path}.unit`, issues);
-  if (unit !== undefined && !TIME_UNITS.has(unit as TimeUnit)) {
+  if (unit !== undefined && !TIME_UNITS.has(unit)) {
     addShapeIssue(issues, 'invalid_time_unit', `${path}.unit`, `Unsupported time unit: ${unit}`);
     return undefined;
   }
@@ -371,7 +408,6 @@ function parseTransition(
     addShapeIssue(issues, 'expected_object', path, 'Expected a transition object');
     return undefined;
   }
-
   const from = readString(value.from, `${path}.from`, issues);
   const to = readString(value.to, `${path}.to`, issues);
   const probability = parseScalar(value.probability, `${path}.probability`, issues);
@@ -380,36 +416,24 @@ function parseTransition(
   }
 
   const transition: ParameterizedTransitionDefinition = { from, to, probability };
-
   if (value.reward !== undefined) {
     const reward = parseScalar(value.reward, `${path}.reward`, issues);
     if (reward !== undefined) {
       transition.reward = reward;
     }
   }
-
   if (value.elapsedTime !== undefined) {
     const elapsedTime = parseTimeSpec(value.elapsedTime, `${path}.elapsedTime`, issues);
     if (elapsedTime !== undefined) {
       transition.elapsedTime = elapsedTime;
     }
   }
-
   if (value.effects !== undefined) {
-    if (!Array.isArray(value.effects)) {
-      addShapeIssue(issues, 'expected_array', `${path}.effects`, 'Expected an array');
-    } else {
-      const effects: TransitionEffect[] = [];
-      value.effects.forEach((effectValue, index) => {
-        const effect = parseEffect(effectValue, `${path}.effects[${index}]`, issues);
-        if (effect !== undefined) {
-          effects.push(effect);
-        }
-      });
+    const effects = parseArray(value.effects, `${path}.effects`, issues, parseEffect);
+    if (effects !== undefined) {
       transition.effects = effects;
     }
   }
-
   return transition;
 }
 
@@ -448,44 +472,17 @@ function parseCommonModelFields(
   value: UnknownRecord,
   path: string,
   issues: ShapeIssueSink
-): {
-  startState?: string;
-  states?: StateDefinition[];
-  parameters?: ParameterDefinition[];
-} {
-  const startState = readString(value.startState, `${path}.startState`, issues);
-
-  let states: StateDefinition[] | undefined;
-  if (!Array.isArray(value.states)) {
-    addShapeIssue(issues, 'expected_array', `${path}.states`, 'Expected an array');
-  } else {
-    states = [];
-    value.states.forEach((stateValue, index) => {
-      const state = parseState(stateValue, `${path}.states[${index}]`, issues);
-      if (state !== undefined) {
-        states?.push(state);
-      }
-    });
-  }
-
-  let parameters: ParameterDefinition[] | undefined;
-  if (!Array.isArray(value.parameters)) {
-    addShapeIssue(issues, 'expected_array', `${path}.parameters`, 'Expected an array');
-  } else {
-    parameters = [];
-    value.parameters.forEach((parameterValue, index) => {
-      const parameter = parseParameterDefinition(
-        parameterValue,
-        `${path}.parameters[${index}]`,
-        issues
-      );
-      if (parameter !== undefined) {
-        parameters?.push(parameter);
-      }
-    });
-  }
-
-  return { startState, states, parameters };
+): CommonModelFields {
+  return {
+    startState: readString(value.startState, `${path}.startState`, issues),
+    states: parseArray(value.states, `${path}.states`, issues, parseState),
+    parameters: parseArray(
+      value.parameters,
+      `${path}.parameters`,
+      issues,
+      parseParameterDefinition
+    )
+  };
 }
 
 function parseBaseModel(
@@ -498,24 +495,12 @@ function parseBaseModel(
     return undefined;
   }
   const common = parseCommonModelFields(value, path, issues);
-
-  let transitions: ParameterizedTransitionDefinition[] | undefined;
-  if (!Array.isArray(value.transitions)) {
-    addShapeIssue(issues, 'expected_array', `${path}.transitions`, 'Expected an array');
-  } else {
-    transitions = [];
-    value.transitions.forEach((transitionValue, index) => {
-      const transition = parseTransition(
-        transitionValue,
-        `${path}.transitions[${index}]`,
-        issues
-      );
-      if (transition !== undefined) {
-        transitions?.push(transition);
-      }
-    });
-  }
-
+  const transitions = parseArray(
+    value.transitions,
+    `${path}.transitions`,
+    issues,
+    parseTransition
+  );
   if (
     common.startState === undefined ||
     common.states === undefined ||
@@ -524,7 +509,6 @@ function parseBaseModel(
   ) {
     return undefined;
   }
-
   return {
     startState: common.startState,
     states: common.states,
@@ -545,7 +529,7 @@ function parseRewardAxis(
   const id = readString(value.id, `${path}.id`, issues);
   const unit = readString(value.unit, `${path}.unit`, issues);
   const kind = readString(value.kind, `${path}.kind`, issues);
-  if (kind !== undefined && !REWARD_AXIS_KINDS.has(kind as RewardAxisKind)) {
+  if (kind !== undefined && !REWARD_AXIS_KINDS.has(kind)) {
     addShapeIssue(issues, 'invalid_reward_axis_kind', `${path}.kind`, `Unsupported kind: ${kind}`);
     return undefined;
   }
@@ -569,7 +553,6 @@ function parseRewardAxesTransition(
   if (base === undefined || !isRecord(value)) {
     return undefined;
   }
-
   const transition: ParameterizedRewardAxesTransitionDefinition = { ...base };
   if (value.rewardsByAxis !== undefined) {
     if (!isRecord(value.rewardsByAxis)) {
@@ -603,37 +586,18 @@ function parseRewardAxesModel(
     return undefined;
   }
   const common = parseCommonModelFields(value, path, issues);
-
-  let rewardAxes: RewardAxisDefinition[] | undefined;
-  if (!Array.isArray(value.rewardAxes)) {
-    addShapeIssue(issues, 'expected_array', `${path}.rewardAxes`, 'Expected an array');
-  } else {
-    rewardAxes = [];
-    value.rewardAxes.forEach((axisValue, index) => {
-      const axis = parseRewardAxis(axisValue, `${path}.rewardAxes[${index}]`, issues);
-      if (axis !== undefined) {
-        rewardAxes?.push(axis);
-      }
-    });
-  }
-
-  let transitions: ParameterizedRewardAxesTransitionDefinition[] | undefined;
-  if (!Array.isArray(value.transitions)) {
-    addShapeIssue(issues, 'expected_array', `${path}.transitions`, 'Expected an array');
-  } else {
-    transitions = [];
-    value.transitions.forEach((transitionValue, index) => {
-      const transition = parseRewardAxesTransition(
-        transitionValue,
-        `${path}.transitions[${index}]`,
-        issues
-      );
-      if (transition !== undefined) {
-        transitions?.push(transition);
-      }
-    });
-  }
-
+  const rewardAxes = parseArray(
+    value.rewardAxes,
+    `${path}.rewardAxes`,
+    issues,
+    parseRewardAxis
+  );
+  const transitions = parseArray(
+    value.transitions,
+    `${path}.transitions`,
+    issues,
+    parseRewardAxesTransition
+  );
   if (
     common.startState === undefined ||
     common.states === undefined ||
@@ -643,7 +607,6 @@ function parseRewardAxesModel(
   ) {
     return undefined;
   }
-
   return {
     startState: common.startState,
     states: common.states,
@@ -665,18 +628,17 @@ function parseParameterValues(
     addShapeIssue(issues, 'expected_object', path, 'Expected an object of finite numbers');
     return undefined;
   }
-  const values: ParameterValues = {};
+  const result: ParameterValues = {};
   for (const [parameterId, parameterValue] of Object.entries(value)) {
     const parsed = readFiniteNumber(parameterValue, `${path}.${parameterId}`, issues);
     if (parsed !== undefined) {
-      values[parameterId] = parsed;
+      result[parameterId] = parsed;
     }
   }
-  return values;
+  return result;
 }
 
 export function parseExternalModelDocument(input: unknown): ExternalModelParseResult {
-  const issues: ExternalInputIssue[] = [];
   if (!isRecord(input)) {
     return {
       ok: false,
@@ -692,6 +654,7 @@ export function parseExternalModelDocument(input: unknown): ExternalModelParseRe
     };
   }
 
+  const issues: ExternalInputIssue[] = [];
   if (input.schemaVersion !== 1) {
     addShapeIssue(
       issues,
@@ -702,18 +665,20 @@ export function parseExternalModelDocument(input: unknown): ExternalModelParseRe
   }
 
   const modelKind = readString(input.modelKind, '$.modelKind', issues);
-  if (modelKind !== 'base' && modelKind !== 'reward_axes') {
-    if (modelKind !== undefined) {
-      addShapeIssue(
-        issues,
-        'invalid_model_kind',
-        '$.modelKind',
-        `Unsupported modelKind: ${modelKind}`
-      );
-    }
+  if (modelKind !== undefined && modelKind !== 'base' && modelKind !== 'reward_axes') {
+    addShapeIssue(
+      issues,
+      'invalid_model_kind',
+      '$.modelKind',
+      `Unsupported modelKind: ${modelKind}`
+    );
   }
 
-  const parameterValues = parseParameterValues(input.parameterValues, '$.parameterValues', issues);
+  const parameterValues = parseParameterValues(
+    input.parameterValues,
+    '$.parameterValues',
+    issues
+  );
   let document: ExternalModelDocument | undefined;
 
   if (modelKind === 'base') {
@@ -832,18 +797,12 @@ export function prepareExternalModelDocument(
 
 export function prepareExternalModelInput(input: unknown): ExternalModelPreparationResult {
   const parsed = parseExternalModelDocument(input);
-  if (!parsed.ok) {
-    return parsed;
-  }
-  return prepareExternalModelDocument(parsed.document);
+  return parsed.ok ? prepareExternalModelDocument(parsed.document) : parsed;
 }
 
 export function prepareExternalModelJson(json: string): ExternalModelPreparationResult {
   const parsed = parseExternalModelDocumentJson(json);
-  if (!parsed.ok) {
-    return parsed;
-  }
-  return prepareExternalModelDocument(parsed.document);
+  return parsed.ok ? prepareExternalModelDocument(parsed.document) : parsed;
 }
 
 export function externalModelPreparationResultToJson(
