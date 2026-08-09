@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・勝率・寄与分解・診断・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・寄与分解・診断・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -30,9 +30,11 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、README / docs入口整理と、すごろくPoC v0.4の完了状態を見える形に戻すことです。
+現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして実用的な評価軸へ広げることです。
 
-Phase 0 の自律進行ルールは `docs/assistant_autonomy.md` と `docs/github_workflow.md` で固定済みです。以降は、デジパチ・獣王・セイカタンを先に拡張せず、すごろくPoC v0.4と汎用モデル層の不足補強へ進みます。
+期待報酬に加えて到達確率を解ける状態まで進み、transitionに単位付き経過時間を与えて終端までの期待経過時間を秒単位へ正規化して解く基盤を追加しています。次段階では、期待報酬と期待経過時間を混同せずに単位時間成果へ接続すること、複数成果軸、structured validation、solver convergence diagnosticsを優先します。
+
+デジパチ・獣王・セイカタンを先に拡張せず、まず汎用モデル層と最小キヨタン順方向評価を完成形へ近づけます。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -45,13 +47,19 @@ EvaluatedModel
 SolvedModel
 OutputResult
 ContributionResult
+ReachabilityResult
+ExpectedElapsedTimeResult
 ProbabilitySpec
 RewardSpec
+TimeSpec / TimeUnit
 TerminalCondition
 TransitionEffect
 expandModel
 evaluateModel
 solveExpectedReward
+solveReachabilityProbability
+solveExpectedElapsedTime
+evaluateTimeSpecSeconds
 toOutputResult
 toContributionResult
 JSON helper
