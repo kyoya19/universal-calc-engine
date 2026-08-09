@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・寄与分解・診断・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・寄与分解・診断・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -32,7 +32,9 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして実用的な評価軸へ広げることです。
 
-期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間に加え、期待報酬と期待経過時間の比から単位時間成果を返す基盤まで進めています。この単位時間成果は `ratio_of_expectations` と明示し、各試行の報酬率の期待値とは区別します。次段階では複数成果軸、structured validation、solver convergence diagnosticsを優先します。
+期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間、`ratio_of_expectations` を明示した単位時間成果に加え、金銭・コスト・得点等を暗黙に混ぜない名前付き複数成果軸の拡張パイプラインを追加しています。従来の単一 `reward` は互換性のため維持し、複数成果軸とは別経路で評価します。
+
+次段階では structured validation、solver convergence diagnostics、parameter references / richer scalar specs を優先します。
 
 デジパチ・獣王・セイカタンを先に拡張せず、まず汎用モデル層と最小キヨタン順方向評価を完成形へ近づけます。
 
@@ -50,9 +52,16 @@ ContributionResult
 ReachabilityResult
 ExpectedElapsedTimeResult
 RewardRateResult
+RewardAxesDefinitionModel
+RewardAxesExpandedModel
+RewardAxesEvaluatedModel
+RewardAxesSolvedModel
+RewardAxesOutputResult
+RewardAxesContributionResult
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
+RewardAxisDefinition / RewardAxisKind
 TerminalCondition
 TransitionEffect
 expandModel
@@ -62,6 +71,11 @@ solveReachabilityProbability
 solveExpectedElapsedTime
 evaluateTimeSpecSeconds
 toRewardRateResult
+expandRewardAxesModel
+evaluateRewardAxesModel
+solveExpectedRewardAxes
+toRewardAxesOutputResult
+toRewardAxesContributionResult
 toOutputResult
 toContributionResult
 JSON helper
@@ -92,6 +106,8 @@ TeX / report / boundary digest boundary pieces
 solver target is explicit-only through transition.to
 generatedTo is diagnostics-only
 runtime target policy changes are out of scope until a dedicated policy PR
+named reward axes are never implicitly aggregated across meanings or units
+legacy reward remains separate from rewardsByAxis
 reverse estimation / Seikatan behavior is out of scope for the current phase
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
@@ -114,6 +130,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [成果還元関数 current identifier map](docs/outcome-current-identifier-map.md)
 - [成果還元関数 continuation review](docs/outcome-continuation-review.md)
 - [成果還元関数 sample policy](docs/outcome-sample-policy.md)
+- [Named reward axes](docs/reward-axes.md)
 
 ## Historical / legacy docs notes
 
