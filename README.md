@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・寄与分解・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・寄与分解・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -30,13 +30,15 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして実用的な評価軸へ広げることです。
+現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして第三者が入力・評価できる形へ広げることです。
 
-期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間、`ratio_of_expectations` を明示した単位時間成果、名前付き複数成果軸、structured validation、solver convergence diagnosticsに加え、parameter referenceと明示的な加減乗除formulaを既存DefinitionModelへ解決する前処理層を追加しています。同じモデル構造を入力値だけ変えて繰り返し評価でき、既存solver群は変更せず再利用します。
+期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間、`ratio_of_expectations` を明示した単位時間成果、名前付き複数成果軸、structured validation、solver convergence diagnostics、parameter/formula解決に加え、`schemaVersion: 1` の外部model documentを unknown / JSON からshape-checkし、parameter resolution、structured model validationを経て既存DefinitionModelへ接続する入力境界を追加しています。
 
-次段階では外部入力テンプレート / parse boundary、observation input surface preparation、必要性が確認できるricher transition effectsを優先します。
+外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。JSONをparseできたことだけを型安全とは扱いません。
 
-デジパチ・獣王・セイカタンを先に拡張せず、まず汎用モデル層と最小キヨタン順方向評価を完成形へ近づけます。
+次段階では observation input surface preparation、非ドメイン固有のend-to-end利用例、必要性が確認できるricher transition effectsを優先します。
+
+デジパチ・獣王・セイカタン本体を先に拡張せず、まず汎用モデル層と第三者利用境界を完成形へ近づけます。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -64,6 +66,8 @@ ParameterizedDefinitionModel
 ParameterizedRewardAxesDefinitionModel
 ParameterizedScalarSpec
 ParameterDefinition / ParameterRefScalarSpec / ScalarFormulaSpec
+ExternalModelDocument / ExternalModelPreparationResult
+ExternalInputIssue / ExternalInputStage
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
@@ -94,6 +98,12 @@ resolveParameterizedScalarSpec
 resolveParameterValues
 resolveParameterizedDefinitionModel
 resolveParameterizedRewardAxesDefinitionModel
+parseExternalModelDocument
+parseExternalModelDocumentJson
+prepareExternalModelDocument
+prepareExternalModelInput
+prepareExternalModelJson
+externalModelPreparationResultToJson
 toOutputResult
 toContributionResult
 JSON helper
@@ -130,6 +140,8 @@ structured validation is additive; existing expand/evaluate exception behavior i
 solver diagnostics are additive; legacy solver result and exception contracts are unchanged
 parameter/formula scalars resolve before the existing DefinitionModel pipeline
 parameter unit metadata is descriptive; automatic dimensional analysis is not implemented
+external JSON input is shape-checked from unknown before parameter resolution or model validation
+external input formulas use explicit expression trees; executable formula text is not accepted
 reverse estimation / Seikatan behavior is out of scope for the current phase
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
@@ -156,6 +168,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Structured validation](docs/structured-validation.md)
 - [Solver convergence diagnostics](docs/solver-diagnostics.md)
 - [Parameter references and formula scalars](docs/parameterized-scalars.md)
+- [External model input boundary](docs/external-input.md)
 
 ## Historical / legacy docs notes
 
