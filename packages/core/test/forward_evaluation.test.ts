@@ -67,7 +67,7 @@ function genericScenario(parameterValues: Record<string, number>) {
 }
 
 describe('forward evaluation facade', () => {
-  it('evaluates one external model repeatedly with different parameters across reward, reachability, time, and rate', () => {
+  it('evaluates one external model repeatedly with different parameters across reward, reachability, time, rate, and contribution', () => {
     const baseline = evaluateExternalModelInput(
       genericScenario({
         successProbability: 0.4,
@@ -97,15 +97,21 @@ describe('forward evaluation facade', () => {
     expect(baseline.reachability?.probabilityFromStart).toBeCloseTo(0.4);
     expect(baseline.expectedElapsedTime.expectedElapsedTimeSeconds).toBeCloseTo(120);
     expect(baseline.rewardRate.rewardPerHour).toBeCloseTo(2400);
+    expect(
+      baseline.contribution.transitionContributionsByState.start?.[0]?.contribution
+    ).toBeCloseTo(80);
 
     expect(improved.expectedReward.expectedReward).toBeCloseTo(120);
     expect(improved.reachability?.probabilityFromStart).toBeCloseTo(0.6);
     expect(improved.expectedElapsedTime.expectedElapsedTimeSeconds).toBeCloseTo(90);
     expect(improved.rewardRate.rewardPerHour).toBeCloseTo(4800);
     expect(improved.rewardRate.rateKind).toBe('ratio_of_expectations');
+    expect(
+      improved.contribution.transitionContributionsByState.start?.[0]?.contribution
+    ).toBeCloseTo(120);
   });
 
-  it('adds named reward-axis results without replacing legacy reward/time outputs', () => {
+  it('adds named reward-axis results and contributions without replacing legacy reward/time outputs', () => {
     const result = evaluateExternalModelInput({
       schemaVersion: 1,
       modelKind: 'reward_axes',
@@ -142,6 +148,10 @@ describe('forward evaluation facade', () => {
     expect(result.expectedElapsedTime.expectedElapsedTimeSeconds).toBe(1800);
     expect(result.rewardRate.rewardPerHour).toBe(10);
     expect(result.rewardAxes.expectedRewardByAxis).toEqual({ revenue: 1000, cost: 250 });
+    expect(
+      result.rewardAxesContribution.transitionContributionsByAxisByState.revenue?.start?.[0]
+        ?.contribution
+    ).toBe(1000);
     expect(result.diagnostics.rewardAxes?.revenue?.converged).toBe(true);
     expect(result.diagnostics.rewardAxes?.cost?.converged).toBe(true);
   });
