@@ -14,6 +14,13 @@ export type ScalarSpecKind = 'number' | 'constant';
 export type ProbabilitySpec = ScalarSpec;
 export type RewardSpec = ScalarSpec;
 
+export type TimeUnit = 'milliseconds' | 'seconds' | 'minutes' | 'hours';
+
+export type TimeSpec = {
+  value: ScalarSpec;
+  unit: TimeUnit;
+};
+
 export type TerminalCondition =
   | {
       type: 'explicit';
@@ -47,6 +54,7 @@ export type TransitionDefinition = {
   to: StateId;
   probability: ProbabilitySpec;
   reward?: RewardSpec;
+  elapsedTime?: TimeSpec;
   effects?: TransitionEffect[];
 };
 
@@ -55,6 +63,7 @@ export type EvaluatedTransition = {
   to: StateId;
   probability: number;
   reward?: number;
+  elapsedTimeSeconds?: number;
   effects?: TransitionEffect[];
 };
 
@@ -81,6 +90,10 @@ export type SolvedModel = {
 export type ReachabilityResult = {
   targetStates: StateId[];
   reachabilityProbabilityByState: Map<StateId, number>;
+};
+
+export type ExpectedElapsedTimeResult = {
+  expectedElapsedTimeSecondsByState: Map<StateId, number>;
 };
 
 export type OutputResult = {
@@ -155,6 +168,28 @@ export function evaluateRewardSpec(spec: RewardSpec): number {
 
 export function serializeRewardSpec(spec: RewardSpec): RewardSpec {
   return serializeScalarSpec(spec);
+}
+
+export function serializeTimeSpec(spec: TimeSpec): TimeSpec {
+  return {
+    value: serializeScalarSpec(spec.value),
+    unit: spec.unit
+  };
+}
+
+export function evaluateTimeSpecSeconds(spec: TimeSpec): number {
+  const value = evaluateScalarSpec(spec.value);
+
+  switch (spec.unit) {
+    case 'milliseconds':
+      return value / 1_000;
+    case 'seconds':
+      return value;
+    case 'minutes':
+      return value * 60;
+    case 'hours':
+      return value * 3_600;
+  }
 }
 
 export function getTerminalConditionKind(condition: TerminalCondition): TerminalConditionKind {
@@ -268,6 +303,10 @@ function evaluateTransition(transition: TransitionDefinition): EvaluatedTransiti
 
   if (transition.reward !== undefined) {
     evaluated.reward = evaluateRewardSpec(transition.reward);
+  }
+
+  if (transition.elapsedTime !== undefined) {
+    evaluated.elapsedTimeSeconds = evaluateTimeSpecSeconds(transition.elapsedTime);
   }
 
   if (transition.effects !== undefined) {
@@ -483,6 +522,43 @@ export function solveReachabilityProbability(
   }
 
   throw new Error('Reachability probability solver did not converge');
+}
+
+export function solveExpectedElapsedTime(model: EvaluatedModel): ExpectedElapsedTimeResult {
+  const expectedElapsedTimeSecondsByState = new Map<StateId, number>();
+
+  for (const state of model.states) {
+    expectedElapsedTimeSecondsByState.set(state.id, 0);
+  }
+
+  for (let iteration = 0; iteration < 10_000; iteration += 1) {
+    let maxDelta = 0;
+
+    for (const state of model.states) {
+      if (isTerminalState(state)) {
+        expectedElapsedTimeSecondsByState.set(state.id, 0);
+        continue;
+      }
+
+      const transitions = model.transitionsByState.get(state.id) ?? [];
+      const nextValue = transitions.reduce((sum, transition) => {
+        const elapsedTimeSeconds = transition.elapsedTimeSeconds ?? 0;
+        const target = selectExplicitSolverTransitionTarget(transition);
+        const downstream = expectedElapsedTimeSecondsByState.get(target) ?? 0;
+        return sum + transition.probability * (elapsedTimeSeconds + downstream);
+      }, 0);
+
+      const previous = expectedElapsedTimeSecondsByState.get(state.id) ?? 0;
+      maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));
+      expectedElapsedTimeSecondsByState.set(state.id, nextValue);
+    }
+
+    if (maxDelta < 1e-12) {
+      return { expectedElapsedTimeSecondsByState };
+    }
+  }
+
+  throw new Error('Expected elapsed time solver did not converge');
 }
 
 export function toOutputResult(model: DefinitionModel, solved: SolvedModel): OutputResult {
