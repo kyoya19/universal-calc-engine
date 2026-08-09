@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・寄与分解・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -30,15 +30,17 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして第三者が入力・評価できる形へ広げることです。
+現在の焦点は、最小キヨタン順方向エンジンを「個別APIの集合」から「第三者が一続きに入力・評価・説明できるforward v1境界」へまとめることです。
 
-期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間、`ratio_of_expectations` を明示した単位時間成果、名前付き複数成果軸、structured validation、solver convergence diagnostics、parameter/formula解決に加え、`schemaVersion: 1` の外部model documentを unknown / JSON からshape-checkし、parameter resolution、structured model validationを経て既存DefinitionModelへ接続する入力境界を追加しています。
+外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。
 
-外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。JSONをparseできたことだけを型安全とは扱いません。
+観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱いますが、観測値からparameterを推定する処理はまだ行いません。
 
-次段階では observation input surface preparation、非ドメイン固有のend-to-end利用例、必要性が確認できるricher transition effectsを優先します。
+統合forward facadeは、checked inputから expected reward、expected elapsed time、`ratio_of_expectations` reward rate、optional reachability、既存contribution、named reward axes、solver convergence diagnosticsまでを一つのadditive APIで返します。solverが設定回数内に収束しない場合は入力失敗と混同せず、`ok: true / converged: false` と最後の近似値・diagnosticsを返します。
 
-デジパチ・獣王・セイカタン本体を先に拡張せず、まず汎用モデル層と第三者利用境界を完成形へ近づけます。
+非ドメイン固有のexampleでは、同一モデルのparameterだけを変更し、expected reward・reachability・expected time・reward rate・contributionが連動して変わることを示します。
+
+次の優先判断は、forward v1の残差を再評価したうえで、scenario comparison / sensitivity / counterfactual explanationを先に強化するか、ObservationDataset上に最小reverse-estimation contractを置くかです。大型のデジパチ・獣王モデルを先に進めません。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -68,6 +70,10 @@ ParameterizedScalarSpec
 ParameterDefinition / ParameterRefScalarSpec / ScalarFormulaSpec
 ExternalModelDocument / ExternalModelPreparationResult
 ExternalInputIssue / ExternalInputStage
+ObservationDataset / ObservationRecord
+ObservationParseResult / ObservationValidationResult
+ForwardEvaluationResult / ForwardEvaluationOptions
+ForwardElapsedTimeOutput / ForwardReachabilityOutput
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
@@ -104,6 +110,14 @@ prepareExternalModelDocument
 prepareExternalModelInput
 prepareExternalModelJson
 externalModelPreparationResultToJson
+parseObservationDataset
+parseObservationDatasetJson
+validateObservationDataset
+observationDatasetToJson
+evaluatePreparedExternalModel
+evaluateExternalModelInput
+evaluateExternalModelJson
+forwardEvaluationResultToJson
 toOutputResult
 toContributionResult
 JSON helper
@@ -113,6 +127,27 @@ generated target planning boundary
 explicit-only solver target policy
 TeX / report / boundary digest boundary pieces
 ```
+
+## Forward v1 path
+
+```text
+external JSON / unknown
+→ checked external document
+→ parameter / formula resolution
+→ structured model validation
+→ expand
+→ evaluate
+→ expected reward
+→ expected elapsed time
+→ optional reachability
+→ ratio-of-expectations reward rate
+→ contribution
+→ optional named reward axes + axis contribution
+→ convergence diagnostics
+→ structured facade result
+```
+
+観測データはこの順方向pathへparameterとして注入しません。後の逆方向推定層から別入力として参照する前提です。
 
 ## Phase order
 
@@ -142,7 +177,10 @@ parameter/formula scalars resolve before the existing DefinitionModel pipeline
 parameter unit metadata is descriptive; automatic dimensional analysis is not implemented
 external JSON input is shape-checked from unknown before parameter resolution or model validation
 external input formulas use explicit expression trees; executable formula text is not accepted
-reverse estimation / Seikatan behavior is out of scope for the current phase
+observations remain separate from model parameters and solver results
+forward facade composes existing layers; it does not replace the lower-level APIs
+non-convergence remains visible through diagnostics and is not silently treated as a final converged result
+full reverse estimation / Seikatan behavior is not implemented yet
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
 ```
@@ -169,6 +207,16 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Solver convergence diagnostics](docs/solver-diagnostics.md)
 - [Parameter references and formula scalars](docs/parameterized-scalars.md)
 - [External model input boundary](docs/external-input.md)
+- [Observation input surface](docs/observations.md)
+- [Forward evaluation facade](docs/forward-evaluation.md)
+
+## Representative example
+
+```text
+packages/core/examples/forward_evaluation.ts
+```
+
+同じmodel structureに対してparameter値を差し替え、複数forward結果を一括評価する例です。特定ゲーム固有の値やルールはcoreへ持ち込みません。
 
 ## Historical / legacy docs notes
 
