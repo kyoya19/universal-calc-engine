@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・寄与分解・診断・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・寄与分解・診断・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -32,7 +32,7 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 現在の焦点は、すごろくPoCで固定した汎用状態遷移基盤を、最小キヨタン順方向エンジンとして実用的な評価軸へ広げることです。
 
-期待報酬に加えて到達確率を解ける状態まで進み、transitionに単位付き経過時間を与えて終端までの期待経過時間を秒単位へ正規化して解く基盤を追加しています。次段階では、期待報酬と期待経過時間を混同せずに単位時間成果へ接続すること、複数成果軸、structured validation、solver convergence diagnosticsを優先します。
+期待報酬、到達確率、単位付き経過時間、終端までの期待経過時間に加え、期待報酬と期待経過時間の比から単位時間成果を返す基盤まで進めています。この単位時間成果は `ratio_of_expectations` と明示し、各試行の報酬率の期待値とは区別します。次段階では複数成果軸、structured validation、solver convergence diagnosticsを優先します。
 
 デジパチ・獣王・セイカタンを先に拡張せず、まず汎用モデル層と最小キヨタン順方向評価を完成形へ近づけます。
 
@@ -49,6 +49,7 @@ OutputResult
 ContributionResult
 ReachabilityResult
 ExpectedElapsedTimeResult
+RewardRateResult
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
@@ -60,6 +61,7 @@ solveExpectedReward
 solveReachabilityProbability
 solveExpectedElapsedTime
 evaluateTimeSpecSeconds
+toRewardRateResult
 toOutputResult
 toContributionResult
 JSON helper

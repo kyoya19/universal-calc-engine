@@ -1,4 +1,5 @@
 export * from './model';
+export * from './reward_rate';
 export * from './tex';
 export * from './android_tex_display';
 export * from './state_generation';

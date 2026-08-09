@@ -27,6 +27,7 @@ The current implementation already has a small but working forward-evaluation ba
 - reachability probability solving
 - unit-aware transition elapsed time normalized to seconds
 - expected elapsed time solving through downstream transitions
+- reward-per-time output with explicit ratio-of-expectations semantics
 - output result conversion
 - contribution result conversion
 - transition probability audits
@@ -62,14 +63,13 @@ The project is not yet a complete general-purpose 成果還元関数 engine.
 
 Important gaps include:
 
-- reward-per-time and time-cost output semantics
-- domain-labeled win probability output
 - multiple reward axes
 - structured validation results
 - solver convergence diagnostics
 - parameter references
 - formula or expression scalar specs
 - richer transition effects
+- domain-labeled win probability output
 - observation input surfaces
 - reverse estimation design
 - external user input templates
@@ -126,16 +126,16 @@ Further micro-tests should be added only when they protect a new feature, fix a 
 
 The next production work should move the engine closer to a minimal Kiyotan-style forward evaluator.
 
-Reachability probability and expected elapsed time are now present in the core. Recommended next candidates, in order:
+Reachability probability, expected elapsed time, and ratio-of-expectations reward rate are now present in the core. Recommended next candidates, in order:
 
-1. Reward-per-time or time-cost output with explicit ratio semantics.
-2. Multiple reward axes.
-3. Structured model validation result.
-4. Solver convergence diagnostics.
-5. Parameter references and richer scalar specs.
-6. Clear input template for external users.
+1. Multiple reward axes.
+2. Structured model validation result.
+3. Solver convergence diagnostics.
+4. Parameter references and richer scalar specs.
+5. Clear input template for external users.
+6. Observation input surface preparation for later reverse estimation.
 
-The first recommended candidate is reward-per-time or time-cost output because the engine now has both expected reward and expected elapsed time. The implementation must distinguish a ratio of expectations from an expectation of per-run rates rather than treating those quantities as interchangeable.
+The first recommended candidate is multiple reward axes because the current `reward` scalar still collapses distinct outcome meanings into one numeric channel. Supporting named outcome axes is the next step toward keeping money, score, cost, or other outcomes distinct while still using the same transition model.
 
 ## Avoided paths
 
