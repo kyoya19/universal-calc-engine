@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { CompositeLikelihoodEstimationRequest, estimateCompositeParameterCandidates } from '../src/composite_likelihood_estimation';
+import {
+  CompositeLikelihoodEstimationRequest,
+  estimateCompositeParameterCandidates
+} from '../src/composite_likelihood_estimation';
 import { ExternalModelDocument } from '../src/external_input';
 import { ObservationDataset } from '../src/observations';
 
@@ -163,7 +166,11 @@ describe('composite transition plus scalar Gaussian likelihood', () => {
     expect(result.ok).toBe(false);
     if (!result.ok) {
       expect(result.stage).toBe('evidence_partition');
-      expect(result.issues.some((issue) => issue.code === 'unassigned_composite_evidence_observation')).toBe(true);
+      expect(
+        result.issues.some(
+          (issue) => issue.code === 'unassigned_composite_evidence_observation'
+        )
+      ).toBe(true);
     }
   });
 
@@ -195,21 +202,23 @@ describe('composite transition plus scalar Gaussian likelihood', () => {
       expect(result.stage).toBe('scalar_component');
       expect(result.componentStage).toBe('scalar_likelihood_contract');
       expect(
-        result.issues.some((issue) => issue.code === 'scalar_observation_predictor_unit_mismatch')
+        result.issues.some(
+          (issue) => issue.code === 'scalar_observation_predictor_unit_mismatch'
+        )
       ).toBe(true);
     }
   });
 
   it('requires the evidence-block independence assumption explicitly at runtime', () => {
-    const compositeRequest = request() as CompositeLikelihoodEstimationRequest & {
-      independenceAssumption: string;
-    };
-    compositeRequest.independenceAssumption = 'none';
+    const invalidRequest = {
+      ...request(),
+      independenceAssumption: 'none'
+    } as unknown as CompositeLikelihoodEstimationRequest;
 
     const result = estimateCompositeParameterCandidates(
       document(),
       observations(),
-      compositeRequest as CompositeLikelihoodEstimationRequest
+      invalidRequest
     );
     expect(result.ok).toBe(false);
     if (!result.ok) {
