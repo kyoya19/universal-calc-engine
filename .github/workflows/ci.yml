@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: write
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -39,6 +42,23 @@ jobs:
             npm-audit.json
             npm-audit-production.json
           if-no-files-found: error
+
+      - name: Commit npm-generated lockfile
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          cp package-lock.json /tmp/package-lock.json
+          git fetch origin "${GITHUB_HEAD_REF}"
+          git checkout -B "${GITHUB_HEAD_REF}" "origin/${GITHUB_HEAD_REF}"
+          cp /tmp/package-lock.json package-lock.json
+          git add package-lock.json
+          if git diff --cached --quiet; then
+            exit 0
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git commit -m "Lock npm dependency graph"
+          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Typecheck
         run: npm run typecheck
