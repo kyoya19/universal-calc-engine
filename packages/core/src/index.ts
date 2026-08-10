@@ -10,6 +10,7 @@ export * from './forward_evaluation';
 export * from './scenario_comparison';
 export * from './parameter_sensitivity';
 export * from './discrete_estimation';
+export * from './reverse_external_input';
 export * from './tex';
 export * from './android_tex_display';
 export * from './state_generation';
