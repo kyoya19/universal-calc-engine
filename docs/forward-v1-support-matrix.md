@@ -39,7 +39,9 @@ Status words mean:
 | Composite transition + scalar likelihood | supported with boundary | one unknown, finite candidates, explicit evidence partition and component composition | between-block conditional independence must be declared; no silent unused evidence |
 | Multi-parameter transition grid | supported with boundary | 2+ unknowns, exhaustive finite Cartesian transition-likelihood search | mandatory `maxCombinations`; finite-grid ties only |
 | Checked reverse external input | supported with boundary | generic versioned dispatcher covers all four current reverse method/search kinds | parser validates shape but does not normalize statistical semantics; legacy discrete-specific checked API remains |
-| JSON output | supported with boundary | structured result serializers | not one universal historical wire schema |
+| Reverse result handoff | supported with boundary | versioned structured summary for every current checked reverse result | summarizes existing semantics only; no posterior/confidence/causal claims are invented |
+| JSON output | supported with boundary | structured result and handoff serializers | not one universal historical wire schema |
+| Plain-text reverse handoff | supported with boundary | concise method/estimate/evidence/prior/posterior/warning/limitation view | convenience renderer, not an independent statistical calculation |
 | TeX output | partial | expected-reward/contribution helpers | not a complete forward/reverse renderer |
 | Report model | partial | graph/probability/generated-target reports | not a unified v1 report |
 | Transition effects | partial | `set_property` | richer actions require a demonstrated generic use case |
@@ -147,19 +149,34 @@ estimation
 
 and reuses the existing `ExternalModelDocument` and `ObservationDataset` parsers.
 
-At the shape stage it checks primitives and discriminants. It deliberately does **not**:
-
-- deduplicate candidates;
-- turn zero sigma into epsilon;
-- infer predictors from metric names;
-- convert units;
-- clip candidates to constraints;
-- truncate or sample a grid;
-- infer composite independence assumptions.
+At the shape stage it checks primitives and discriminants. It deliberately does **not** deduplicate candidates, repair sigma, infer predictors, convert units, clip constraints, truncate/sample a grid, or infer composite independence assumptions.
 
 Those remain explicit caller input or estimator semantics.
 
 The older discrete-specific checked functions remain supported for compatibility.
+
+## Reverse result handoff boundary
+
+The reverse handoff is an interpretation surface above `ExternalReverseMethodResult`:
+
+```text
+ExternalReverseMethodResult
+→ toReverseResultHandoff
+→ ReverseResultHandoff
+```
+
+It preserves method/search names, selection, method-specific ranking scores, used observations, constraints, explicit assumptions, search limits, diagnostics where present, prior/posterior flags, warnings, and limitations.
+
+It does not:
+
+- compute a new likelihood;
+- create confidence or credible intervals;
+- reinterpret likelihood ratios as posterior probability;
+- choose one value from a tie;
+- convert finite-grid identifiability into global structural identifiability;
+- convert estimation into causal attribution.
+
+Failure handoff preserves parse/shape/estimation stage and issues without fabricating a statistical result.
 
 ## Compatibility boundary
 
@@ -173,6 +190,7 @@ Current additions remain additive:
 - composite composition reuses existing component estimators;
 - multi-parameter grid reuses the transition scorer;
 - generic checked reverse input sits above existing typed estimators instead of replacing them;
+- reverse handoff sits above checked results instead of mutating estimator result types;
 - forward comparison/sensitivity remain analytical layers, not reverse aliases;
 - estimation is not causal attribution.
 
@@ -199,6 +217,7 @@ docs/reverse-external-methods.md
 docs/scalar-gaussian-estimation.md
 docs/composite-likelihood-estimation.md
 docs/multi-parameter-grid-estimation.md
+docs/reverse-result-handoff.md
 ```
 
 Representative entry points:
@@ -214,12 +233,15 @@ estimateCompositeParameterCandidates
 estimateMultiParameterGrid
 parseExternalReverseEstimationDocument / parseExternalReverseEstimationJson
 estimateExternalReverseInput / estimateExternalReverseJson
+toReverseResultHandoff
+reverseResultHandoffToJson
+formatReverseResultHandoffPlainText
 ```
 
 ## Completion judgment
 
 Kiyotan remains a coherent **forward v1 candidate**.
 
-Seikatan remains deliberately bounded but now has explicit finite-candidate likelihood/search contracts for transition counts, scalar Gaussian measurements, single-parameter composite evidence, and multi-parameter transition grids, with checked third-party input for every current reverse API family.
+Seikatan remains deliberately bounded but now has explicit finite-candidate likelihood/search contracts for transition counts, scalar Gaussian measurements, single-parameter composite evidence, and multi-parameter transition grids, checked third-party input for every current reverse API family, and a structured third-party result handoff across those methods.
 
-The previous third-party ingestion gap is therefore closed. Multi-parameter composite search should be added only when a generic use case demonstrates that multiple unknowns and both evidence families are required simultaneously. Bayesian prior/posterior remains lower priority until meaningful prior information is supplied.
+Multi-parameter composite search is analytically justifiable when multiple unknowns and both evidence families are required simultaneously, but remains a separate next-step decision. Bayesian prior/posterior remains lower priority until meaningful prior information is supplied.
