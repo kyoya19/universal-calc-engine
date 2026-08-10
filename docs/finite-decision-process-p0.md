@@ -106,7 +106,9 @@ P0 uses:
 
 ```text
 finite reachable states
-acyclic recursion
+acyclic decision dependencies
+explicit traversal stack
+post-order dynamic programming
 memoization
 deterministic enumeration of all returned stochastic outcomes
 ```
@@ -121,6 +123,40 @@ Diagnostics therefore record:
 simulationUsed: false
 numericRepresentation: javascript_number_float64
 ```
+
+## Stack-safety boundary
+
+The original P0 implementation used recursive `evaluateState(...)` calls. A sufficiently deep finite acyclic process could therefore exhaust the JavaScript runtime call stack before the configured analytical `maxDepth` boundary was reached.
+
+P0 now uses an explicit in-memory traversal stack and post-order memoized dynamic programming for both:
+
+```text
+evaluateFiniteDecisionPolicy
+optimizeFiniteDecisionExpectedReward
+```
+
+This changes the execution mechanism, not the public mathematical contract.
+
+The following remain unchanged:
+
+```text
+Bellman expectation semantics
+Bellman optimality semantics
+public function names and result types
+solverMethod diagnostic values
+stateKey memoization identity
+reachable-state-only traversal
+cycle rejection
+probability validation
+maxStates
+maxStateActionPairs
+maxDepth
+tie preservation
+```
+
+Deep finite chains are therefore governed by the configured analytical resource limits rather than by JavaScript function-recursion depth.
+
+`maxDepth` is still an explicit model-evaluation boundary. Removing function recursion does not remove or silently increase that limit.
 
 ## Validation boundary
 
