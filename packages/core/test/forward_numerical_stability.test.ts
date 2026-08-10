@@ -4,11 +4,11 @@ import { evaluateDefinitionModel } from '../src/forward_evaluation';
 import { DefinitionModel } from '../src/model';
 import { stableSum } from '../src/stable_sum';
 
-const rewardPermutations = [
-  [1e16, 1, -1e16, 3],
-  [1e16, -1e16, 1, 3],
-  [1, 3, 1e16, -1e16],
-  [-1e16, 3, 1e16, 1]
+const rewardPermutationCases = [
+  { rewards: [1e16, 1, -1e16, 3] },
+  { rewards: [1e16, -1e16, 1, 3] },
+  { rewards: [1, 3, 1e16, -1e16] },
+  { rewards: [-1e16, 3, 1e16, 1] }
 ];
 
 function cancellationModel(rewards: number[]): DefinitionModel {
@@ -29,9 +29,9 @@ describe('forward numerical stability', () => {
     expect(stableSum([2.5e15, 0.25, -2.5e15, 0.75])).toBe(1);
   });
 
-  it.each(rewardPermutations)(
+  it.each(rewardPermutationCases)(
     'keeps expected reward invariant across cancellation transition order %#',
-    (rewards) => {
+    ({ rewards }) => {
       const model = cancellationModel(rewards);
       const iterative = evaluateDefinitionModel(model);
       const direct = evaluateAcyclicDirectDefinitionModel(model);
