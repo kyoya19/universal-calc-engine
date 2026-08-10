@@ -11,6 +11,7 @@ import {
   RewardAxesSolvedModel,
   RewardAxisId
 } from './reward_axes';
+import { stableSum } from './stable_sum';
 
 export type SolverKind =
   | 'expected_reward'
@@ -144,11 +145,13 @@ export function solveExpectedRewardWithDiagnostics(
       }
 
       const transitions = model.transitionsByState.get(state.id) ?? [];
-      const nextValue = transitions.reduce((sum, transition) => {
-        const reward = transition.reward ?? 0;
-        const downstream = expectedRewardByState.get(transition.to) ?? 0;
-        return sum + transition.probability * (reward + downstream);
-      }, 0);
+      const nextValue = stableSum(
+        transitions.map((transition) => {
+          const reward = transition.reward ?? 0;
+          const downstream = expectedRewardByState.get(transition.to) ?? 0;
+          return transition.probability * (reward + downstream);
+        })
+      );
 
       const previous = expectedRewardByState.get(state.id) ?? 0;
       maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));
@@ -197,10 +200,12 @@ export function solveReachabilityProbabilityWithDiagnostics(
         nextValue = 0;
       } else {
         const transitions = model.transitionsByState.get(state.id) ?? [];
-        nextValue = transitions.reduce((sum, transition) => {
-          const downstream = reachabilityProbabilityByState.get(transition.to) ?? 0;
-          return sum + transition.probability * downstream;
-        }, 0);
+        nextValue = stableSum(
+          transitions.map((transition) => {
+            const downstream = reachabilityProbabilityByState.get(transition.to) ?? 0;
+            return transition.probability * downstream;
+          })
+        );
       }
 
       maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));
@@ -242,11 +247,13 @@ export function solveExpectedElapsedTimeWithDiagnostics(
       }
 
       const transitions = model.transitionsByState.get(state.id) ?? [];
-      const nextValue = transitions.reduce((sum, transition) => {
-        const elapsedTimeSeconds = transition.elapsedTimeSeconds ?? 0;
-        const downstream = expectedElapsedTimeSecondsByState.get(transition.to) ?? 0;
-        return sum + transition.probability * (elapsedTimeSeconds + downstream);
-      }, 0);
+      const nextValue = stableSum(
+        transitions.map((transition) => {
+          const elapsedTimeSeconds = transition.elapsedTimeSeconds ?? 0;
+          const downstream = expectedElapsedTimeSecondsByState.get(transition.to) ?? 0;
+          return transition.probability * (elapsedTimeSeconds + downstream);
+        })
+      );
 
       const previous = expectedElapsedTimeSecondsByState.get(state.id) ?? 0;
       maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));
@@ -286,11 +293,13 @@ export function solveExpectedRewardAxesWithDiagnostics(
         }
 
         const transitions = model.transitionsByState.get(state.id) ?? [];
-        const nextValue = transitions.reduce((sum, transition) => {
-          const reward = transition.rewardsByAxis?.[axis.id] ?? 0;
-          const downstream = expectedRewardByState.get(transition.to) ?? 0;
-          return sum + transition.probability * (reward + downstream);
-        }, 0);
+        const nextValue = stableSum(
+          transitions.map((transition) => {
+            const reward = transition.rewardsByAxis?.[axis.id] ?? 0;
+            const downstream = expectedRewardByState.get(transition.to) ?? 0;
+            return transition.probability * (reward + downstream);
+          })
+        );
 
         const previous = expectedRewardByState.get(state.id) ?? 0;
         maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));

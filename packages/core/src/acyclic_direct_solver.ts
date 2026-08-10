@@ -9,6 +9,7 @@ import {
   expandModel,
   isTerminalState
 } from './model';
+import { stableSum } from './stable_sum';
 import { ModelValidationResult, validateDefinitionModel } from './validation';
 
 export type AcyclicDirectSolverMethod = 'topological_reverse_dynamic_programming';
@@ -266,26 +267,29 @@ export function solveAcyclicDefinitionModel(
         expectedElapsedTimeSecondsByState.set(stateId, 0);
       } else {
         const transitions = evaluated.transitionsByState.get(stateId) ?? [];
-        let expectedReward = 0;
-        let expectedElapsedTimeSeconds = 0;
-
-        for (const transition of transitions) {
-          if (!isEffectiveDependency(transition.probability)) {
-            continue;
-          }
-          expectedReward +=
-            transition.probability *
-            ((transition.reward ?? 0) +
-              requiredValue(expectedRewardByState, transition.to, 'reward'));
-          expectedElapsedTimeSeconds +=
-            transition.probability *
-            ((transition.elapsedTimeSeconds ?? 0) +
-              requiredValue(
-                expectedElapsedTimeSecondsByState,
-                transition.to,
-                'elapsed-time'
-              ));
-        }
+        const effectiveTransitions = transitions.filter((transition) =>
+          isEffectiveDependency(transition.probability)
+        );
+        const expectedReward = stableSum(
+          effectiveTransitions.map(
+            (transition) =>
+              transition.probability *
+              ((transition.reward ?? 0) +
+                requiredValue(expectedRewardByState, transition.to, 'reward'))
+          )
+        );
+        const expectedElapsedTimeSeconds = stableSum(
+          effectiveTransitions.map(
+            (transition) =>
+              transition.probability *
+              ((transition.elapsedTimeSeconds ?? 0) +
+                requiredValue(
+                  expectedElapsedTimeSecondsByState,
+                  transition.to,
+                  'elapsed-time'
+                ))
+          )
+        );
 
         expectedRewardByState.set(stateId, expectedReward);
         expectedElapsedTimeSecondsByState.set(stateId, expectedElapsedTimeSeconds);
@@ -298,19 +302,19 @@ export function solveAcyclicDefinitionModel(
           reachabilityProbabilityByState.set(stateId, 0);
         } else {
           const transitions = evaluated.transitionsByState.get(stateId) ?? [];
-          let reachabilityProbability = 0;
-          for (const transition of transitions) {
-            if (!isEffectiveDependency(transition.probability)) {
-              continue;
-            }
-            reachabilityProbability +=
-              transition.probability *
-              requiredValue(
-                reachabilityProbabilityByState,
-                transition.to,
-                'reachability'
-              );
-          }
+          const reachabilityProbability = stableSum(
+            transitions
+              .filter((transition) => isEffectiveDependency(transition.probability))
+              .map(
+                (transition) =>
+                  transition.probability *
+                  requiredValue(
+                    reachabilityProbabilityByState,
+                    transition.to,
+                    'reachability'
+                  )
+              )
+          );
           reachabilityProbabilityByState.set(stateId, reachabilityProbability);
         }
       }
