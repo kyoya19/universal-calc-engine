@@ -30,11 +30,11 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、最小キヨタン順方向エンジンを「個別APIの集合」から「第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1境界」へまとめることです。
+現在の焦点は、最小キヨタン順方向エンジンを「第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1候補」として境界固定し、その上に最小セイカタンreverse-estimation契約を置けるか検証することです。
 
 外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。
 
-観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱いますが、観測値からparameterを推定する処理はまだ行いません。
+観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱いますが、現時点のforward v1は観測値からparameterを推定しません。
 
 統合forward facadeは、checked inputから expected reward、expected elapsed time、`ratio_of_expectations` reward rate、optional reachability、既存contribution、named reward axes、solver convergence diagnosticsまでを一つのadditive APIで返します。solverが設定回数内に収束しない場合は入力失敗と混同せず、`ok: true / converged: false` と最後の近似値・diagnosticsを返します。
 
@@ -44,7 +44,9 @@ one-at-a-time sensitivityはbaseline parameter setを固定し、指定した1 p
 
 contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。
 
-次の優先判断はforward v1のsupport matrix / handoff mapを固定するか、ObservationDataset上に最小reverse-estimation contractを置くかです。multi-parameter attributionはmethodを先に定義し、大型のデジパチ・獣王モデルを先に進めません。
+forward v1の正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。TeX/reportは現時点では部分的境界であり、forward facade全体の正式レンダラーではありません。
+
+次のproduction候補はObservationDataset上の最小reverse-estimation contractです。prior/posteriorを未導入のまま、まず離散candidateと明示的likelihood/scoreを区別して扱える小さなSeikatan PoCを優先します。multi-parameter attributionはmethodを先に定義し、大型のデジパチ・獣王モデルを先に進めません。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -221,6 +223,7 @@ non-convergence remains visible through diagnostics and is not silently treated 
 scenario comparison reuses one model structure and compares candidate - baseline
 one-at-a-time sensitivity changes one selected supplied parameter per comparison point
 contribution-row deltas are descriptive differences, not automatic unique causal attribution
+TeX/report are partial boundaries rather than complete forward-v1 renderers
 full reverse estimation / Seikatan behavior is not implemented yet
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
@@ -252,6 +255,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Forward evaluation facade](docs/forward-evaluation.md)
 - [Scenario comparison](docs/scenario-comparison.md)
 - [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
+- [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 
 ## Representative examples
 
