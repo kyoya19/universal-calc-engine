@@ -36,6 +36,8 @@ ObservationDatasetはmodel definition、supplied parameter、evaluated value、f
 
 セイカタン側は有限candidate searchを中心に、transition-count likelihood、scalar Gaussian likelihood、それらを明示的な条件付き独立仮定の下で合成するsingle-parameter composite likelihood、さらにfinite multi-parameter transition gridを持ちます。
 
+reverse側にもgeneric checked external input dispatcherがあり、既存discrete estimatorを含む4つの`estimationKind`を`unknown` / JSONからshape-checkして各typed estimatorへ接続します。旧discrete専用checked APIも互換のため残しています。
+
 ### Transition-count likelihood
 
 ```text
@@ -107,6 +109,50 @@ finite_cartesian_parameter_grid
 
 複数assignmentがbest scoreでtieした場合は `tied_best_assignments` として返し、`estimatedAssignment` を勝手に1つ選びません。これはsupplied finite grid上のidentifiability情報であり、因果寄与分解ではありません。
 
+## Checked reverse external path
+
+Generic public path:
+
+```text
+external JSON / unknown
+→ schemaVersion / estimationKind shape check
+→ existing ExternalModelDocument parser
+→ existing ObservationDataset parser
+→ estimation-specific request shape check
+→ existing typed estimator semantics
+→ structured result
+```
+
+Supported kinds:
+
+```text
+discrete_parameter_candidates
+scalar_gaussian_parameter_candidates
+composite_parameter_candidates
+multi_parameter_transition_grid
+```
+
+Public entry points:
+
+```text
+parseExternalReverseEstimationDocument
+parseExternalReverseEstimationJson
+estimateExternalReverseInput
+estimateExternalReverseJson
+```
+
+Failure stages remain separate:
+
+```text
+json_syntax
+shape
+estimation
+```
+
+The parser does not deduplicate candidates, truncate grids, invent sigma, infer predictors, convert units, auto-clip constraints, or infer composite independence assumptions. Estimator-semantic failures remain estimator-semantic failures.
+
+The established discrete-specific checked functions remain available unchanged for compatibility.
+
 ## Forward v1 path
 
 ```text
@@ -125,7 +171,7 @@ external JSON / unknown
 → structured forward result
 ```
 
-追加のforward analysis:
+Additional forward analysis:
 
 ```text
 same model + baseline/candidate parameters
@@ -138,59 +184,6 @@ same model + baseline + one selected parameter + candidate values
 ```
 
 scenario差やcontribution差をmethod未定義のまま一意な因果寄与とは扱いません。
-
-## Minimal Seikatan paths
-
-Single-parameter transition counts:
-
-```text
-one parameterized model
-+ one unknown parameter ID
-+ finite candidates
-+ complete state_count / transition_count departures
-→ transition log-likelihood ranking
-```
-
-Scalar Gaussian:
-
-```text
-one parameterized model
-+ one unknown parameter ID
-+ finite candidates
-+ scalar observations
-+ explicit predictor / sigma / unit
-→ converged model-side prediction
-→ Gaussian log-likelihood ranking
-```
-
-Composite evidence:
-
-```text
-one parameterized model
-+ one unknown parameter ID
-+ finite candidates
-+ explicit transition observation IDs
-+ explicit scalar likelihood bindings
-+ explicit between-block conditional independence assumption
-→ existing transition component score
-+ existing scalar Gaussian component score
-→ composite likelihood-score ranking
-```
-
-Multi-parameter transition grid:
-
-```text
-one parameterized model
-+ two or more unknown parameter IDs
-+ finite candidate set per parameter
-+ explicit maxCombinations
-+ transition-count evidence
-→ exhaustive Cartesian assignment search
-→ existing transition likelihood score
-→ unique best / tied best / no possible assignment
-```
-
-現在のchecked external reverse JSON envelopeはsingle-parameter transition-count estimatorへ接続しています。scalar Gaussian、composite、multi-parameter gridは現時点ではtyped public APIです。
 
 ## Implemented public surface highlights
 
@@ -207,6 +200,7 @@ ScalarGaussianParameterEstimationRequest / ScalarGaussianParameterEstimationResu
 CompositeLikelihoodEstimationRequest / CompositeLikelihoodEstimationResult
 MultiParameterGridEstimationRequest / MultiParameterGridEstimationResult
 ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
+ExternalReverseMethodDocument / ExternalReverseMethodResult
 ```
 
 Representative operations:
@@ -218,10 +212,12 @@ compareExternalModelScenarios
 analyzeParameterSensitivity
 parseObservationDataset / validateObservationDataset
 estimateDiscreteParameterCandidates
-estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
 estimateScalarGaussianParameterCandidates
 estimateCompositeParameterCandidates
 estimateMultiParameterGrid
+estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
+parseExternalReverseEstimationDocument / parseExternalReverseEstimationJson
+estimateExternalReverseInput / estimateExternalReverseJson
 ```
 
 ## Current boundaries
@@ -245,7 +241,9 @@ scalar Gaussian observation/predictor/error-model units must match exactly
 multi-parameter transition estimation is finite exhaustive grid search only
 multi-parameter grid requires an explicit hard combination limit
 tied best assignments are finite-grid non-identifiability only
+checked reverse parsing never normalizes statistical input
 continuous optimization remains unsupported
+multi-parameter composite likelihood remains unsupported
 Bayesian prior/posterior remains unsupported
 hidden-state inference remains unsupported
 multi-parameter causal attribution remains unsupported without a defined method
@@ -262,7 +260,8 @@ digipachi and Juoh remain later representative applications
 - [Scenario comparison](docs/scenario-comparison.md)
 - [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
 - [Minimal discrete reverse estimation](docs/discrete-estimation.md)
-- [Checked external reverse-estimation input](docs/reverse-external-input.md)
+- [Checked discrete reverse-estimation input](docs/reverse-external-input.md)
+- [Checked reverse input for all current methods](docs/reverse-external-methods.md)
 - [Scalar Gaussian reverse estimation](docs/scalar-gaussian-estimation.md)
 - [Composite likelihood estimation](docs/composite-likelihood-estimation.md)
 - [Finite multi-parameter grid estimation](docs/multi-parameter-grid-estimation.md)
@@ -287,9 +286,11 @@ packages/core/examples/multi_parameter_grid_estimation.ts
 
 ## Next priority
 
-composite likelihoodでanalytical compositionはsingle-parameterまで成立しました。次の実務上の大きな差は、typed-onlyのscalar Gaussian / composite / multi-parameter gridへchecked external JSON / unknown input境界を追加することです。
+現在のtyped reverse estimatorはすべてchecked external inputから到達できるため、第三者入力の主要gapは閉じています。
 
-その後、multi-parameter composite gridへ進む価値があるかをgeneric exampleで再評価します。Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
+次は、複数unknown parameterとtransition+scalar evidenceを同時に要求するgeneric use caseが本当にあるかを確認した上で、**finite multi-parameter composite grid**へ進む価値を再評価します。単なる機能数増加のためには実装しません。
+
+Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
 
 ## Verification
 

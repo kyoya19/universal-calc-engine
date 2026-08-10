@@ -16,7 +16,11 @@ docs/forward-v1-support-matrix.md
 
 Forward remains integrated through checked input, parameter/formula resolution, validation, expected reward/time/reachability, reward rate, contribution, named axes, diagnostics, scenario comparison, and one-at-a-time sensitivity.
 
-## Reverse capability 1: transition-count likelihood
+## Reverse likelihood and search contracts
+
+Current reverse contracts are deliberately separate.
+
+### Transition-count likelihood
 
 ```text
 conditional_transition_log_likelihood_without_multinomial_constant
@@ -28,112 +32,118 @@ For observed transition counts `k` and candidate probability `p`:
 score = sum k * log(p)
 ```
 
-The omitted multinomial coefficient is common to all candidates for the same transition observations and therefore does not affect ranking or likelihood ratios.
+The omitted multinomial coefficient is candidate-independent for the same observations.
 
-## Reverse capability 2: scalar Gaussian likelihood
+### Scalar Gaussian likelihood
 
 ```text
 conditionally_independent_gaussian_scalar_log_likelihood
 ```
 
-Every scalar observation is explicitly bound to a unit-bearing predictor. Current predictors are:
+Each scalar observation is explicitly bound to a unit-bearing predictor. Current predictors are:
 
 ```text
 expected_elapsed_time_seconds
 reward_axis_expected_value(axisId)
 ```
 
-For observation `y`, candidate prediction `mu`, and explicit `sigma > 0`:
+The Gaussian standard deviation is explicit, finite, and positive. Observation, predictor, and error-model units must match exactly. Non-converged model-side predictions are not used as likelihood evidence.
 
-```text
-log L = -log(sigma * sqrt(2*pi)) - 0.5 * ((y - mu) / sigma)^2
-```
-
-Observation unit, predictor unit, and error-model unit must match exactly. No sigma, epsilon, unit conversion, prior, or posterior is inferred. Non-converged predictions are rejected as evidence.
-
-## Reverse capability 3: explicit composite likelihood
-
-The repository now supports a single-parameter composite method:
+### Composite transition + scalar likelihood
 
 ```text
 transition_plus_scalar_gaussian_composite_log_likelihood
 ```
 
-This method does not duplicate either component probability formula. It calls the existing transition-count estimator and scalar Gaussian estimator on explicitly partitioned subsets of one ObservationDataset.
-
-The request must declare:
+The composite method reuses the existing transition and scalar estimators. It requires a complete evidence partition and the explicit assumption:
 
 ```text
 transition_and_scalar_evidence_conditionally_independent_given_candidate
 ```
 
-This means the caller asserts that, conditional on a candidate parameter value, the transition-count evidence block and scalar evidence block can be multiplied as likelihood components.
-
-The accepted dataset must be completely partitioned:
+Only then is:
 
 ```text
-transitionObservationIds
-scalarLikelihoods[].observationId
+totalScore = transitionScore + scalarGaussianScore
 ```
 
-Every observation is assigned to exactly one block. Unknown, overlapping, type-mismatched, duplicate, or unassigned evidence is rejected rather than silently ignored.
+used. The transition multinomial constant remains omitted, so total score is defined up to that candidate-independent constant.
 
-Under the declared assumption:
-
-```text
-totalScore
-= transitionLogLikelihoodScore
-+ scalarGaussianLogLikelihoodScore
-```
-
-The transition component still omits its candidate-independent multinomial constant, so the total is a candidate-ranking log-likelihood score up to that constant. Relative likelihood ratios remain valid because the constant cancels.
-
-Component behavior stays visible:
-
-- transition zero-probability impossible events make the composite candidate impossible;
-- scalar predictor non-convergence rejects that candidate;
-- component-level scores and diagnostics remain available;
-- used observation IDs are reported separately for transition, scalar, and combined evidence.
-
-The contract is documented in:
-
-```text
-docs/composite-likelihood-estimation.md
-```
-
-## Reverse capability 4: finite multi-parameter transition grid
+### Finite multi-parameter transition grid
 
 ```text
 finite_cartesian_parameter_grid
 ```
 
-Two or more distinct declared parameter dimensions can be searched exhaustively over finite candidate sets. Per-parameter constraints are applied before Cartesian expansion and `maxCombinations` is mandatory.
+Two or more unknown parameter dimensions are exhaustively searched over finite eligible candidate sets. `maxCombinations` is mandatory. No silent truncation, sampling, or adaptive search is substituted.
 
-The grid does not define another likelihood. Every assignment is scored through the established transition-count estimator.
+The grid reuses the established transition-count likelihood and reports finite-grid identifiability through unique best, tied best, or no possible assignment.
 
-Result identifiability is limited to the supplied finite grid:
+## Checked external reverse input
 
-```text
-unique_best_assignment
-tied_best_assignments
-no_possible_assignment
-```
+The previous third-party reverse-input gap is now closed for every current reverse API family.
 
-A tie leaves `estimatedAssignment` null. This is not a global structural-identifiability proof and not causal attribution.
-
-## Reverse input boundary
-
-The checked reverse external JSON envelope currently targets only the single-parameter transition-count estimator.
-
-The following production APIs are still typed-only:
+The generic checked dispatcher supports:
 
 ```text
-estimateScalarGaussianParameterCandidates
-estimateCompositeParameterCandidates
-estimateMultiParameterGrid
+discrete_parameter_candidates
+scalar_gaussian_parameter_candidates
+composite_parameter_candidates
+multi_parameter_transition_grid
 ```
 
-This is now the most concrete third-party usability gap.
+Public entry points are:
+
+```text
+parseExternalReverseEstimationDocument
+parseExternalReverseEstimationJson
+estimateExternalReverseInput
+estimateExternalReverseJson
+```
+
+The established discrete-specific checked entry points remain supported.
+
+The generic boundary reuses the existing checked model and ObservationDataset parsers and keeps:
+
+```text
+json_syntax
+shape
+estimation
+```
+
+separate.
+
+It deliberately does not:
+
+- deduplicate candidates;
+- infer predictors from metric strings;
+- invent Gaussian sigma or epsilon;
+- convert units;
+- clip constraints;
+- truncate or sample multi-parameter grids;
+- infer composite independence assumptions;
+- copy observations into model parameters.
+
+Estimator-semantic violations therefore remain visible as estimator failures instead of being repaired by the parser.
+
+The contract is documented in:
+
+```text
+docs/reverse-external-methods.md
+```
+
+## Prior / posterior boundary
+
+All current reverse likelihood/search paths remain non-Bayesian:
+
+```text
+priorUsed: false
+posteriorComputed: false
+```
+
+`relativeLikelihoodToBest` is a likelihood ratio, not a posterior probability.
+
+Bayesian work must not begin by renaming existing fields. It must define explicit prior mass/density, combine it with likelihood, normalize evidence, and return a separately named posterior result.
 
 ## What remains unsupported
 
@@ -153,56 +163,37 @@ The reverse layer still does not implement:
 
 ## Highest-value next candidates
 
-### 1. Checked external input for typed-only reverse methods
+### 1. Multi-parameter composite finite grid — conditional candidate
 
-This is now the strongest next step.
-
-The external boundary should use discriminated, versioned request envelopes for at least:
+This should be implemented only if a representative generic use case genuinely requires both:
 
 ```text
-scalar Gaussian estimation
-composite transition + scalar estimation
-multi-parameter transition grid
+multiple unknown parameters
+and
+transition + scalar evidence
 ```
 
-It should reuse the existing model and ObservationDataset parsers and keep these stages separate:
+If justified, it should reuse `estimateCompositeParameterCandidates` as the per-assignment scorer, mirror the explicit Cartesian size controls of `estimateMultiParameterGrid`, and preserve component scores, evidence partition, finite-grid ties, and the declared between-block independence assumption.
 
-```text
-JSON syntax
-shape
-model document parsing
-observation parsing
-request shape
-estimator semantics
-```
+It must not become causal attribution.
 
-The parser must not:
+### 2. Reverse result/report handoff
 
-- deduplicate candidates;
-- infer predictor from metric names;
-- invent sigma;
-- convert units;
-- truncate or sample a grid;
-- auto-clip constraints;
-- infer the composite independence assumption.
+Before adding more statistical families, assess whether third-party use now needs a concise versioned summary/report boundary for the current reverse results. Existing TeX/report helpers are still forward/legacy partial surfaces rather than a unified reverse renderer.
 
-### 2. Multi-parameter composite grid
-
-This becomes analytically meaningful only if a generic example requires both multiple unknown parameters and both evidence families at once.
-
-If implemented, it should reuse the current single-parameter composite scorer in the same way the transition grid reuses the single-parameter transition scorer. Candidate-space limits and finite-grid ties must remain explicit.
+Any such work should summarize existing statistical semantics without inventing confidence levels or posterior language.
 
 ### 3. Bayesian prior / posterior
 
 Still lower priority.
 
-It should be introduced only with a concrete source of meaningful prior mass or density. The implementation must genuinely calculate and normalize:
+Proceed only if a concrete use case supplies meaningful prior information. Then explicitly implement:
 
 ```text
-prior × likelihood → posterior
+prior × likelihood -> evidence normalization -> posterior
 ```
 
-Existing `relativeLikelihoodToBest` values must not be renamed or reinterpreted as posterior probabilities.
+with separate prior, likelihood, evidence, and posterior types.
 
 ## Forward boundaries remain unchanged
 
@@ -221,7 +212,7 @@ Do not move the core toward these without a generic reason:
 
 ## Small-test boundary
 
-New tests should mainly protect production behavior, statistical/mathematical semantics, compatibility boundaries, and meaningful failure cases. Near-duplicate formatting/copy tests are not the project objective.
+New tests should mainly protect production behavior, mathematical/statistical semantics, compatibility boundaries, and meaningful failure cases. Near-duplicate formatting/copy tests are not the project objective.
 
 ## Handoff reading order
 
@@ -230,33 +221,36 @@ README.md
 docs/forward-v1-support-matrix.md
 docs/observations.md
 docs/discrete-estimation.md
-docs/reverse-external-input.md
 docs/scalar-gaussian-estimation.md
 docs/composite-likelihood-estimation.md
 docs/multi-parameter-grid-estimation.md
+docs/reverse-external-input.md
+docs/reverse-external-methods.md
 docs/outcome-continuation-review.md
 ```
 
 ## Suggested assistant prompt
 
 ```text
-Treat Kiyotan as the forward-v1 candidate in docs/forward-v1-support-matrix.md.
-Treat transition-count likelihood, scalar Gaussian likelihood, explicit single-parameter composite likelihood, and finite multi-parameter transition grid as separate Seikatan contracts.
+Treat Kiyotan as the forward-v1 candidate defined by docs/forward-v1-support-matrix.md.
+Treat transition likelihood, scalar Gaussian likelihood, single-parameter composite likelihood, and finite multi-parameter transition grid as separate explicit Seikatan contracts.
+Treat parseExternalReverseEstimationDocument / Json and estimateExternalReverseInput / Json as the checked third-party boundary for every current reverse method.
 Keep observation, predictor, evidence block, candidate/assignment, likelihood, score, estimate, prior, posterior, and causal attribution distinct.
 Do not infer sigma, units, independence assumptions, priors, grid truncation, or attribution methods.
-Prefer checked external envelopes for the typed-only reverse APIs next unless a generic use case proves multi-parameter composite evidence is the larger blocker.
+Only add multi-parameter composite likelihood if a generic use case demonstrates that both multiple unknowns and mixed evidence are required simultaneously.
 Keep Bayesian semantics and large domain specialization out of scope until justified.
 ```
 
 ## Current interpretation
 
-The project has now crossed six meaningful boundaries:
+The project has crossed seven meaningful boundaries:
 
 1. the forward engine is an integrated v1 candidate;
 2. transition counts support explicit finite likelihood estimation;
-3. single-parameter transition estimation has checked third-party JSON input;
-4. scalar observations support explicit Gaussian likelihood with predictor/unit/sigma/convergence semantics;
-5. transition likelihood supports exhaustive finite multi-parameter assignments with hard search-size limits and finite-grid identifiability;
-6. transition and scalar evidence can be composed for one unknown parameter only when evidence partition and between-block conditional independence are explicit.
+3. scalar observations support explicit Gaussian likelihood;
+4. transition and scalar evidence can be explicitly composed for one unknown parameter;
+5. transition likelihood supports exhaustive finite multi-parameter search with a hard limit;
+6. reverse parsing keeps statistical semantics distinct from JSON/shape validation;
+7. every currently implemented reverse method/search family is reachable through a checked external JSON/unknown boundary.
 
-The next work should close reverse third-party input gaps before increasing statistical complexity merely for breadth.
+The next work should be justified by a demonstrated analytical or handoff gap, not by roadmap momentum alone.
