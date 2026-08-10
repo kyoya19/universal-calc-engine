@@ -17,6 +17,12 @@ import {
   parseExternalModelDocument
 } from './external_input';
 import {
+  MultiParameterCompositeGridEstimationFailure,
+  MultiParameterCompositeGridEstimationRequest,
+  MultiParameterCompositeGridEstimationSuccess,
+  estimateMultiParameterCompositeGrid
+} from './multi_parameter_composite_grid_estimation';
+import {
   MultiParameterGridEstimationFailure,
   MultiParameterGridEstimationRequest,
   MultiParameterGridEstimationSuccess,
@@ -48,7 +54,8 @@ export type CheckedReverseEstimationKind =
   | 'discrete_parameter_candidates'
   | 'scalar_gaussian_parameter_candidates'
   | 'composite_parameter_candidates'
-  | 'multi_parameter_transition_grid';
+  | 'multi_parameter_transition_grid'
+  | 'multi_parameter_composite_grid';
 
 export type ExternalScalarGaussianEstimationDocument = {
   schemaVersion: 1;
@@ -74,11 +81,20 @@ export type ExternalMultiParameterGridEstimationDocument = {
   request: MultiParameterGridEstimationRequest;
 };
 
+export type ExternalMultiParameterCompositeGridEstimationDocument = {
+  schemaVersion: 1;
+  estimationKind: 'multi_parameter_composite_grid';
+  modelDocument: ExternalModelDocument;
+  observationDataset: ObservationDataset;
+  request: MultiParameterCompositeGridEstimationRequest;
+};
+
 export type ExternalReverseMethodDocument =
   | ExternalDiscreteEstimationDocument
   | ExternalScalarGaussianEstimationDocument
   | ExternalCompositeEstimationDocument
-  | ExternalMultiParameterGridEstimationDocument;
+  | ExternalMultiParameterGridEstimationDocument
+  | ExternalMultiParameterCompositeGridEstimationDocument;
 
 export type ExternalReverseMethodParseResult =
   | { ok: true; document: ExternalReverseMethodDocument }
@@ -112,13 +128,20 @@ export type ExternalReverseMethodSuccess =
       estimationKind: 'multi_parameter_transition_grid';
       document: ExternalMultiParameterGridEstimationDocument;
       estimation: MultiParameterGridEstimationSuccess;
+    }
+  | {
+      ok: true;
+      estimationKind: 'multi_parameter_composite_grid';
+      document: ExternalMultiParameterCompositeGridEstimationDocument;
+      estimation: MultiParameterCompositeGridEstimationSuccess;
     };
 
 export type ExternalReverseEstimatorFailure =
   | DiscreteParameterEstimationFailure
   | ScalarGaussianParameterEstimationFailure
   | CompositeLikelihoodEstimationFailure
-  | MultiParameterGridEstimationFailure;
+  | MultiParameterGridEstimationFailure
+  | MultiParameterCompositeGridEstimationFailure;
 
 export type ExternalReverseMethodResult =
   | ExternalReverseMethodSuccess
@@ -147,6 +170,9 @@ type ParsedEnvelopeCommon = {
   modelDocument: ExternalModelDocument | undefined;
   observationDataset: ObservationDataset | undefined;
 };
+
+const COMPOSITE_INDEPENDENCE: CompositeEvidenceIndependenceAssumption =
+  'transition_and_scalar_evidence_conditionally_independent_given_candidate';
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -510,6 +536,24 @@ function parseStringArray(
   return values;
 }
 
+function parseCompositeAssumption(
+  input: unknown,
+  path: string,
+  issues: ReverseExternalInputIssue[]
+): CompositeEvidenceIndependenceAssumption | undefined {
+  if (input !== COMPOSITE_INDEPENDENCE) {
+    issues.push(
+      shapeIssue(
+        'unsupported_independence_assumption',
+        path,
+        `independenceAssumption must be ${COMPOSITE_INDEPENDENCE}`
+      )
+    );
+    return undefined;
+  }
+  return COMPOSITE_INDEPENDENCE;
+}
+
 function parseCompositeRequest(
   input: unknown,
   path: string,
@@ -531,22 +575,16 @@ function parseCompositeRequest(
     issues
   );
   const solver = parseSolverOptions(input.solver, `${path}.solver`, issues);
-  const expectedAssumption: CompositeEvidenceIndependenceAssumption =
-    'transition_and_scalar_evidence_conditionally_independent_given_candidate';
-  if (input.independenceAssumption !== expectedAssumption) {
-    issues.push(
-      shapeIssue(
-        'unsupported_independence_assumption',
-        `${path}.independenceAssumption`,
-        `independenceAssumption must be ${expectedAssumption}`
-      )
-    );
-  }
+  const independenceAssumption = parseCompositeAssumption(
+    input.independenceAssumption,
+    `${path}.independenceAssumption`,
+    issues
+  );
   if (
     common === undefined ||
     transitionObservationIds === undefined ||
     scalarLikelihoods === undefined ||
-    input.independenceAssumption !== expectedAssumption
+    independenceAssumption === undefined
   ) {
     return undefined;
   }
@@ -554,7 +592,7 @@ function parseCompositeRequest(
     ...common,
     transitionObservationIds,
     scalarLikelihoods,
-    independenceAssumption: expectedAssumption,
+    independenceAssumption,
     ...(solver !== undefined ? { solver } : {})
   };
 }
@@ -584,6 +622,43 @@ function parseParameterDimension(
   };
 }
 
+function parseParameterDimensions(
+  input: unknown,
+  path: string,
+  issues: ReverseExternalInputIssue[]
+): ParameterCandidateDimension[] | undefined {
+  if (!Array.isArray(input)) {
+    issues.push(shapeIssue('expected_array', path, 'parameters must be an array'));
+    return undefined;
+  }
+  const parameters: ParameterCandidateDimension[] = [];
+  input.forEach((dimension, index) => {
+    const parsed = parseParameterDimension(dimension, `${path}[${index}]`, issues);
+    if (parsed !== undefined) {
+      parameters.push(parsed);
+    }
+  });
+  return parameters;
+}
+
+function parseMaxCombinations(
+  input: unknown,
+  path: string,
+  issues: ReverseExternalInputIssue[]
+): number | undefined {
+  if (typeof input !== 'number' || !Number.isFinite(input)) {
+    issues.push(
+      shapeIssue(
+        'expected_finite_number',
+        path,
+        'maxCombinations must be a finite number'
+      )
+    );
+    return undefined;
+  }
+  return input;
+}
+
 function parseGridRequest(
   input: unknown,
   path: string,
@@ -593,34 +668,66 @@ function parseGridRequest(
     issues.push(shapeIssue('expected_object', path, 'Expected an estimation request object'));
     return undefined;
   }
-  const parameters: ParameterCandidateDimension[] = [];
-  if (!Array.isArray(input.parameters)) {
-    issues.push(shapeIssue('expected_array', `${path}.parameters`, 'parameters must be an array'));
-  } else {
-    input.parameters.forEach((dimension, index) => {
-      const parsed = parseParameterDimension(dimension, `${path}.parameters[${index}]`, issues);
-      if (parsed !== undefined) {
-        parameters.push(parsed);
-      }
-    });
+  const parameters = parseParameterDimensions(input.parameters, `${path}.parameters`, issues);
+  const maxCombinations = parseMaxCombinations(
+    input.maxCombinations,
+    `${path}.maxCombinations`,
+    issues
+  );
+  if (parameters === undefined || maxCombinations === undefined) {
+    return undefined;
   }
-  if (typeof input.maxCombinations !== 'number' || !Number.isFinite(input.maxCombinations)) {
-    issues.push(
-      shapeIssue(
-        'expected_finite_number',
-        `${path}.maxCombinations`,
-        'maxCombinations must be a finite number'
-      )
-    );
+  return { parameters, maxCombinations };
+}
+
+function parseCompositeGridRequest(
+  input: unknown,
+  path: string,
+  issues: ReverseExternalInputIssue[]
+): MultiParameterCompositeGridEstimationRequest | undefined {
+  if (!isRecord(input)) {
+    issues.push(shapeIssue('expected_object', path, 'Expected an estimation request object'));
+    return undefined;
   }
+  const parameters = parseParameterDimensions(input.parameters, `${path}.parameters`, issues);
+  const maxCombinations = parseMaxCombinations(
+    input.maxCombinations,
+    `${path}.maxCombinations`,
+    issues
+  );
+  const transitionObservationIds = parseStringArray(
+    input.transitionObservationIds,
+    `${path}.transitionObservationIds`,
+    issues
+  );
+  const scalarLikelihoods = parseScalarLikelihoods(
+    input.scalarLikelihoods,
+    `${path}.scalarLikelihoods`,
+    issues
+  );
+  const solver = parseSolverOptions(input.solver, `${path}.solver`, issues);
+  const independenceAssumption = parseCompositeAssumption(
+    input.independenceAssumption,
+    `${path}.independenceAssumption`,
+    issues
+  );
   if (
-    !Array.isArray(input.parameters) ||
-    typeof input.maxCombinations !== 'number' ||
-    !Number.isFinite(input.maxCombinations)
+    parameters === undefined ||
+    maxCombinations === undefined ||
+    transitionObservationIds === undefined ||
+    scalarLikelihoods === undefined ||
+    independenceAssumption === undefined
   ) {
     return undefined;
   }
-  return { parameters, maxCombinations: input.maxCombinations };
+  return {
+    parameters,
+    maxCombinations,
+    transitionObservationIds,
+    scalarLikelihoods,
+    independenceAssumption,
+    ...(solver !== undefined ? { solver } : {})
+  };
 }
 
 function parseCommonEnvelope(
@@ -665,7 +772,8 @@ export function parseExternalReverseEstimationDocument(
   const recognized =
     kind === 'scalar_gaussian_parameter_candidates' ||
     kind === 'composite_parameter_candidates' ||
-    kind === 'multi_parameter_transition_grid';
+    kind === 'multi_parameter_transition_grid' ||
+    kind === 'multi_parameter_composite_grid';
   if (!recognized) {
     issues.push(
       shapeIssue(
@@ -681,6 +789,7 @@ export function parseExternalReverseEstimationDocument(
     | ScalarGaussianParameterEstimationRequest
     | CompositeLikelihoodEstimationRequest
     | MultiParameterGridEstimationRequest
+    | MultiParameterCompositeGridEstimationRequest
     | undefined;
 
   if (kind === 'scalar_gaussian_parameter_candidates') {
@@ -689,6 +798,8 @@ export function parseExternalReverseEstimationDocument(
     request = parseCompositeRequest(input.request, '$.request', issues);
   } else if (kind === 'multi_parameter_transition_grid') {
     request = parseGridRequest(input.request, '$.request', issues);
+  } else if (kind === 'multi_parameter_composite_grid') {
+    request = parseCompositeGridRequest(input.request, '$.request', issues);
   }
 
   if (
@@ -702,40 +813,64 @@ export function parseExternalReverseEstimationDocument(
     return { ok: false, stage: 'shape', issues };
   }
 
-  if (kind === 'scalar_gaussian_parameter_candidates') {
-    return {
-      ok: true,
-      document: {
-        schemaVersion: 1,
-        estimationKind: kind,
-        modelDocument: common.modelDocument,
-        observationDataset: common.observationDataset,
-        request: request as ScalarGaussianParameterEstimationRequest
-      }
-    };
+  switch (kind) {
+    case 'scalar_gaussian_parameter_candidates':
+      return {
+        ok: true,
+        document: {
+          schemaVersion: 1,
+          estimationKind: kind,
+          modelDocument: common.modelDocument,
+          observationDataset: common.observationDataset,
+          request: request as ScalarGaussianParameterEstimationRequest
+        }
+      };
+    case 'composite_parameter_candidates':
+      return {
+        ok: true,
+        document: {
+          schemaVersion: 1,
+          estimationKind: kind,
+          modelDocument: common.modelDocument,
+          observationDataset: common.observationDataset,
+          request: request as CompositeLikelihoodEstimationRequest
+        }
+      };
+    case 'multi_parameter_transition_grid':
+      return {
+        ok: true,
+        document: {
+          schemaVersion: 1,
+          estimationKind: kind,
+          modelDocument: common.modelDocument,
+          observationDataset: common.observationDataset,
+          request: request as MultiParameterGridEstimationRequest
+        }
+      };
+    case 'multi_parameter_composite_grid':
+      return {
+        ok: true,
+        document: {
+          schemaVersion: 1,
+          estimationKind: kind,
+          modelDocument: common.modelDocument,
+          observationDataset: common.observationDataset,
+          request: request as MultiParameterCompositeGridEstimationRequest
+        }
+      };
+    default:
+      return {
+        ok: false,
+        stage: 'shape',
+        issues: [
+          shapeIssue(
+            'unsupported_estimation_kind',
+            '$.estimationKind',
+            'Unsupported reverse estimationKind'
+          )
+        ]
+      };
   }
-  if (kind === 'composite_parameter_candidates') {
-    return {
-      ok: true,
-      document: {
-        schemaVersion: 1,
-        estimationKind: kind,
-        modelDocument: common.modelDocument,
-        observationDataset: common.observationDataset,
-        request: request as CompositeLikelihoodEstimationRequest
-      }
-    };
-  }
-  return {
-    ok: true,
-    document: {
-      schemaVersion: 1,
-      estimationKind: 'multi_parameter_transition_grid',
-      modelDocument: common.modelDocument,
-      observationDataset: common.observationDataset,
-      request: request as MultiParameterGridEstimationRequest
-    }
-  };
 }
 
 export function parseExternalReverseEstimationJson(
@@ -838,6 +973,16 @@ function runParsedExternalReverseEstimation(
     }
     case 'multi_parameter_transition_grid': {
       const estimation = estimateMultiParameterGrid(
+        document.modelDocument,
+        document.observationDataset,
+        document.request
+      );
+      return estimation.ok
+        ? { ok: true, estimationKind: document.estimationKind, document, estimation }
+        : estimationFailureResult(document.estimationKind, estimation);
+    }
+    case 'multi_parameter_composite_grid': {
+      const estimation = estimateMultiParameterCompositeGrid(
         document.modelDocument,
         document.observationDataset,
         document.request
