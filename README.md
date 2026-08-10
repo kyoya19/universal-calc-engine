@@ -38,6 +38,8 @@ ObservationDatasetはmodel definition、supplied parameter、evaluated value、f
 
 reverse側にもgeneric checked external input dispatcherがあり、既存discrete estimatorを含む4つの`estimationKind`を`unknown` / JSONからshape-checkして各typed estimatorへ接続します。旧discrete専用checked APIも互換のため残しています。
 
+さらに、全current reverse methodの結果を同じ解釈語彙で第三者へ渡すversioned `ReverseResultHandoff` を持ちます。これはraw estimator resultを変更せず、method/search、selection、ranking、evidence、constraints、assumptions、diagnostics、prior/posterior status、warnings、limitationsを構造化します。
+
 ### Transition-count likelihood
 
 ```text
@@ -153,6 +155,48 @@ The parser does not deduplicate candidates, truncate grids, invent sigma, infer 
 
 The established discrete-specific checked functions remain available unchanged for compatibility.
 
+## Reverse result handoff
+
+Current reverse results can be converted into one structured third-party handoff without changing the underlying estimator types.
+
+```text
+ExternalReverseMethodResult
+→ toReverseResultHandoff
+→ ReverseResultHandoff
+```
+
+Public helpers:
+
+```text
+toReverseResultHandoff
+reverseResultHandoffToJson
+formatReverseResultHandoffPlainText
+```
+
+Success handoffs preserve:
+
+```text
+estimationKind
+method / component methods / searchMethod
+selected estimate or assignment
+best candidates / assignments
+method-specific ranking scores
+used observation IDs
+composite evidence blocks
+constraints
+explicit assumptions
+solver diagnostics where present
+finite-grid search limits where present
+priorUsed
+posteriorComputed
+warnings
+limitations
+```
+
+The handoff does not create confidence intervals, credible intervals, posterior probabilities, global structural-identifiability claims, or causal attribution.
+
+`relativeLikelihoodToBest` remains a likelihood ratio. A tie remains a tie. Failed parse/shape/estimation results remain failure handoffs rather than fabricated statistical results.
+
 ## Forward v1 path
 
 ```text
@@ -201,6 +245,7 @@ CompositeLikelihoodEstimationRequest / CompositeLikelihoodEstimationResult
 MultiParameterGridEstimationRequest / MultiParameterGridEstimationResult
 ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
 ExternalReverseMethodDocument / ExternalReverseMethodResult
+ReverseResultHandoff
 ```
 
 Representative operations:
@@ -218,6 +263,9 @@ estimateMultiParameterGrid
 estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
 parseExternalReverseEstimationDocument / parseExternalReverseEstimationJson
 estimateExternalReverseInput / estimateExternalReverseJson
+toReverseResultHandoff
+reverseResultHandoffToJson
+formatReverseResultHandoffPlainText
 ```
 
 ## Current boundaries
@@ -242,6 +290,7 @@ multi-parameter transition estimation is finite exhaustive grid search only
 multi-parameter grid requires an explicit hard combination limit
 tied best assignments are finite-grid non-identifiability only
 checked reverse parsing never normalizes statistical input
+reverse handoff summarizes existing semantics but does not create new inference
 continuous optimization remains unsupported
 multi-parameter composite likelihood remains unsupported
 Bayesian prior/posterior remains unsupported
@@ -265,6 +314,7 @@ digipachi and Juoh remain later representative applications
 - [Scalar Gaussian reverse estimation](docs/scalar-gaussian-estimation.md)
 - [Composite likelihood estimation](docs/composite-likelihood-estimation.md)
 - [Finite multi-parameter grid estimation](docs/multi-parameter-grid-estimation.md)
+- [Reverse result handoff](docs/reverse-result-handoff.md)
 - [成果還元関数 continuation review](docs/outcome-continuation-review.md)
 - [Named reward axes](docs/reward-axes.md)
 - [Structured validation](docs/structured-validation.md)
@@ -280,15 +330,16 @@ packages/core/examples/discrete_estimation.ts
 packages/core/examples/scalar_gaussian_estimation.ts
 packages/core/examples/composite_likelihood_estimation.ts
 packages/core/examples/multi_parameter_grid_estimation.ts
+packages/core/examples/reverse_result_handoff.ts
 ```
 
 特定ゲーム固有の値やルールはgeneric coreへ持ち込みません。
 
 ## Next priority
 
-現在のtyped reverse estimatorはすべてchecked external inputから到達できるため、第三者入力の主要gapは閉じています。
+current reverse estimatorはすべてchecked external inputから到達でき、結果もversioned handoffへ変換できるため、第三者input/resultの主要gapは閉じつつあります。
 
-次は、複数unknown parameterとtransition+scalar evidenceを同時に要求するgeneric use caseが本当にあるかを確認した上で、**finite multi-parameter composite grid**へ進む価値を再評価します。単なる機能数増加のためには実装しません。
+次のanalytical candidateとして、multiple unknown parametersとtransition + scalar evidenceを同時に必要とするgeneric caseに対する **finite multi-parameter composite grid** は正当化できます。ただし、既存`estimateCompositeParameterCandidates`の再利用、mandatory `maxCombinations`、finite-grid identifiability、component score保持を前提に精査します。
 
 Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
 
