@@ -15,6 +15,7 @@ export * from './multi_parameter_grid_estimation';
 export * from './composite_likelihood_estimation';
 export * from './reverse_external_input';
 export * from './reverse_external_methods';
+export * from './reverse_result_handoff';
 export * from './tex';
 export * from './android_tex_display';
 export * from './state_generation';
