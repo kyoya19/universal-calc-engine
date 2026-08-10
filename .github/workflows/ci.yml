@@ -19,8 +19,11 @@ jobs:
         with:
           node-version: 20
 
-      - name: Install dependencies
-        run: npm install
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Audit production dependencies
+        run: npm run audit:production
 
       - name: Typecheck
         run: npm run typecheck
