@@ -3,9 +3,26 @@
   "version": "0.0.1",
   "private": true,
   "type": "module",
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "COMMERCIAL-LICENSE.md"
+  ],
+  "license": "SEE LICENSE IN COMMERCIAL-LICENSE.md",
   "scripts": {
     "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "build": "node scripts/build-package.mjs",
+    "package:check": "node scripts/verify-package.mjs"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
