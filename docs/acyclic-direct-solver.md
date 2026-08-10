@@ -2,7 +2,7 @@
 
 ## Purpose
 
-The core now has an additive deterministic direct solver for finite explicit acyclic `DefinitionModel` values.
+The core has an additive deterministic direct solver for finite explicit acyclic `DefinitionModel` values.
 
 It does not replace the existing iterative Kiyotan solvers and is not used by the forward facade by default.
 
@@ -101,6 +101,27 @@ Shared downstream states in a DAG are therefore solved once and their already-co
 
 Distinct transitions are never merged merely because they have the same target. Same-target multiple outcomes remain separate Bellman terms.
 
+The graph analysis and reverse dynamic-programming pass are O(V + E) in the number of explicit states and effective transitions.
+
+## Effective transition boundary
+
+A transition with evaluated probability `0` contributes exactly zero to the existing iterative Bellman equations. It therefore does not create a downstream numeric dependency for the direct solver.
+
+The direct solver excludes zero-probability transitions from:
+
+```text
+topological indegree accounting
+cycle detection
+effectiveTransitionCount
+reward downstream lookup
+elapsed-time downstream lookup
+reachability downstream lookup
+```
+
+This preserves parity with the existing iterative solver. In particular, a zero-probability self-loop does not make an otherwise acyclic effective model fail with `cycle_detected`.
+
+The transition still remains part of the original `DefinitionModel`; it is not deleted or merged. Only its zero-weight dependency is omitted from direct evaluation.
+
 ## Terminal outgoing transitions
 
 Existing validation permits outgoing transitions on terminal states as a warning:
@@ -164,9 +185,11 @@ topologicalStateCount
 dynamicProgrammingPasses: 1
 ```
 
+`effectiveTransitionCount` counts only nonterminal, nonzero-probability dependency edges.
+
 These diagnostics are independent of the existing `SolverConvergenceDiagnostics` because this solver does not iterate toward a tolerance and has no convergence iteration count.
 
-That separation is also why this increment does not add the direct solver to `ForwardEvaluationOptions` yet.
+That separation is also why the direct solver is not added to `ForwardEvaluationOptions` yet.
 
 ## Parity boundary
 
@@ -178,7 +201,18 @@ expected elapsed time
 reachability probability
 ```
 
-Coverage includes a DAG with a shared downstream state and multiple transitions to the same target.
+Coverage includes:
+
+```text
+a DAG with a shared downstream state
+multiple transitions to the same target
+zero-probability self-loop parity
+terminal outgoing-transition semantics
+nonterminal reachability target semantics
+invalid-model structured failure
+structured cycle failure
+unknown reachability target failure
+```
 
 The direct solver is also tested through:
 
