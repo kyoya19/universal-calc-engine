@@ -2,88 +2,26 @@
 
 ## Purpose
 
-This document chooses the next implementation by missing analytical capability, mathematical clarity, third-party usability, and compatibility rather than PR count.
+次の実装をPR数ではなく、分析能力、数学的な意味の明確さ、第三者利用、互換性への寄与で選びます。
 
 ## Current position
 
-The repository has a coherent Kiyotan-style **forward v1 candidate** and a deliberately bounded Seikatan-style reverse layer.
+キヨタン側は **forward v1 candidate** を維持します。
 
-The authoritative implementation boundary is:
-
-```text
-docs/forward-v1-support-matrix.md
-```
-
-Forward remains integrated through checked input, parameter/formula resolution, validation, expected reward/time/reachability, reward rate, contribution, named axes, diagnostics, scenario comparison, and one-at-a-time sensitivity.
-
-## Reverse likelihood and search contracts
-
-Current reverse contracts are deliberately separate.
-
-### Transition-count likelihood
+セイカタン側は、有限candidate / assignmentを中心に次のreverse contractをproduction化しています。
 
 ```text
 conditional_transition_log_likelihood_without_multinomial_constant
-```
-
-For observed transition counts `k` and candidate probability `p`:
-
-```text
-score = sum k * log(p)
-```
-
-The omitted multinomial coefficient is candidate-independent for the same observations.
-
-### Scalar Gaussian likelihood
-
-```text
 conditionally_independent_gaussian_scalar_log_likelihood
-```
-
-Each scalar observation is explicitly bound to a unit-bearing predictor. Current predictors are:
-
-```text
-expected_elapsed_time_seconds
-reward_axis_expected_value(axisId)
-```
-
-The Gaussian standard deviation is explicit, finite, and positive. Observation, predictor, and error-model units must match exactly. Non-converged model-side predictions are not used as likelihood evidence.
-
-### Composite transition + scalar likelihood
-
-```text
 transition_plus_scalar_gaussian_composite_log_likelihood
-```
-
-The composite method reuses the existing transition and scalar estimators. It requires a complete evidence partition and the explicit assumption:
-
-```text
-transition_and_scalar_evidence_conditionally_independent_given_candidate
-```
-
-Only then is:
-
-```text
-totalScore = transitionScore + scalarGaussianScore
-```
-
-used. The transition multinomial constant remains omitted, so total score is defined up to that candidate-independent constant.
-
-### Finite multi-parameter transition grid
-
-```text
 finite_cartesian_parameter_grid
 ```
 
-Two or more unknown parameter dimensions are exhaustively searched over finite eligible candidate sets. `maxCombinations` is mandatory. No silent truncation, sampling, or adaptive search is substituted.
+全current reverse methodはchecked external JSON / unknown inputから到達可能です。
 
-The grid reuses the established transition-count likelihood and reports finite-grid identifiability through unique best, tied best, or no possible assignment.
+## Checked external reverse path
 
-## Checked external reverse input
-
-The previous third-party reverse-input gap is now closed for every current reverse API family.
-
-The generic checked dispatcher supports:
+Generic dispatcher:
 
 ```text
 discrete_parameter_candidates
@@ -92,7 +30,7 @@ composite_parameter_candidates
 multi_parameter_transition_grid
 ```
 
-Public entry points are:
+Entry points:
 
 ```text
 parseExternalReverseEstimationDocument
@@ -101,9 +39,7 @@ estimateExternalReverseInput
 estimateExternalReverseJson
 ```
 
-The established discrete-specific checked entry points remain supported.
-
-The generic boundary reuses the existing checked model and ObservationDataset parsers and keeps:
+Boundary:
 
 ```text
 json_syntax
@@ -111,108 +47,201 @@ shape
 estimation
 ```
 
-separate.
+Parserはcandidate deduplication、sigma補完、predictor推測、unit変換、constraint clip、grid truncation / sampling、independence assumption推測を行いません。
 
-It deliberately does not:
+## Reverse result handoff
 
-- deduplicate candidates;
-- infer predictors from metric strings;
-- invent Gaussian sigma or epsilon;
-- convert units;
-- clip constraints;
-- truncate or sample multi-parameter grids;
-- infer composite independence assumptions;
-- copy observations into model parameters.
+現在の最大の第三者利用gapは、methodごとの詳細resultを同じ解釈語彙で受け渡すsurfaceがないことでした。
 
-Estimator-semantic violations therefore remain visible as estimator failures instead of being repaired by the parser.
-
-The contract is documented in:
+そのため、raw estimatorを変更せず次のsummary boundaryを追加します。
 
 ```text
-docs/reverse-external-methods.md
+ExternalReverseMethodResult
+→ toReverseResultHandoff
+→ ReverseResultHandoff
 ```
 
-## Prior / posterior boundary
+Public helpers:
 
-All current reverse likelihood/search paths remain non-Bayesian:
+```text
+toReverseResultHandoff
+reverseResultHandoffToJson
+formatReverseResultHandoffPlainText
+```
+
+成功summaryは少なくとも次を保持します。
+
+```text
+estimationKind
+methods / searchMethod
+selection
+ranking
+used observations
+constraints
+assumptions
+search limits when applicable
+priorUsed
+posteriorComputed
+warnings
+limitations
+```
+
+method-specific scoreはgenericな1フィールドへ潰しません。
+
+Compositeでは次を別々に保持します。
+
+```text
+transitionLogLikelihoodScore
+scalarGaussianLogLikelihoodScore
+totalLogLikelihoodScore
+```
+
+Scalar / compositeでは既存solver diagnosticsもranking rowへ残します。
+
+Multi-parameter gridでは次を保持します。
+
+```text
+rawCombinationCount
+eligibleCombinationCount
+maxCombinations
+bestAssignments
+estimatedAssignment
+identifiability
+```
+
+Failure summaryは成功resultを捏造せず、次だけを引き継ぎます。
+
+```text
+stage
+estimationKind when available
+estimationStage when available
+issues
+```
+
+## Interpretation boundaries
+
+現在の全reverse pathは引き続き非Bayesianです。
 
 ```text
 priorUsed: false
 posteriorComputed: false
 ```
 
-`relativeLikelihoodToBest` is a likelihood ratio, not a posterior probability.
+`relativeLikelihoodToBest` はposterior probabilityではありません。
 
-Bayesian work must not begin by renaming existing fields. It must define explicit prior mass/density, combine it with likelihood, normalize evidence, and return a separately named posterior result.
+Handoffは次のlimitationをmachine-readableにできます。
 
-## What remains unsupported
+```text
+finite_candidate_space_only
+relative_likelihood_is_not_posterior_probability
+no_confidence_or_credible_interval_computed
+no_causal_attribution_computed
+transition_multinomial_constant_omitted
+scalar_units_require_exact_match_no_conversion
+finite_grid_identifiability_only
+```
 
-The reverse layer still does not implement:
+これらは既存resultの意味を変更せず、第三者が誤読しやすい境界を明示するものです。
 
-- continuous or adaptive optimization;
-- multi-parameter composite likelihood;
-- automatic variance estimation;
-- correlated scalar errors;
-- general non-Gaussian scalar likelihoods;
-- Bayesian prior/posterior inference;
-- MCMC or variational inference;
-- hidden-state inference;
-- confidence/credible intervals;
-- automatic unit conversion;
-- multi-parameter causal attribution.
+## Multi-parameter composite candidate
 
-## Highest-value next candidates
+Multi-parameter compositeにはgeneric justificationがあります。
 
-### 1. Multi-parameter composite finite grid — conditional candidate
+例:
 
-This should be implemented only if a representative generic use case genuinely requires both:
+```text
+unknown A = transition success probability
+unknown B = success-side value / quality scale
+```
+
+transition countsはAへ強い情報を持ち、scalar expected quality / costはAとBの組合せへ情報を持ちます。
+
+この場合、
 
 ```text
 multiple unknown parameters
-and
-transition + scalar evidence
++ transition-count evidence
++ scalar Gaussian evidence
 ```
 
-If justified, it should reuse `estimateCompositeParameterCandidates` as the per-assignment scorer, mirror the explicit Cartesian size controls of `estimateMultiParameterGrid`, and preserve component scores, evidence partition, finite-grid ties, and the declared between-block independence assumption.
+を同時に使うことで、single-parameter compositeでは表現できない分析価値があります。
 
-It must not become causal attribution.
+したがってmulti-parameter compositeは単なる機能の機械的結合ではなく、次のanalytical candidateとして正当化できます。
 
-### 2. Reverse result/report handoff
-
-Before adding more statistical families, assess whether third-party use now needs a concise versioned summary/report boundary for the current reverse results. Existing TeX/report helpers are still forward/legacy partial surfaces rather than a unified reverse renderer.
-
-Any such work should summarize existing statistical semantics without inventing confidence levels or posterior language.
-
-### 3. Bayesian prior / posterior
-
-Still lower priority.
-
-Proceed only if a concrete use case supplies meaningful prior information. Then explicitly implement:
+ただし実装時は以下を維持する必要があります。
 
 ```text
-prior × likelihood -> evidence normalization -> posterior
+searchMethod != likelihood/composite method
+finite Cartesian grid only
+mandatory maxCombinations
+no silent truncation / sampling
+complete evidence partition
+explicit between-block conditional independence
+existing scalar predictor / sigma / unit contract
+transition impossible events remain impossible
+scalar non-convergence is not evidence
+assignment rejection remains explicit
+component scores remain separate
+relativeLikelihoodToBest remains likelihood ratio
+finite-grid identifiability only
 ```
 
-with separate prior, likelihood, evidence, and posterior types.
+可能な限り既存`estimateCompositeParameterCandidates`をper-assignment scorerとして再利用し、新しいtransition/scalar確率式を複製しないことを優先します。
 
-## Forward boundaries remain unchanged
+## Why handoff comes first
 
-Forward v1 continues to preserve expected reward/reachability/time distinctions, ratio-of-expectations reward rate, explicit solver non-convergence, `candidate - baseline` scenario semantics, one-at-a-time conditional sensitivity, independent named reward axes, and descriptive rather than causal contribution differences.
+Multi-parameter compositeは一部の分析能力を拡張します。
 
-## Current non-goals
+Reverse result handoffは現在存在する **全4 reverse method** の第三者理解、API handoff、reporting、デバッグへ同時に効きます。
 
-Do not move the core toward these without a generic reason:
+そのため現時点では、handoff boundaryを先に完成させる方がv1完成度への寄与が大きいと判断します。
 
-- digipachi-specific functionality;
-- Juoh-specific functionality;
-- large Bayesian frameworks;
-- GUI implementation;
-- monetization implementation;
-- undefined causal attribution.
+## Bayesian prior / posterior
 
-## Small-test boundary
+引き続き低優先度です。
 
-New tests should mainly protect production behavior, mathematical/statistical semantics, compatibility boundaries, and meaningful failure cases. Near-duplicate formatting/copy tests are not the project objective.
+具体的なprior情報源がない状態で導入しません。
+
+導入する場合だけ、次を別概念として実装します。
+
+```text
+prior mass / density
+likelihood
+evidence normalization
+posterior
+```
+
+既存`relativeLikelihoodToBest`のrename / reinterpretationは禁止します。
+
+## Unsupported / deferred
+
+現在も以下は未対応または後回しです。
+
+- continuous / adaptive optimization;
+- Bayesian prior/posterior;
+- MCMC;
+- variational inference;
+- hidden-state inference;
+- automatic variance estimation;
+- correlated scalar errors;
+- general non-Gaussian scalar likelihoods;
+- confidence / credible intervals;
+- automatic unit conversion;
+- method未定義のmulti-parameter causal attribution;
+- large digipachi / Juoh domain models as core commitments;
+- GUI / monetization implementation.
+
+## Causal attribution boundary
+
+Multi-parameter estimation、scenario差、candidate rankingは因果寄与分解ではありません。
+
+Shapley、ordered marginal、interaction allocation等のmethodを定義しないまま、一意の因果寄与へ変換しません。
+
+## Test boundary
+
+新しいtestはproduction behavior、数学/統計semantics、互換性、重要failureを保護するものを優先します。
+
+近接したformat/copy testの追加を目的化しません。
 
 ## Handoff reading order
 
@@ -224,33 +253,19 @@ docs/discrete-estimation.md
 docs/scalar-gaussian-estimation.md
 docs/composite-likelihood-estimation.md
 docs/multi-parameter-grid-estimation.md
-docs/reverse-external-input.md
 docs/reverse-external-methods.md
+docs/reverse-result-handoff.md
 docs/outcome-continuation-review.md
 ```
 
-## Suggested assistant prompt
+## Next priority after this handoff
 
-```text
-Treat Kiyotan as the forward-v1 candidate defined by docs/forward-v1-support-matrix.md.
-Treat transition likelihood, scalar Gaussian likelihood, single-parameter composite likelihood, and finite multi-parameter transition grid as separate explicit Seikatan contracts.
-Treat parseExternalReverseEstimationDocument / Json and estimateExternalReverseInput / Json as the checked third-party boundary for every current reverse method.
-Keep observation, predictor, evidence block, candidate/assignment, likelihood, score, estimate, prior, posterior, and causal attribution distinct.
-Do not infer sigma, units, independence assumptions, priors, grid truncation, or attribution methods.
-Only add multi-parameter composite likelihood if a generic use case demonstrates that both multiple unknowns and mixed evidence are required simultaneously.
-Keep Bayesian semantics and large domain specialization out of scope until justified.
-```
+Reverse result handoffがCIを通ってmergeされた後は、次を比較します。
 
-## Current interpretation
+1. finite multi-parameter composite grid;
+2. handoffの追加renderer / consumer contractが実際に不足しているか;
+3. generic coreの別の重大gap。
 
-The project has crossed seven meaningful boundaries:
+Multi-parameter compositeは上記generic use caseで正当化可能ですが、既存handoffがまず安定したことを確認してからproduction化します。
 
-1. the forward engine is an integrated v1 candidate;
-2. transition counts support explicit finite likelihood estimation;
-3. scalar observations support explicit Gaussian likelihood;
-4. transition and scalar evidence can be explicitly composed for one unknown parameter;
-5. transition likelihood supports exhaustive finite multi-parameter search with a hard limit;
-6. reverse parsing keeps statistical semantics distinct from JSON/shape validation;
-7. every currently implemented reverse method/search family is reachable through a checked external JSON/unknown boundary.
-
-The next work should be justified by a demonstrated analytical or handoff gap, not by roadmap momentum alone.
+Bayesian semanticsは引き続き後順位です。
