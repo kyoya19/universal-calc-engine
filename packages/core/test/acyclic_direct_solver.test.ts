@@ -149,6 +149,61 @@ describe('acyclic direct DefinitionModel solver', () => {
     expect(result.diagnostics.effectiveTransitionCount).toBe(2);
   });
 
+  it('ignores zero-probability dependency edges and matches iterative semantics', () => {
+    const model: DefinitionModel = {
+      startState: 'start',
+      states: [{ id: 'start' }, { id: 'done', terminal: true }],
+      transitions: [
+        {
+          from: 'start',
+          to: 'start',
+          probability: 0,
+          reward: 999,
+          elapsedTime: { value: 999, unit: 'seconds' }
+        },
+        {
+          from: 'start',
+          to: 'done',
+          probability: 1,
+          reward: 5,
+          elapsedTime: { value: 2, unit: 'seconds' }
+        }
+      ]
+    };
+
+    const result = solveAcyclicDefinitionModel(model, {
+      reachabilityTargets: ['done']
+    });
+    const evaluated = evaluateModel(expandModel(model));
+    const iterativeReward = solveExpectedReward(evaluated);
+    const iterativeElapsed = solveExpectedElapsedTime(evaluated);
+    const iterativeReachability = solveReachabilityProbability(evaluated, ['done']);
+
+    expect(result.ok).toBe(true);
+    if (!result.ok || result.reachability === undefined) {
+      return;
+    }
+
+    expectNumberMapClose(
+      result.expectedReward.expectedRewardByState,
+      iterativeReward.expectedRewardByState
+    );
+    expectNumberMapClose(
+      result.expectedElapsedTime.expectedElapsedTimeSecondsByState,
+      iterativeElapsed.expectedElapsedTimeSecondsByState
+    );
+    expectNumberMapClose(
+      result.reachability.reachabilityProbabilityByState,
+      iterativeReachability.reachabilityProbabilityByState
+    );
+    expect(result.expectedReward.expectedRewardByState.get('start')).toBeCloseTo(5);
+    expect(
+      result.expectedElapsedTime.expectedElapsedTimeSecondsByState.get('start')
+    ).toBeCloseTo(2);
+    expect(result.reachability.reachabilityProbabilityByState.get('start')).toBeCloseTo(1);
+    expect(result.diagnostics.effectiveTransitionCount).toBe(1);
+  });
+
   it('returns a structured cycle failure without falling back to iteration', () => {
     const model: DefinitionModel = {
       startState: 'a',
@@ -198,6 +253,27 @@ describe('acyclic direct DefinitionModel solver', () => {
     expect(result.diagnostics.effectiveTransitionCount).toBe(1);
   });
 
+  it('treats a nonterminal reachability target as probability one', () => {
+    const model = sharedDagModel();
+    const direct = solveAcyclicDefinitionModel(model, {
+      reachabilityTargets: ['left']
+    });
+    const evaluated = evaluateModel(expandModel(model));
+    const iterative = solveReachabilityProbability(evaluated, ['left']);
+
+    expect(direct.ok).toBe(true);
+    if (!direct.ok || direct.reachability === undefined) {
+      return;
+    }
+
+    expectNumberMapClose(
+      direct.reachability.reachabilityProbabilityByState,
+      iterative.reachabilityProbabilityByState
+    );
+    expect(direct.reachability.reachabilityProbabilityByState.get('left')).toBe(1);
+    expect(direct.reachability.reachabilityProbabilityByState.get('start')).toBeCloseTo(0.5);
+  });
+
   it('rejects an unknown reachability target with a structured failure', () => {
     const result = solveAcyclicDefinitionModel(sharedDagModel(), {
       reachabilityTargets: ['missing']
@@ -209,6 +285,23 @@ describe('acyclic direct DefinitionModel solver', () => {
     }
     expect(result.failure.code).toBe('unknown_reachability_target');
     expect(result.failure.targetStateId).toBe('missing');
+  });
+
+  it('rejects an invalid DefinitionModel before direct analysis', () => {
+    const model: DefinitionModel = {
+      startState: 'start',
+      states: [{ id: 'start' }, { id: 'done', terminal: true }],
+      transitions: [{ from: 'start', to: 'done', probability: 0.5 }]
+    };
+
+    const result = solveAcyclicDefinitionModel(model);
+
+    expect(result.ok).toBe(false);
+    if (result.ok) {
+      return;
+    }
+    expect(result.failure.code).toBe('model_validation_failed');
+    expect(result.validation.valid).toBe(false);
   });
 
   it('solves a 20,000-depth acyclic chain without recursive traversal', () => {
