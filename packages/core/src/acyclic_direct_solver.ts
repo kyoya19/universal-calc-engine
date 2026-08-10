@@ -90,6 +90,10 @@ function createDiagnostics(
   };
 }
 
+function isEffectiveDependency(probability: number): boolean {
+  return probability !== 0;
+}
+
 function analyzeAcyclicEvaluatedModel(model: EvaluatedModel): AcyclicAnalysisResult {
   const indegreeByState = new Map<StateId, number>();
   for (const state of model.states) {
@@ -103,6 +107,9 @@ function analyzeAcyclicEvaluatedModel(model: EvaluatedModel): AcyclicAnalysisRes
     }
     const transitions = model.transitionsByState.get(state.id) ?? [];
     for (const transition of transitions) {
+      if (!isEffectiveDependency(transition.probability)) {
+        continue;
+      }
       effectiveTransitionCount += 1;
       indegreeByState.set(
         transition.to,
@@ -132,6 +139,9 @@ function analyzeAcyclicEvaluatedModel(model: EvaluatedModel): AcyclicAnalysisRes
 
     const transitions = model.transitionsByState.get(stateId) ?? [];
     for (const transition of transitions) {
+      if (!isEffectiveDependency(transition.probability)) {
+        continue;
+      }
       const nextIndegree = (indegreeByState.get(transition.to) ?? 0) - 1;
       indegreeByState.set(transition.to, nextIndegree);
       if (nextIndegree === 0) {
@@ -260,6 +270,9 @@ export function solveAcyclicDefinitionModel(
         let expectedElapsedTimeSeconds = 0;
 
         for (const transition of transitions) {
+          if (!isEffectiveDependency(transition.probability)) {
+            continue;
+          }
           expectedReward +=
             transition.probability *
             ((transition.reward ?? 0) +
@@ -287,6 +300,9 @@ export function solveAcyclicDefinitionModel(
           const transitions = evaluated.transitionsByState.get(stateId) ?? [];
           let reachabilityProbability = 0;
           for (const transition of transitions) {
+            if (!isEffectiveDependency(transition.probability)) {
+              continue;
+            }
             reachabilityProbability +=
               transition.probability *
               requiredValue(
