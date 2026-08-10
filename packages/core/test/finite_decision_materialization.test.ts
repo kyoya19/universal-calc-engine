@@ -241,7 +241,7 @@ describe('finite decision policy materialization', () => {
     expect(result.failure.code).toBe('cycle_detected');
   });
 
-  it('detects a changed reachable graph between preflight and capture', () => {
+  it('uses one validated callback snapshot instead of recapturing a changed graph', () => {
     let outcomeCalls = 0;
     const process: FiniteDecisionProcess<ResourceState> = {
       startState: { remaining: 1 },
@@ -263,15 +263,17 @@ describe('finite decision policy materialization', () => {
       selectAction: () => 'finish'
     });
 
-    expect(result.ok).toBe(false);
-    if (result.ok) {
+    expect(result.ok).toBe(true);
+    expect(outcomeCalls).toBe(1);
+    if (!result.ok) {
       return;
     }
-
-    expect(result.stage).toBe('materialization');
-    if (result.stage !== 'materialization') {
-      return;
-    }
-    expect(result.failure.code).toBe('process_changed_during_materialization');
+    expect(result.model.states.map((state) => state.id).sort()).toEqual([
+      'remaining:0',
+      'remaining:1'
+    ]);
+    expect(result.model.transitions).toEqual([
+      { from: 'remaining:1', to: 'remaining:0', probability: 1 }
+    ]);
   });
 });
