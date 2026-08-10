@@ -42,6 +42,18 @@ export type ForwardSolverEvaluationResult =
 
 export function evaluateDefinitionModelWithSolver(
   model: DefinitionModel,
+  request: IterativeForwardSolverRequest
+): IterativeForwardSolverEvaluation;
+export function evaluateDefinitionModelWithSolver(
+  model: DefinitionModel,
+  request: AcyclicDirectForwardSolverRequest
+): AcyclicDirectForwardSolverEvaluation;
+export function evaluateDefinitionModelWithSolver(
+  model: DefinitionModel,
+  request: ForwardSolverRequest
+): ForwardSolverEvaluationResult;
+export function evaluateDefinitionModelWithSolver(
+  model: DefinitionModel,
   request: ForwardSolverRequest
 ): ForwardSolverEvaluationResult {
   if (request.solverMethod === 'iterative') {
