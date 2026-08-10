@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・scenario比較・one-at-a-time sensitivity・最小reverse estimation・JSON / TeX / report 境界を段階的に固定します。
+DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult を中核に、キヨタンforward評価と、観測からparameter candidateを順位付けする最小セイカタンreverse estimationを段階的に固定しています。
 
 ## License / Commercial Use
 
@@ -28,104 +28,52 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 商用利用を希望する場合は、利用前にリポジトリ所有者へ連絡してください。
 
-## Current focus
+## Current position
 
-最小キヨタン順方向エンジンは、第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1候補として境界を固定しています。その正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。
+キヨタン側は、第三者がchecked external inputから評価・比較・one-at-a-time sensitivityまで一続きに実行できる **forward v1 candidate** です。正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。
 
-外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。
+ObservationDatasetはmodel definition、supplied parameter、evaluated value、forward result、estimateから分離された証拠データ面です。`state_count / transition_count / scalar` を扱います。
 
-観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱います。
+セイカタン側は、まだ有限candidate searchに限定していますが、現在2つの明示的likelihood familyがあります。
 
-統合forward facadeは、checked inputから expected reward、expected elapsed time、`ratio_of_expectations` reward rate、optional reachability、既存contribution、named reward axes、solver convergence diagnosticsまでを一つのadditive APIで返します。solverが設定回数内に収束しない場合は入力失敗と混同せず、`ok: true / converged: false` と最後の近似値・diagnosticsを返します。
-
-scenario comparisonは、**同一model structure**へbaseline/candidateの2つのparameter setを与え、resolved parameter差、expected reward/time/rate/reachability差、legacy contribution行の差、named reward-axis差を構造化して返します。差の符号は `candidate - baseline` です。
-
-one-at-a-time sensitivityはbaseline parameter setを固定し、指定した1 parameterだけをcandidate valueへ差し替えたscenario comparisonを複数実行します。これにより「他のsupplied parameterを固定したとき、このparameterの変更で結果がどう変わるか」という明示的なcounterfactualを扱えます。
-
-最小セイカタンreverse estimationは、1つのdeclared parameterについて有限candidate setを与え、`state_count / transition_count` 観測に対するconditional transition log-likelihood scoreでcandidateを順位付けします。priorは使わずposteriorも計算しません。`relativeLikelihoodToBest` はbest candidateに対するlikelihood ratioでありposterior probabilityではありません。
-
-reverse estimationにもversionedなchecked external input境界を追加しています。`unknown` / JSONからreverse envelope、nested model document、ObservationDataset、candidate requestをshape-checkしてから既存estimatorへ接続します。JSON構文・shape・estimation semanticsは別stageで返し、duplicate candidateや観測count不整合をparserが勝手に補正しません。
-
-contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。TeX/reportも現時点では部分的境界であり、forward facade全体の正式レンダラーではありません。
-
-次の優先判断は、明示的な観測モデルを持つscalar observation likelihood、有限multi-parameter candidate grid、またはpriorを別契約として導入する価値があるかを比較することです。大型のデジパチ・獣王モデルや巨大Bayesian engineを先に進めません。
-
-`generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
-
-## Implemented core
+### Transition-count likelihood
 
 ```text
-DefinitionModel
-ExpandedModel
-EvaluatedModel
-SolvedModel
-OutputResult
-ContributionResult
-ReachabilityResult
-ExpectedElapsedTimeResult
-RewardRateResult
-RewardAxesDefinitionModel
-RewardAxesExpandedModel
-RewardAxesEvaluatedModel
-RewardAxesSolvedModel
-RewardAxesOutputResult
-RewardAxesContributionResult
-ModelValidationResult / ModelValidationIssue
-SolverConvergenceDiagnostics / SolverDetailedResult
-ParameterizedDefinitionModel
-ParameterizedRewardAxesDefinitionModel
-ParameterizedScalarSpec
-ParameterDefinition / ParameterRefScalarSpec / ScalarFormulaSpec
-ExternalModelDocument / ExternalModelPreparationResult
-ExternalInputIssue / ExternalInputStage
-ObservationDataset / ObservationRecord
-ObservationParseResult / ObservationValidationResult
-ForwardEvaluationResult / ForwardEvaluationOptions
-ForwardElapsedTimeOutput / ForwardReachabilityOutput
-ScenarioComparisonResult / ScenarioComparisonParameterSets
-ScenarioForwardDelta / ScenarioContributionDelta
-ScenarioRewardAxesDelta / ScenarioRewardAxesContributionDelta
-ParameterSensitivityResult / ParameterSensitivityRequest
-ParameterSensitivityKind
-DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
-CandidateLikelihoodResult / EstimationConstraint
-ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
-ReverseExternalInputIssue / ReverseExternalInputStage
-ProbabilitySpec
-RewardSpec
-TimeSpec / TimeUnit
-RewardAxisDefinition / RewardAxisKind
-TerminalCondition
-TransitionEffect
+conditional_transition_log_likelihood_without_multinomial_constant
 ```
 
-Representative public operations include:
+1つのdeclared parameterについて有限candidate setを評価し、completeな`state_count / transition_count` departure観測に対して `sum k * log(p)` を計算します。
+
+`relativeLikelihoodToBest` はbest candidateへのlikelihood ratioでありposterior probabilityではありません。
+
+### Scalar Gaussian likelihood
 
 ```text
-expandModel / evaluateModel
-solveExpectedReward
-solveReachabilityProbability
-solveExpectedElapsedTime
-toRewardRateResult
-solveExpectedRewardAxes
-validateDefinitionModel / validateRewardAxesDefinitionModel
-solveExpectedRewardWithDiagnostics
-solveReachabilityProbabilityWithDiagnostics
-solveExpectedElapsedTimeWithDiagnostics
-solveExpectedRewardAxesWithDiagnostics
-resolveParameterizedScalarSpec
-resolveParameterValues
-resolveParameterizedDefinitionModel
-resolveParameterizedRewardAxesDefinitionModel
-parseExternalModelDocument / prepareExternalModelJson
-parseObservationDataset / validateObservationDataset
-evaluateExternalModelInput / evaluateExternalModelJson
-compareExternalModelScenarios
-analyzeParameterSensitivity
-estimateDiscreteParameterCandidates
-parseExternalDiscreteEstimationDocument / parseExternalDiscreteEstimationJson
-estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
+conditionally_independent_gaussian_scalar_log_likelihood
 ```
+
+scalar observationをparameterへ直接コピーせず、各`observationId`を明示的なmodel-side predictorへ結びます。
+
+現在のpredictorは、unitを明示できるものに限定しています。
+
+```text
+expected_elapsed_time_seconds
+reward_axis_expected_value(axisId)
+```
+
+観測値 `y`、candidateから計算した予測値 `mu`、callerが明示した `sigma > 0` に対して、normalized Gaussian log-likelihood densityを使います。
+
+```text
+log L = -log(sigma * sqrt(2*pi)) - 0.5 * ((y - mu) / sigma)^2
+```
+
+複数scalar観測は、以下を明示した場合にlog-likelihoodを加算します。
+
+```text
+scalar_observations_conditionally_independent_given_candidate
+```
+
+observation unit、predictor unit、Gaussian error-model unitは完全一致が必要です。default sigma、epsilon smoothing、自動unit変換、prior、posteriorは導入しません。solver非収束の予測値もlikelihoodへ入れません。
 
 ## Forward v1 path
 
@@ -134,85 +82,93 @@ external JSON / unknown
 → checked external document
 → parameter / formula resolution
 → structured model validation
-→ expand
-→ evaluate
+→ expand / evaluate
 → expected reward
 → expected elapsed time
 → optional reachability
-→ ratio-of-expectations reward rate
+→ E[reward] / E[elapsed time] reward rate
 → contribution
-→ optional named reward axes + axis contribution
+→ optional named reward axes
 → convergence diagnostics
-→ structured facade result
+→ structured forward result
 ```
 
-## Scenario comparison path
+追加のforward analysis:
 
 ```text
-one checked external model
-+ baseline parameter set
-+ candidate parameter set
-→ two forward facade results
-→ resolved parameter deltas
-→ expected reward/time/rate/reachability deltas
-→ contribution-row deltas
-→ optional reward-axis deltas
+same model + baseline/candidate parameters
+→ scenario comparison (candidate - baseline)
 ```
 
-## One-at-a-time sensitivity path
-
 ```text
-one checked external model
-+ baseline parameter set
-+ selected parameter
-+ candidate values
-→ one scenario comparison per candidate
-→ exactly one supplied parameter changed per point
-→ structured counterfactual deltas
+same model + baseline + one selected parameter + candidate values
+→ one-at-a-time sensitivity
 ```
 
-## Minimal Seikatan path
+scenario差やcontribution差をmethod未定義のまま一意な因果寄与とは扱いません。
 
-Typed path:
+## Minimal Seikatan paths
+
+Transition counts:
 
 ```text
-one parameterized external model
+one parameterized model
 + one unknown parameter ID
-+ finite candidate values
-+ optional min/max candidate constraints
-+ ObservationDataset with complete state_count / transition_count departures
-→ resolve and validate each candidate model
-→ conditional transition log-likelihood score
-→ likelihood ratio relative to the best candidate
-→ candidate ranking
++ finite candidates
++ optional min/max constraints
++ complete state_count / transition_count departures
+→ candidate resolution / validation
+→ conditional transition log-likelihood
+→ likelihood-ratio ranking
 → unique estimate or explicit tie
 ```
 
-Third-party checked path:
+Scalar Gaussian:
 
 ```text
-external JSON / unknown
-→ versioned reverse envelope
-→ nested model + observation shape checks
-→ typed discrete request
-→ existing estimator
-→ structured result
+one parameterized model
++ one unknown parameter ID
++ finite candidates
++ scalar ObservationDataset
++ explicit observationId -> predictor bindings
++ explicit Gaussian sigma and unit
+→ candidate resolution / validation
+→ converged model-side prediction
+→ Gaussian log-likelihood density
+→ likelihood-ratio ranking
+→ unique estimate or explicit tie
 ```
 
-このreverse pathでは観測値をparameterへ直接コピーしません。prior/posteriorも未導入です。scalar observationは現在のtransition-count likelihood methodでは明示的にunsupportedです。
+現在のchecked external reverse JSON envelopeはtransition-count estimatorへ接続しています。scalar Gaussian estimatorは現時点ではtyped public APIであり、専用external envelopeはまだ未追加です。
 
-## Phase order
+## Implemented public surface highlights
 
 ```text
-1. Assistant autonomy rules
-2. README and docs entry cleanup
-3. Sugoroku PoC v0.4 completion and boundary check
-4. Generic model layer reinforcement
-5. Solver target policy formalization
-6. Output, report, TeX, and JSON boundary cleanup
-7. Minimal Kiyotan forward engine
-8. Minimal Seikatan reverse estimation
-9. Representative samples such as digipachi and Juoh
+DefinitionModel / ExpandedModel / EvaluatedModel / SolvedModel
+RewardAxesDefinitionModel / RewardAxisDefinition
+ParameterizedDefinitionModel / ParameterizedRewardAxesDefinitionModel
+ParameterizedScalarSpec / ParameterDefinition
+ObservationDataset / ObservationRecord
+ModelValidationResult / SolverConvergenceDiagnostics
+ForwardEvaluationResult
+ScenarioComparisonResult
+ParameterSensitivityResult
+DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
+ScalarGaussianParameterEstimationRequest / ScalarGaussianParameterEstimationResult
+ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
+```
+
+Representative operations:
+
+```text
+prepareExternalModelInput / prepareExternalModelJson
+evaluateExternalModelInput / evaluateExternalModelJson
+compareExternalModelScenarios
+analyzeParameterSensitivity
+parseObservationDataset / validateObservationDataset
+estimateDiscreteParameterCandidates
+estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
+estimateScalarGaussianParameterCandidates
 ```
 
 ## Current boundaries
@@ -220,60 +176,49 @@ external JSON / unknown
 ```text
 solver target is explicit-only through transition.to
 generatedTo is diagnostics-only
-runtime target policy changes are out of scope until a dedicated policy PR
-named reward axes are never implicitly aggregated across meanings or units
+named reward axes are never implicitly netted or unit-converted
 legacy reward remains separate from rewardsByAxis
-structured validation is additive; existing expand/evaluate exception behavior is unchanged
-solver diagnostics are additive; legacy solver result and exception contracts are unchanged
-parameter/formula scalars resolve before the existing DefinitionModel pipeline
-parameter unit metadata is descriptive; automatic dimensional analysis is not implemented
-external JSON input is shape-checked from unknown before parameter resolution or model validation
-external input formulas use explicit expression trees; executable formula text is not accepted
-observations remain separate from model parameters and solver results
-forward facade composes existing layers; it does not replace the lower-level APIs
-non-convergence remains visible through diagnostics and is not silently treated as a final converged result
-scenario comparison reuses one model structure and compares candidate - baseline
-one-at-a-time sensitivity changes one selected supplied parameter per comparison point
-contribution-row deltas are descriptive differences, not automatic unique causal attribution
-TeX/report are partial boundaries rather than complete forward-v1 renderers
-minimal reverse estimation ranks a finite candidate set for one declared parameter
-minimal reverse likelihood uses complete transition departure counts and no prior
-reverse external input is checked from unknown/JSON before estimator semantics run
+structured validation and solver diagnostics are additive
+parameter/formula resolution happens before the ordinary model pipeline
+executable formula text is not accepted
+ObservationDataset is not converted into supplied parameters
+non-convergence remains explicit
+scenario comparison uses candidate - baseline
+one-at-a-time sensitivity changes one selected parameter per point
+contribution differences are descriptive, not unique causal attribution
+TeX/report remain partial rather than full forward/reverse renderers
+transition-count likelihood and scalar Gaussian likelihood are separately named methods
 relative likelihood is not posterior probability
-scalar observation likelihood, continuous optimization, multi-parameter estimation, and Bayesian posterior remain unsupported
-product UI / monetization is out of scope for this repository phase
-digipachi and Juoh are later representative samples, not the current main phase
+scalar Gaussian sigma is explicit and strictly positive
+scalar Gaussian observation/predictor/error-model units must match exactly
+continuous optimization remains unsupported
+multi-parameter estimation remains unsupported
+Bayesian prior/posterior remains unsupported
+hidden-state inference remains unsupported
+product UI / monetization is outside the current core phase
+digipachi and Juoh remain later representative applications
 ```
 
 ## Primary docs
 
 - [Assistant autonomy](docs/assistant_autonomy.md)
 - [GitHub workflow](docs/github_workflow.md)
-- [Sugoroku PoC v0.3](docs/sugoroku-poc-v0.3.md)
-- [Sugoroku PoC v0.4 Boundary](docs/sugoroku-poc-v0.4-boundary.md)
-- [State Space Expansion Design](docs/state-space-expansion.md)
-- [Solver explicit policy](docs/solver-exp.md)
-- [Number text entrypoint](docs/number-text-entrypoint.md)
-- [Naming policy](docs/naming-policy.md)
-- [Public output naming boundary](docs/public-output-naming-boundary.md)
-- [Evaluate model effects boundary](docs/evaluate-model-effects-boundary.md)
-- [成果還元関数](docs/outcome-return-function.md)
-- [成果還元関数 roadmap](docs/outcome-roadmap.md)
-- [成果還元関数 current identifier map](docs/outcome-current-identifier-map.md)
-- [成果還元関数 continuation review](docs/outcome-continuation-review.md)
-- [成果還元関数 sample policy](docs/outcome-sample-policy.md)
-- [Named reward axes](docs/reward-axes.md)
-- [Structured validation](docs/structured-validation.md)
-- [Solver convergence diagnostics](docs/solver-diagnostics.md)
-- [Parameter references and formula scalars](docs/parameterized-scalars.md)
+- [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [External model input boundary](docs/external-input.md)
 - [Observation input surface](docs/observations.md)
 - [Forward evaluation facade](docs/forward-evaluation.md)
 - [Scenario comparison](docs/scenario-comparison.md)
 - [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
-- [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [Minimal discrete reverse estimation](docs/discrete-estimation.md)
 - [Checked external reverse-estimation input](docs/reverse-external-input.md)
+- [Scalar Gaussian reverse estimation](docs/scalar-gaussian-estimation.md)
+- [成果還元関数 continuation review](docs/outcome-continuation-review.md)
+- [Named reward axes](docs/reward-axes.md)
+- [Structured validation](docs/structured-validation.md)
+- [Solver convergence diagnostics](docs/solver-diagnostics.md)
+- [Parameter references and formula scalars](docs/parameterized-scalars.md)
+
+Historical design/boundary documents remain in `docs/`; the list above is the active handoff path.
 
 ## Representative examples
 
@@ -281,15 +226,18 @@ digipachi and Juoh are later representative samples, not the current main phase
 packages/core/examples/forward_evaluation.ts
 packages/core/examples/scenario_comparison.ts
 packages/core/examples/discrete_estimation.ts
+packages/core/examples/scalar_gaussian_estimation.ts
 ```
 
-forward examplesは同じmodel structureに対してparameter値を差し替え、複数forward結果とscenario差分を評価します。reverse exampleは観測countから有限candidateをlikelihood順位付けします。特定ゲーム固有の値やルールはcoreへ持ち込みません。
+特定ゲーム固有の値やルールはgeneric coreへ持ち込みません。
 
-## Historical / legacy docs notes
+## Next priority
 
-README previously contained many one-line docs note checkpoints. They are no longer used as the main entry path.
+次のreverse候補としては、Bayesian prior/posteriorより先に **finite multi-parameter candidate grid** を検討します。
 
-Those note files remain in `docs/` as historical records unless a later repair PR confirms that a specific file is empty, duplicated, or incorrect. Active behavior should be read from the primary docs and production implementation.
+実装する場合は最低限、複数unknown parameter、parameterごとのcandidate set、Cartesian product数、hard maximum combination limit、constraint、assignment単位のtie / identifiabilityを明示し、candidate-spaceを暗黙にtruncateまたはsamplingしません。
+
+scalar Gaussianのchecked external JSON envelopeは、第三者利用上の優先度がmulti-parameter analytical capabilityを上回った場合の安全な次候補です。
 
 ## Verification
 
