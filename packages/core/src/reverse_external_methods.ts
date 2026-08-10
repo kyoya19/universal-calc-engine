@@ -1,14 +1,15 @@
 import {
+  CompositeEvidenceIndependenceAssumption,
   CompositeLikelihoodEstimationFailure,
   CompositeLikelihoodEstimationRequest,
   CompositeLikelihoodEstimationSuccess,
-  CompositeEvidenceIndependenceAssumption,
   estimateCompositeParameterCandidates
 } from './composite_likelihood_estimation';
 import {
   DiscreteParameterEstimationFailure,
   DiscreteParameterEstimationSuccess,
-  EstimationConstraint
+  EstimationConstraint,
+  estimateDiscreteParameterCandidates
 } from './discrete_estimation';
 import {
   ExternalModelDocument,
@@ -136,11 +137,15 @@ export type ExternalReverseMethodResult =
     };
 
 type UnknownRecord = Record<string, unknown>;
-
 type CommonSingleParameterRequest = {
   parameterId: string;
   candidates: number[];
   constraints?: EstimationConstraint[];
+};
+
+type ParsedEnvelopeCommon = {
+  modelDocument: ExternalModelDocument | undefined;
+  observationDataset: ObservationDataset | undefined;
 };
 
 function isRecord(value: unknown): value is UnknownRecord {
@@ -229,6 +234,28 @@ function parseConstraint(
   };
 }
 
+function parseConstraints(
+  input: unknown,
+  path: string,
+  issues: ReverseExternalInputIssue[]
+): EstimationConstraint[] | undefined {
+  if (input === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(input)) {
+    issues.push(shapeIssue('expected_array', path, 'constraints must be an array'));
+    return undefined;
+  }
+  const constraints: EstimationConstraint[] = [];
+  input.forEach((constraint, index) => {
+    const parsed = parseConstraint(constraint, `${path}[${index}]`, issues);
+    if (parsed !== undefined) {
+      constraints.push(parsed);
+    }
+  });
+  return constraints;
+}
+
 function parseCandidates(
   input: unknown,
   path: string,
@@ -253,28 +280,6 @@ function parseCandidates(
     }
   });
   return candidates;
-}
-
-function parseConstraints(
-  input: unknown,
-  path: string,
-  issues: ReverseExternalInputIssue[]
-): EstimationConstraint[] | undefined {
-  if (input === undefined) {
-    return undefined;
-  }
-  if (!Array.isArray(input)) {
-    issues.push(shapeIssue('expected_array', path, 'constraints must be an array'));
-    return undefined;
-  }
-  const constraints: EstimationConstraint[] = [];
-  input.forEach((constraint, index) => {
-    const parsed = parseConstraint(constraint, `${path}[${index}]`, issues);
-    if (parsed !== undefined) {
-      constraints.push(parsed);
-    }
-  });
-  return constraints;
 }
 
 function parseCommonSingleParameterRequest(
@@ -314,7 +319,7 @@ function parseSolverOptions(
     issues.push(shapeIssue('expected_object', path, 'solver must be an object'));
     return undefined;
   }
-  const options: SolverDiagnosticsOptions = {};
+  const result: SolverDiagnosticsOptions = {};
   if (input.maxIterations !== undefined) {
     if (typeof input.maxIterations !== 'number' || !Number.isFinite(input.maxIterations)) {
       issues.push(
@@ -325,7 +330,7 @@ function parseSolverOptions(
         )
       );
     } else {
-      options.maxIterations = input.maxIterations;
+      result.maxIterations = input.maxIterations;
     }
   }
   if (input.tolerance !== undefined) {
@@ -338,10 +343,10 @@ function parseSolverOptions(
         )
       );
     } else {
-      options.tolerance = input.tolerance;
+      result.tolerance = input.tolerance;
     }
   }
-  return options;
+  return result;
 }
 
 function parseScalarPredictor(
@@ -367,7 +372,7 @@ function parseScalarPredictor(
     shapeIssue(
       'unsupported_scalar_predictor',
       `${path}.type`,
-      'predictor type must be expected_elapsed_time_seconds or reward_axis_expected_value'
+      'Unsupported scalar predictor type'
     )
   );
   return undefined;
@@ -608,7 +613,11 @@ function parseGridRequest(
       )
     );
   }
-  if (!Array.isArray(input.parameters) || typeof input.maxCombinations !== 'number' || !Number.isFinite(input.maxCombinations)) {
+  if (
+    !Array.isArray(input.parameters) ||
+    typeof input.maxCombinations !== 'number' ||
+    !Number.isFinite(input.maxCombinations)
+  ) {
     return undefined;
   }
   return { parameters, maxCombinations: input.maxCombinations };
@@ -617,10 +626,7 @@ function parseGridRequest(
 function parseCommonEnvelope(
   input: UnknownRecord,
   issues: ReverseExternalInputIssue[]
-): {
-  modelDocument: ExternalModelDocument | undefined;
-  observationDataset: ObservationDataset | undefined;
-} {
+): ParsedEnvelopeCommon {
   const modelResult = parseExternalModelDocument(input.modelDocument);
   if (!modelResult.ok) {
     issues.push(...mapModelParseIssues(modelResult));
@@ -801,7 +807,11 @@ function runParsedExternalReverseEstimation(
 ): ExternalReverseMethodResult {
   switch (document.estimationKind) {
     case 'discrete_parameter_candidates': {
-      const estimation = requireDiscreteEstimator(document);
+      const estimation = estimateDiscreteParameterCandidates(
+        document.modelDocument,
+        document.observationDataset,
+        document.request
+      );
       return estimation.ok
         ? { ok: true, estimationKind: document.estimationKind, document, estimation }
         : estimationFailureResult(document.estimationKind, estimation);
@@ -837,36 +847,6 @@ function runParsedExternalReverseEstimation(
         : estimationFailureResult(document.estimationKind, estimation);
     }
   }
-}
-
-function requireDiscreteEstimator(
-  document: ExternalDiscreteEstimationDocument
-): DiscreteParameterEstimationSuccess | DiscreteParameterEstimationFailure {
-  // Keep the generic dispatcher aligned with the established discrete estimator without
-  // changing the existing checked-discrete public entry points.
-  const parsed = parseExternalDiscreteEstimationDocument(document);
-  if (!parsed.ok) {
-    return {
-      ok: false,
-      stage: 'request',
-      issues: parsed.issues.map((issue) => ({
-        code: issue.code,
-        path: issue.path,
-        message: issue.message
-      }))
-    };
-  }
-  // Avoid a second shape interpretation: the parsed typed request is passed to the estimator.
-  // The dynamic import is not needed; the estimator semantics are already represented by the
-  // existing document contract through the legacy wrapper, but the generic dispatcher keeps
-  // a direct typed result shape.
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const { estimateDiscreteParameterCandidates } = require('./discrete_estimation') as typeof import('./discrete_estimation');
-  return estimateDiscreteParameterCandidates(
-    parsed.document.modelDocument,
-    parsed.document.observationDataset,
-    parsed.document.request
-  );
 }
 
 export function estimateExternalReverseInput(input: unknown): ExternalReverseMethodResult {
