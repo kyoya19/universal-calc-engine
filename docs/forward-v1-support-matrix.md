@@ -37,15 +37,16 @@ Status words mean:
 | Observation parsing/validation | supported | JSON/unknown parsing plus model-linked checks | validation alone implies no likelihood |
 | Transition-count reverse likelihood | supported with boundary | one unknown parameter, finite candidates, conditional transition log-likelihood | requires complete departure counts; no prior/posterior |
 | Scalar Gaussian reverse likelihood | supported with boundary | one unknown parameter, finite candidates, explicit scalar binding and Gaussian error model | only explicit unit-bearing predictors are accepted; conditional independence is declared |
-| Checked reverse external input | supported with boundary | current transition-count estimator has versioned reverse JSON envelope | scalar Gaussian external envelope is not yet part of this contract |
+| Multi-parameter transition grid | supported with boundary | two or more unknowns, finite per-parameter candidate sets, exhaustive Cartesian transition-likelihood search | mandatory hard `maxCombinations`; finite-grid ties expose non-identifiability; no adaptive/continuous search |
+| Checked reverse external input | supported with boundary | current transition-count single-parameter estimator has versioned reverse JSON envelope | scalar Gaussian and multi-parameter grid external envelopes are not yet part of this contract |
 | JSON output | supported with boundary | serialization helpers for structured results | not one universal historical wire schema |
 | TeX output | partial | expected-reward and contribution TeX helpers | not a complete forward/reverse renderer |
 | Report model | partial | state graph, probability audit and generated-target reports | not a unified v1 report |
 | Transition effects | partial | `set_property` | richer actions require a demonstrated generic use case |
 | State generation | partial / diagnostic | graph/state-generation helpers | generated targets do not drive production solvers |
 | Automatic unit conversion | unsupported | — | unit strings are compared where contracts require them; no conversion engine |
-| Multi-parameter estimation | unsupported | — | no Cartesian candidate grid or continuous optimizer yet |
-| Multi-parameter causal attribution | unsupported | — | requires an explicit ordered-marginal, Shapley-style, or other interaction method |
+| Continuous parameter estimation | unsupported | — | no continuous optimizer or adaptive search contract |
+| Multi-parameter causal attribution | unsupported | — | estimation over assignments is not causal attribution; attribution needs an explicit interaction method |
 | Bayesian prior/posterior | unsupported | — | likelihood ratios must not be called posterior probabilities |
 | Hidden-state inference | unsupported | — | no HMM/state posterior contract |
 | GUI / web API | unsupported | — | core package boundary only |
@@ -75,7 +76,7 @@ Scenario comparison reports `candidate - baseline`. A multi-parameter scenario d
 
 ### Transition-count likelihood
 
-The first reverse estimator uses:
+The transition-count estimator uses:
 
 ```text
 sum k * log(p)
@@ -110,6 +111,22 @@ scalar_observations_conditionally_independent_given_candidate
 
 Observation unit, predictor unit, and Gaussian error-model unit must match exactly. No default sigma, epsilon smoothing, unit conversion, prior, or posterior is introduced.
 
+### Multi-parameter finite grid
+
+The multi-parameter search method is:
+
+```text
+finite_cartesian_parameter_grid
+```
+
+It does not define a new likelihood. Every generated parameter assignment is scored through the existing transition-count likelihood implementation so the statistical formula is not duplicated.
+
+Per-parameter constraints are applied before Cartesian expansion. Both raw and eligible combination counts are reported. `maxCombinations` is mandatory, and the request fails before materialization when the eligible product is larger than the caller's limit.
+
+No truncation, random sampling, or adaptive optimization is substituted silently.
+
+If multiple assignments attain the best score, they are all returned and the result reports `tied_best_assignments`; this is evidence of non-identifiability on the supplied finite grid, not proof about the full continuous parameter space.
+
 ## Compatibility boundary
 
 The current work remains additive:
@@ -122,7 +139,9 @@ The current work remains additive:
 - external input rebuilds recognized data from `unknown` instead of trusting casts;
 - ObservationDataset is not converted into supplied parameters;
 - transition-count and scalar Gaussian likelihoods remain separately named statistical methods;
-- scenario comparison and sensitivity remain forward analytical layers rather than reverse inference aliases.
+- multi-parameter grid search reuses the transition-count likelihood rather than redefining it;
+- scenario comparison and sensitivity remain forward analytical layers rather than reverse inference aliases;
+- multi-parameter estimation is not treated as multi-parameter causal attribution.
 
 A future breaking v2 must be deliberate rather than an incidental consequence of adding reverse features.
 
@@ -146,6 +165,7 @@ docs/observations.md
 docs/discrete-estimation.md
 docs/reverse-external-input.md
 docs/scalar-gaussian-estimation.md
+docs/multi-parameter-grid-estimation.md
 ```
 
 Representative public entry points include:
@@ -158,15 +178,17 @@ analyzeParameterSensitivity
 estimateDiscreteParameterCandidates
 estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
 estimateScalarGaussianParameterCandidates
+estimateMultiParameterGrid
 ```
 
 ## Completion judgment
 
 The Kiyotan side is sufficiently integrated to remain a **forward v1 candidate**.
 
-The Seikatan side is still intentionally small, but it now has two explicit likelihood families over a finite single-parameter candidate set:
+The Seikatan side is still deliberately bounded, but it now has:
 
-1. transition-count conditional likelihood;
-2. scalar Gaussian likelihood with explicit predictor, unit, sigma, and independence assumptions.
+1. transition-count likelihood over finite candidates;
+2. scalar Gaussian likelihood with explicit predictor, unit, sigma, and independence assumptions;
+3. exhaustive finite multi-parameter transition-likelihood grid search with a hard combination limit and explicit assignment ties.
 
-The next reverse expansion should be selected by demonstrated analytical value. Multi-parameter candidate grids are a plausible next step because they preserve finite likelihood semantics, but candidate-space growth and identifiability must be explicit. Bayesian prior/posterior work remains lower priority until a concrete use case requires it.
+The next reverse work should improve composition or third-party ingestion before adding Bayesian semantics merely for breadth. Candidate next steps are checked external envelopes for the newer reverse methods or an explicitly named composite likelihood that combines transition-count and scalar Gaussian evidence only under declared independence assumptions.
