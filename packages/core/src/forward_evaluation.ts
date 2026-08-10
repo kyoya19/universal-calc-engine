@@ -37,7 +37,7 @@ import {
   solveExpectedRewardWithDiagnostics,
   solveReachabilityProbabilityWithDiagnostics
 } from './solver_diagnostics';
-import { ModelValidationResult } from './validation';
+import { ModelValidationResult, validateDefinitionModel } from './validation';
 
 export type ForwardEvaluationStage = ExternalInputStage | 'evaluation_options' | 'evaluation';
 
@@ -171,6 +171,22 @@ function preparationFailure(
     stage: result.stage,
     issues: result.issues.map((issue) => ({ ...issue })),
     ...(result.validation !== undefined ? { validation: result.validation } : {})
+  };
+}
+
+function definitionModelValidationFailure(
+  validation: ModelValidationResult
+): ForwardEvaluationFailure {
+  return {
+    ok: false,
+    stage: 'model_validation',
+    validation,
+    issues: validation.errors.map((issue) => ({
+      stage: 'model_validation',
+      code: issue.code,
+      path: `$.model.${issue.path}`,
+      message: issue.message
+    }))
   };
 }
 
@@ -309,18 +325,14 @@ function evaluationFailure(error: unknown): ForwardEvaluationFailure {
   };
 }
 
-function evaluatePreparedBaseModel(
-  prepared: Extract<PreparedExternalModel, { modelKind: 'base' }>,
+function evaluateBaseDefinitionModel(
+  model: DefinitionModel,
+  validation: ModelValidationResult,
   options: ForwardEvaluationOptions
 ): ForwardEvaluationResult {
   try {
-    const evaluated = evaluateModel(expandModel(prepared.resolvedModel));
-    const common = runCommonForwardEvaluation(
-      prepared.resolvedModel,
-      evaluated,
-      prepared.validation,
-      options
-    );
+    const evaluated = evaluateModel(expandModel(model));
+    const common = runCommonForwardEvaluation(model, evaluated, validation, options);
     if (isForwardEvaluationFailure(common)) {
       return common;
     }
@@ -333,6 +345,13 @@ function evaluatePreparedBaseModel(
   } catch (error) {
     return evaluationFailure(error);
   }
+}
+
+function evaluatePreparedBaseModel(
+  prepared: Extract<PreparedExternalModel, { modelKind: 'base' }>,
+  options: ForwardEvaluationOptions
+): ForwardEvaluationResult {
+  return evaluateBaseDefinitionModel(prepared.resolvedModel, prepared.validation, options);
 }
 
 function evaluatePreparedRewardAxesModel(
@@ -377,6 +396,16 @@ function evaluatePreparedRewardAxesModel(
   } catch (error) {
     return evaluationFailure(error);
   }
+}
+
+export function evaluateDefinitionModel(
+  model: DefinitionModel,
+  options: ForwardEvaluationOptions = {}
+): ForwardEvaluationResult {
+  const validation = validateDefinitionModel(model);
+  return validation.valid
+    ? evaluateBaseDefinitionModel(model, validation, options)
+    : definitionModelValidationFailure(validation);
 }
 
 export function evaluatePreparedExternalModel(
