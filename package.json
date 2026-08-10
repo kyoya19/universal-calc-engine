@@ -22,7 +22,8 @@
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build-package.mjs",
-    "package:check": "node scripts/verify-package.mjs"
+    "package:check": "node scripts/verify-package.mjs",
+    "audit:production": "npm audit --omit=dev --audit-level=moderate"
   },
   "devDependencies": {
     "@types/node": "^20.14.10",
