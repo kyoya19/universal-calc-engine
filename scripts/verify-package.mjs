@@ -120,6 +120,7 @@ try {
   }
   for (const path of packedPaths) {
     if (
+      path === 'package-lock.json' ||
       path.startsWith('packages/') ||
       path.startsWith('scripts/') ||
       path.startsWith('.github/') ||
