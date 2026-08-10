@@ -98,6 +98,17 @@ export type ReverseGridAssignmentRankingRow = {
   rank: number | null;
 };
 
+export type ReverseCompositeGridAssignmentRankingRow = {
+  assignment: ParameterAssignment;
+  possible: boolean;
+  transitionLogLikelihoodScore: number | null;
+  scalarGaussianLogLikelihoodScore: number;
+  totalLogLikelihoodScore: number | null;
+  relativeLikelihoodToBest: number;
+  rank: number | null;
+  scalarDiagnostics: ScalarGaussianCandidateDiagnostics;
+};
+
 export type ReverseResultHandoffSuccess = {
   schemaVersion: 1;
   kind: 'reverse_estimation_handoff';
@@ -109,7 +120,8 @@ export type ReverseResultHandoffSuccess = {
     | ReverseDiscreteCandidateRankingRow[]
     | ReverseScalarCandidateRankingRow[]
     | ReverseCompositeCandidateRankingRow[]
-    | ReverseGridAssignmentRankingRow[];
+    | ReverseGridAssignmentRankingRow[]
+    | ReverseCompositeGridAssignmentRankingRow[];
   evidence: ReverseResultEvidence;
   constraints:
     | { parameterId: string; constraints: EstimationConstraint[] }
@@ -146,6 +158,23 @@ function copyAssignment(assignment: ParameterAssignment): ParameterAssignment {
   return { ...assignment };
 }
 
+function copyDiagnostics(
+  diagnostics: ScalarGaussianCandidateDiagnostics
+): ScalarGaussianCandidateDiagnostics {
+  return {
+    ...(diagnostics.expectedElapsedTime !== undefined
+      ? { expectedElapsedTime: { ...diagnostics.expectedElapsedTime } }
+      : {}),
+    ...(diagnostics.rewardAxes !== undefined
+      ? {
+          rewardAxes: Object.fromEntries(
+            Object.entries(diagnostics.rewardAxes).map(([axisId, value]) => [axisId, { ...value }])
+          )
+        }
+      : {})
+  };
+}
+
 function singleSelection(
   parameterId: string,
   estimatedValue: number | null,
@@ -161,6 +190,21 @@ function singleSelection(
         : bestCandidateValues.length === 1
           ? 'unique_best_candidate'
           : 'tied_best_candidates'
+  };
+}
+
+function multiSelection(
+  parameterIds: string[],
+  estimatedAssignment: ParameterAssignment | null,
+  bestAssignments: ParameterAssignment[],
+  identifiability: ReverseMultiParameterSelection['identifiability']
+): ReverseMultiParameterSelection {
+  return {
+    parameterIds: [...parameterIds],
+    estimatedAssignment:
+      estimatedAssignment === null ? null : copyAssignment(estimatedAssignment),
+    bestAssignments: bestAssignments.map((assignment) => copyAssignment(assignment)),
+    identifiability
   };
 }
 
@@ -201,6 +245,14 @@ function scalarUnitLimitation(): ReverseResultLimitation {
   };
 }
 
+function finiteGridLimitation(): ReverseResultLimitation {
+  return {
+    code: 'finite_grid_identifiability_only',
+    message:
+      'Identifiability describes only the supplied finite grid and is not a global structural-identifiability result.'
+  };
+}
+
 function singleWarnings(
   bestCandidateValues: number[],
   rejectedCount: number,
@@ -231,6 +283,44 @@ function singleWarnings(
     });
   }
   return warnings;
+}
+
+function gridWarnings(
+  identifiability: ReverseMultiParameterSelection['identifiability'],
+  rejectedCount: number,
+  excludedCount: number
+): ReverseResultWarning[] {
+  const warnings: ReverseResultWarning[] = [];
+  if (identifiability === 'tied_best_assignments') {
+    warnings.push({
+      code: 'estimate_not_unique',
+      message: 'Multiple assignments share the best score; no unique assignment is selected.'
+    });
+  } else if (identifiability === 'no_possible_assignment') {
+    warnings.push({
+      code: 'no_possible_candidate_or_assignment',
+      message: 'No possible assignment exists on the supplied eligible finite grid.'
+    });
+  }
+  if (rejectedCount > 0) {
+    warnings.push({
+      code: 'some_candidates_or_assignments_rejected',
+      message: `${rejectedCount} assignment(s) were rejected during evaluation.`
+    });
+  }
+  if (excludedCount > 0) {
+    warnings.push({
+      code: 'some_candidates_excluded_by_constraints',
+      message: `${excludedCount} parameter candidate(s) were excluded by explicit constraints.`
+    });
+  }
+  return warnings;
+}
+
+function excludedGridCandidateCount(
+  excluded: Array<{ excludedCandidates: unknown[] }>
+): number {
+  return excluded.reduce((total, parameter) => total + parameter.excludedCandidates.length, 0);
 }
 
 function summarizeDiscrete(
@@ -284,7 +374,7 @@ function summarizeScalar(
       logLikelihoodScore: candidate.logLikelihoodScore,
       relativeLikelihoodToBest: candidate.relativeLikelihoodToBest,
       rank: candidate.rank,
-      diagnostics: { ...candidate.diagnostics }
+      diagnostics: copyDiagnostics(candidate.diagnostics)
     })),
     evidence: { usedObservationIds: [...estimation.usedObservationIds] },
     constraints: {
@@ -326,7 +416,7 @@ function summarizeComposite(
       totalLogLikelihoodScore: candidate.totalLogLikelihoodScore,
       relativeLikelihoodToBest: candidate.relativeLikelihoodToBest,
       rank: candidate.rank,
-      scalarDiagnostics: { ...candidate.scalarDiagnostics }
+      scalarDiagnostics: copyDiagnostics(candidate.scalarDiagnostics)
     })),
     evidence: {
       usedObservationIds: [...estimation.usedObservationIds.all],
@@ -355,35 +445,6 @@ function summarizeGrid(
   result: Extract<ExternalReverseMethodSuccess, { estimationKind: 'multi_parameter_transition_grid' }>
 ): ReverseResultHandoffSuccess {
   const estimation = result.estimation;
-  const warnings: ReverseResultWarning[] = [];
-  if (estimation.identifiability === 'tied_best_assignments') {
-    warnings.push({
-      code: 'estimate_not_unique',
-      message: 'Multiple assignments share the best score; no unique assignment is selected.'
-    });
-  } else if (estimation.identifiability === 'no_possible_assignment') {
-    warnings.push({
-      code: 'no_possible_candidate_or_assignment',
-      message: 'No possible assignment exists on the supplied eligible finite grid.'
-    });
-  }
-  if (estimation.rejectedAssignments.length > 0) {
-    warnings.push({
-      code: 'some_candidates_or_assignments_rejected',
-      message: `${estimation.rejectedAssignments.length} assignment(s) were rejected during evaluation.`
-    });
-  }
-  const excludedCount = estimation.excludedCandidatesByParameter.reduce(
-    (total, parameter) => total + parameter.excludedCandidates.length,
-    0
-  );
-  if (excludedCount > 0) {
-    warnings.push({
-      code: 'some_candidates_excluded_by_constraints',
-      message: `${excludedCount} parameter candidate(s) were excluded by explicit constraints.`
-    });
-  }
-
   return {
     schemaVersion: 1,
     kind: 'reverse_estimation_handoff',
@@ -393,13 +454,12 @@ function summarizeGrid(
       likelihoodMethod: estimation.likelihoodMethod,
       searchMethod: estimation.searchMethod
     },
-    selection: {
-      parameterIds: [...estimation.parameterIds],
-      estimatedAssignment:
-        estimation.estimatedAssignment === null ? null : copyAssignment(estimation.estimatedAssignment),
-      bestAssignments: estimation.bestAssignments.map((assignment) => copyAssignment(assignment)),
-      identifiability: estimation.identifiability
-    },
+    selection: multiSelection(
+      estimation.parameterIds,
+      estimation.estimatedAssignment,
+      estimation.bestAssignments,
+      estimation.identifiability
+    ),
     ranking: estimation.assignments.map((assignment) => ({
       assignment: copyAssignment(assignment.assignment),
       possible: assignment.possible,
@@ -420,15 +480,75 @@ function summarizeGrid(
     },
     priorUsed: estimation.priorUsed,
     posteriorComputed: estimation.posteriorComputed,
-    warnings,
+    warnings: gridWarnings(
+      estimation.identifiability,
+      estimation.rejectedAssignments.length,
+      excludedGridCandidateCount(estimation.excludedCandidatesByParameter)
+    ),
+    limitations: [...commonLimitations(), transitionConstantLimitation(), finiteGridLimitation()]
+  };
+}
+
+function summarizeCompositeGrid(
+  result: Extract<ExternalReverseMethodSuccess, { estimationKind: 'multi_parameter_composite_grid' }>
+): ReverseResultHandoffSuccess {
+  const estimation = result.estimation;
+  return {
+    schemaVersion: 1,
+    kind: 'reverse_estimation_handoff',
+    status: 'success',
+    estimationKind: result.estimationKind,
+    methods: {
+      searchMethod: estimation.searchMethod,
+      compositeMethod: estimation.compositeMethod,
+      transitionMethod: estimation.transitionMethod,
+      scalarMethod: estimation.scalarMethod
+    },
+    selection: multiSelection(
+      estimation.parameterIds,
+      estimation.estimatedAssignment,
+      estimation.bestAssignments,
+      estimation.identifiability
+    ),
+    ranking: estimation.assignments.map((assignment) => ({
+      assignment: copyAssignment(assignment.assignment),
+      possible: assignment.possible,
+      transitionLogLikelihoodScore: assignment.transitionLogLikelihoodScore,
+      scalarGaussianLogLikelihoodScore: assignment.scalarGaussianLogLikelihoodScore,
+      totalLogLikelihoodScore: assignment.totalLogLikelihoodScore,
+      relativeLikelihoodToBest: assignment.relativeLikelihoodToBest,
+      rank: assignment.rank,
+      scalarDiagnostics: copyDiagnostics(assignment.scalarDiagnostics)
+    })),
+    evidence: {
+      usedObservationIds: [...estimation.usedObservationIds.all],
+      blocks: {
+        transition: [...estimation.usedObservationIds.transition],
+        scalar: [...estimation.usedObservationIds.scalar]
+      }
+    },
+    constraints: result.document.request.parameters.map((parameter) => ({
+      parameterId: parameter.parameterId,
+      constraints: copyConstraints(parameter.constraints)
+    })),
+    assumptions: [estimation.independenceAssumption],
+    searchLimits: {
+      rawCombinationCount: estimation.rawCombinationCount,
+      eligibleCombinationCount: estimation.eligibleCombinationCount,
+      maxCombinations: estimation.maxCombinations
+    },
+    priorUsed: estimation.priorUsed,
+    posteriorComputed: estimation.posteriorComputed,
+    warnings: gridWarnings(
+      estimation.identifiability,
+      estimation.rejectedAssignments.length,
+      excludedGridCandidateCount(estimation.excludedCandidatesByParameter)
+    ),
     limitations: [
       ...commonLimitations(),
       transitionConstantLimitation(),
-      {
-        code: 'finite_grid_identifiability_only',
-        message:
-          'Identifiability describes only the supplied finite grid and is not a global structural-identifiability result.'
-      }
+      scalarUnitLimitation(),
+      finiteGridLimitation()
     ]
   };
 }
@@ -469,6 +589,8 @@ export function toReverseResultHandoff(result: ExternalReverseMethodResult): Rev
       return summarizeComposite(result);
     case 'multi_parameter_transition_grid':
       return summarizeGrid(result);
+    case 'multi_parameter_composite_grid':
+      return summarizeCompositeGrid(result);
   }
 }
 
