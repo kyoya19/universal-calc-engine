@@ -35,9 +35,10 @@ discrete_parameter_candidates
 scalar_gaussian_parameter_candidates
 composite_parameter_candidates
 multi_parameter_transition_grid
+multi_parameter_composite_grid
 ```
 
-It does not execute estimation itself. Estimation is performed first through the existing checked boundary, for example:
+It does not execute estimation itself. Estimation is performed first through the checked boundary:
 
 ```text
 external unknown / JSON
@@ -68,7 +69,7 @@ warnings
 limitations
 ```
 
-Multi-parameter grid results additionally expose:
+Finite multi-parameter results additionally expose:
 
 ```text
 searchLimits.rawCombinationCount
@@ -78,7 +79,7 @@ searchLimits.maxCombinations
 
 ### Methods
 
-The handoff preserves the existing method names rather than replacing them with a generic label.
+The handoff preserves existing method names rather than replacing them with a generic label.
 
 Examples:
 
@@ -96,7 +97,7 @@ searchMethod:
   finite_cartesian_parameter_grid
 ```
 
-Composite summaries also preserve the transition and scalar component method names separately.
+Single- and multi-parameter composite summaries also preserve transition and scalar component method names separately.
 
 ### Selection
 
@@ -109,7 +110,7 @@ bestCandidateValues
 status
 ```
 
-where `status` is one of:
+where `status` is:
 
 ```text
 unique_best_candidate
@@ -117,7 +118,7 @@ tied_best_candidates
 no_best_candidate
 ```
 
-Multi-parameter grid results preserve the estimator's finite-grid contract:
+Multi-parameter results expose:
 
 ```text
 parameterIds
@@ -152,7 +153,7 @@ rank
 diagnostics
 ```
 
-Composite rows keep:
+Single-parameter composite rows keep:
 
 ```text
 value
@@ -165,7 +166,7 @@ rank
 scalarDiagnostics
 ```
 
-Finite-grid rows keep:
+Multi-parameter transition-grid rows keep:
 
 ```text
 assignment
@@ -173,6 +174,19 @@ possible
 logLikelihoodScore
 relativeLikelihoodToBest
 rank
+```
+
+Multi-parameter composite-grid rows keep:
+
+```text
+assignment
+possible
+transitionLogLikelihoodScore
+scalarGaussianLogLikelihoodScore
+totalLogLikelihoodScore
+relativeLikelihoodToBest
+rank
+scalarDiagnostics
 ```
 
 Component scores are not collapsed into one unnamed score.
@@ -194,7 +208,7 @@ Scalar Gaussian results preserve:
 scalar_observations_conditionally_independent_given_candidate
 ```
 
-Composite results preserve:
+Both single- and multi-parameter composite results preserve:
 
 ```text
 transition_and_scalar_evidence_conditionally_independent_given_candidate
@@ -206,15 +220,19 @@ The handoff does not infer a new independence assumption.
 
 Single-parameter request constraints are copied as supplied.
 
-Multi-parameter grid constraints are preserved per parameter dimension. The summary also copies raw/eligible combination counts and the mandatory `maxCombinations` limit.
+Multi-parameter constraints are preserved per parameter dimension. Finite-grid summaries copy raw/eligible combination counts and mandatory `maxCombinations`.
 
-The handoff does not deduplicate candidate values, clip constraints, truncate grids, sample assignments, or otherwise repair requests.
+The handoff does not deduplicate candidate values, clip constraints, truncate grids, sample assignments, or repair requests.
 
 ## Convergence diagnostics
 
-Scalar Gaussian ranking rows preserve existing solver diagnostics. Composite ranking rows preserve their scalar component diagnostics.
+Scalar Gaussian candidate rows preserve existing solver diagnostics.
 
-A non-converged scalar prediction is rejected before it can become a successful likelihood row; the handoff does not turn a rejected prediction into evidence.
+Single-parameter composite candidate rows preserve scalar component diagnostics.
+
+Multi-parameter composite assignment rows preserve the same scalar component diagnostics for each evaluated assignment.
+
+A non-converged scalar prediction is rejected before it becomes a successful likelihood row; the handoff does not turn a rejected prediction into evidence.
 
 ## Prior and posterior
 
@@ -262,13 +280,52 @@ Only method-relevant limitations are added beyond the common finite-candidate / 
 
 Transition-count scores use the established conditional transition likelihood with the candidate-independent multinomial constant omitted.
 
-The handoff therefore states that boundary rather than pretending the score is an absolute fully normalized data likelihood. Ranking and likelihood ratios remain comparable for the same transition evidence because the omitted constant cancels between candidates.
+The handoff states that boundary rather than presenting the score as an absolute fully normalized data likelihood. Ranking and likelihood ratios remain comparable for the same transition evidence because the omitted constant cancels between candidates or assignments.
+
+### Scalar units
+
+Scalar and composite methods preserve the exact-unit contract:
+
+```text
+observation unit == predictor unit == Gaussian error-model unit
+```
+
+No unit conversion is inferred by the handoff.
 
 ### Finite-grid identifiability
 
 Multi-parameter `identifiability` describes only the supplied finite candidate grid.
 
 It is not converted into a claim of global structural identifiability over a continuous parameter space.
+
+It is also not a parameter-level causal attribution.
+
+## Multi-parameter composite handoff
+
+For `multi_parameter_composite_grid`, the handoff exposes all four relevant method layers together:
+
+```text
+searchMethod = finite_cartesian_parameter_grid
+compositeMethod = transition_plus_scalar_gaussian_composite_log_likelihood
+transitionMethod = conditional_transition_log_likelihood_without_multinomial_constant
+scalarMethod = conditionally_independent_gaussian_scalar_log_likelihood
+```
+
+It also keeps:
+
+```text
+estimatedAssignment / bestAssignments / identifiability
+transition/scalar/all usedObservationIds
+transition/scalar evidence blocks
+explicit between-block independence assumption
+raw / eligible / max combination counts
+transition / scalar / total assignment scores
+scalar solver diagnostics
+priorUsed: false
+posteriorComputed: false
+```
+
+This is a summary of the existing typed estimator result. No likelihood is recalculated in the handoff layer.
 
 ## Failure structure
 
@@ -277,7 +334,7 @@ Failures remain failures. The handoff exposes:
 ```text
 status: failure
 stage
-estimationKind? 
+estimationKind?
 estimationStage?
 issues
 ```
@@ -296,7 +353,7 @@ For estimator failure, the checked dispatcher-provided `estimationKind`, estimat
 
 ## Plain text
 
-`formatReverseResultHandoffPlainText` provides a concise human-readable handoff containing method/search, selected estimate, used observations, prior/posterior status, warnings, and limitation codes.
+`formatReverseResultHandoffPlainText` provides a concise human-readable handoff containing method/search, selected estimate or assignment, used observations, prior/posterior status, warnings, and limitation codes.
 
 It is a convenience view of the structured handoff, not an independent statistical renderer.
 
