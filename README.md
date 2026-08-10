@@ -34,11 +34,11 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ObservationDatasetはmodel definition、supplied parameter、evaluated value、forward result、estimateから分離された証拠データ面です。`state_count / transition_count / scalar` を扱います。
 
-セイカタン側は有限candidate / assignment searchを中心に、transition-count likelihood、scalar Gaussian likelihood、single-parameter composite likelihood、finite multi-parameter transition grid、さらにtyped finite multi-parameter composite gridを持ちます。
+セイカタン側は有限candidate / assignment searchを中心に、transition-count likelihood、scalar Gaussian likelihood、single-parameter composite likelihood、finite multi-parameter transition grid、finite multi-parameter composite gridを持ちます。
 
-既存4 reverse kindにはgeneric checked external input dispatcherとversioned `ReverseResultHandoff` があり、raw resultを変更せずmethod/search、selection、ranking、evidence、constraints、assumptions、diagnostics、prior/posterior status、warnings、limitationsを第三者へ渡せます。
+現在のreverse 5 kindsはすべてgeneric checked external input dispatcherから`unknown` / JSONで到達でき、すべてversioned `ReverseResultHandoff`へ変換できます。raw estimator resultを変更せず、method/search、selection、ranking、evidence、constraints、assumptions、diagnostics、prior/posterior status、warnings、limitationsを第三者へ渡します。
 
-新しいmulti-parameter composite gridはtyped APIを先に安定化するstageであり、checked external kindとhandoff parityは次のfollow-upで追加します。
+旧discrete専用checked APIも互換のため残しています。
 
 ### Transition-count likelihood
 
@@ -117,19 +117,17 @@ Generic use caseとして、unknown transition success probability `p` とunknow
 
 Transition countsは主に`p`へ情報を持ち、scalar expected qualityは`p`と`q`の組合せへ情報を持つため、両方が未知ならsingle-parameter compositeではjoint assignmentを扱えません。
 
-Search methodは既存と同じ:
+Search method:
 
 ```text
 finite_cartesian_parameter_grid
 ```
 
-Per-assignment composite methodは:
+Per-assignment composite method:
 
 ```text
 transition_plus_scalar_gaussian_composite_log_likelihood
 ```
-
-です。
 
 Grid layerは新しいlikelihood式を定義しません。全parameter assignmentをmodelへ注入し、既存`estimateCompositeParameterCandidates`を1-value anchor candidateで再利用します。
 
@@ -177,13 +175,14 @@ external JSON / unknown
 → structured result
 ```
 
-Current checked kinds:
+Supported checked kinds:
 
 ```text
 discrete_parameter_candidates
 scalar_gaussian_parameter_candidates
 composite_parameter_candidates
 multi_parameter_transition_grid
+multi_parameter_composite_grid
 ```
 
 Public entry points:
@@ -203,15 +202,13 @@ shape
 estimation
 ```
 
-The parser does not deduplicate candidates, truncate grids, invent sigma, infer predictors, convert units, auto-clip constraints, or infer composite independence assumptions. Estimator-semantic failures remain estimator-semantic failures.
+The parser does not deduplicate candidates, truncate grids, invent or repair sigma, infer predictors, convert units, auto-clip constraints, or infer composite independence assumptions. Estimator-semantic failures remain estimator-semantic failures.
 
 The established discrete-specific checked functions remain available unchanged for compatibility.
 
-The typed `estimateMultiParameterCompositeGrid` is intentionally stabilized before adding a fifth checked `estimationKind`; that parity follow-up must preserve the same parser boundary.
-
 ## Reverse result handoff
 
-Previously checked reverse results can be converted into one structured third-party handoff without changing the underlying estimator types.
+All five current checked reverse results can be converted into one structured third-party handoff without changing the underlying estimator types.
 
 ```text
 ExternalReverseMethodResult
@@ -229,11 +226,20 @@ formatReverseResultHandoffPlainText
 
 Success handoffs preserve method/component/search names, selected estimate or assignment, method-specific ranking scores, used observation IDs, composite evidence blocks, constraints, explicit assumptions, solver diagnostics where present, finite-grid search limits where present, `priorUsed`, `posteriorComputed`, warnings, and limitations.
 
+Multi-parameter composite handoff keeps all four method levels together:
+
+```text
+searchMethod
+compositeMethod
+transitionMethod
+scalarMethod
+```
+
+and preserves assignment-level transition/scalar/total scores plus scalar diagnostics.
+
 The handoff does not create confidence intervals, credible intervals, posterior probabilities, global structural-identifiability claims, or causal attribution.
 
 `relativeLikelihoodToBest` remains a likelihood ratio. A tie remains a tie. Failed parse/shape/estimation results remain failure handoffs rather than fabricated statistical results.
-
-Multi-parameter composite handoff support follows after its checked external result kind is added.
 
 ## Forward v1 path
 
@@ -328,7 +334,7 @@ multi-parameter transition and composite estimation use finite exhaustive grids 
 multi-parameter grids require an explicit hard combination limit
 tied best assignments are finite-grid non-identifiability only
 checked reverse parsing never normalizes statistical input
-multi-parameter composite checked-input/handoff parity is pending after typed stabilization
+all five current reverse kinds have checked external input and structured handoff
 reverse handoff summarizes existing semantics but does not create new inference
 continuous optimization remains unsupported
 Bayesian prior/posterior remains unsupported
@@ -369,6 +375,7 @@ packages/core/examples/scalar_gaussian_estimation.ts
 packages/core/examples/composite_likelihood_estimation.ts
 packages/core/examples/multi_parameter_grid_estimation.ts
 packages/core/examples/multi_parameter_composite_grid_estimation.ts
+packages/core/examples/multi_parameter_composite_external_handoff.ts
 packages/core/examples/reverse_result_handoff.ts
 ```
 
@@ -376,9 +383,9 @@ packages/core/examples/reverse_result_handoff.ts
 
 ## Next priority
 
-Typed finite multi-parameter composite gridがstableになった後の最優先は、checked external inputと`ReverseResultHandoff`へ新しいmulti-parameter composite kindを追加してparityを戻すことです。
+キヨタンはforward v1 candidateを維持し、セイカタンは有限candidate / assignmentを中心とするcurrent 5 reverse kindsについてtyped estimator・checked external input・structured result handoffが揃いました。
 
-そのparityが閉じた後は、新しいstatistical familyを増やす前に、キヨタンforward v1＋有限candidate中心の最小セイカタンをv1相当としてどこまで固定するか再棚卸しします。
+ここからは新しいstatistical familyを機械的に増やすより、**キヨタンforward v1＋この最小セイカタンをv1相当の区切りとして固定できるか**をrepository全体から再棚卸しするのが第一候補です。
 
 Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
 
