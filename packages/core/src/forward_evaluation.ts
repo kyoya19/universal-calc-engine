@@ -9,9 +9,7 @@ import {
   ContributionResult,
   DefinitionModel,
   EvaluatedModel,
-  ExpectedElapsedTimeResult,
   OutputResult,
-  ReachabilityResult,
   StateId,
   evaluateModel,
   expandModel,
@@ -37,6 +35,10 @@ import {
   solveExpectedRewardWithDiagnostics,
   solveReachabilityProbabilityWithDiagnostics
 } from './solver_diagnostics';
+import {
+  toForwardElapsedTimeOutput,
+  toForwardReachabilityOutput
+} from './forward_output_conversion';
 import { ModelValidationResult, validateDefinitionModel } from './validation';
 
 export type ForwardEvaluationStage = ExternalInputStage | 'evaluation_options' | 'evaluation';
@@ -127,40 +129,6 @@ function isForwardEvaluationFailure(
   value: CommonForwardEvaluation | ForwardEvaluationFailure
 ): value is ForwardEvaluationFailure {
   return 'ok' in value && value.ok === false;
-}
-
-function numberMapToRecord(map: Map<StateId, number>): Record<StateId, number> {
-  const record: Record<StateId, number> = {};
-  for (const [stateId, value] of map) {
-    record[stateId] = value;
-  }
-  return record;
-}
-
-function toElapsedTimeOutput(
-  model: DefinitionModel,
-  result: ExpectedElapsedTimeResult
-): ForwardElapsedTimeOutput {
-  return {
-    startState: model.startState,
-    expectedElapsedTimeSeconds:
-      result.expectedElapsedTimeSecondsByState.get(model.startState) ?? 0,
-    expectedElapsedTimeSecondsByState: numberMapToRecord(
-      result.expectedElapsedTimeSecondsByState
-    )
-  };
-}
-
-function toReachabilityOutput(
-  model: DefinitionModel,
-  result: ReachabilityResult
-): ForwardReachabilityOutput {
-  return {
-    targetStates: [...result.targetStates],
-    probabilityFromStart:
-      result.reachabilityProbabilityByState.get(model.startState) ?? 0,
-    probabilityByState: numberMapToRecord(result.reachabilityProbabilityByState)
-  };
 }
 
 function preparationFailure(
@@ -268,7 +236,7 @@ function runCommonForwardEvaluation(
   );
 
   const expectedReward = toOutputResult(model, expectedRewardDetailed.result);
-  const expectedElapsedTime = toElapsedTimeOutput(model, elapsedTimeDetailed.result);
+  const expectedElapsedTime = toForwardElapsedTimeOutput(model, elapsedTimeDetailed.result);
   const rewardRate = toRewardRateResult(
     model,
     expectedRewardDetailed.result,
@@ -302,7 +270,7 @@ function runCommonForwardEvaluation(
       solverOptions
     );
     diagnostics.reachability = reachabilityDetailed.diagnostics;
-    common.reachability = toReachabilityOutput(model, reachabilityDetailed.result);
+    common.reachability = toForwardReachabilityOutput(model, reachabilityDetailed.result);
     converged = converged && reachabilityDetailed.diagnostics.converged;
     common.converged = converged;
   }
