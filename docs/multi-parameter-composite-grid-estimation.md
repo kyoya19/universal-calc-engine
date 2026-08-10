@@ -288,7 +288,7 @@ It is not a causal contribution decomposition among parameters.
 
 The module does not define Shapley values, ordered marginal allocation, interaction decomposition, or another causal attribution method.
 
-## API
+## Typed API
 
 Public entry point:
 
@@ -296,13 +296,78 @@ Public entry point:
 estimateMultiParameterCompositeGrid
 ```
 
-JSON helper:
+JSON helper for the typed result:
 
 ```text
 multiParameterCompositeGridEstimationResultToJson
 ```
 
-This PR introduces the typed estimator first. Checked external JSON/unknown input and `ReverseResultHandoff` support for this new estimator should be added only after this typed contract passes CI and is stable.
+## Checked external input
+
+The estimator is also available through the generic checked reverse boundary with:
+
+```text
+estimationKind: multi_parameter_composite_grid
+```
+
+Public checked entry points remain:
+
+```text
+parseExternalReverseEstimationDocument
+parseExternalReverseEstimationJson
+estimateExternalReverseInput
+estimateExternalReverseJson
+```
+
+The external request uses the same fields as the typed request. The parser checks structure and primitives but does not deduplicate candidates, truncate grids, repair sigma, infer predictors, convert units, clip constraints, or infer the composite independence assumption.
+
+Semantic rules remain owned by `estimateMultiParameterCompositeGrid`.
+
+## Reverse result handoff
+
+A successful or failed checked result can be passed through:
+
+```text
+toReverseResultHandoff
+```
+
+For successful multi-parameter composite results, the handoff preserves:
+
+```text
+searchMethod
+compositeMethod
+transitionMethod
+scalarMethod
+estimatedAssignment
+bestAssignments
+identifiability
+transition/scalar/all evidence IDs
+evidence blocks
+independence assumption
+raw/eligible/max combination counts
+transition/scalar/total assignment scores
+scalar diagnostics
+priorUsed: false
+posteriorComputed: false
+warnings
+limitations
+```
+
+The handoff summarizes the existing result; it does not recalculate likelihood or invent posterior/confidence/causal semantics.
+
+## Representative examples
+
+Typed estimator:
+
+```text
+packages/core/examples/multi_parameter_composite_grid_estimation.ts
+```
+
+Checked input through common handoff:
+
+```text
+packages/core/examples/multi_parameter_composite_external_handoff.ts
+```
 
 ## Non-goals
 
