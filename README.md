@@ -34,7 +34,7 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ObservationDatasetはmodel definition、supplied parameter、evaluated value、forward result、estimateから分離された証拠データ面です。`state_count / transition_count / scalar` を扱います。
 
-セイカタン側は有限candidate searchを中心に、現在2つの明示的likelihood familyと1つのmulti-parameter search layerがあります。
+セイカタン側は有限candidate searchを中心に、transition-count likelihood、scalar Gaussian likelihood、それらを明示的な条件付き独立仮定の下で合成するsingle-parameter composite likelihood、さらにfinite multi-parameter transition gridを持ちます。
 
 ### Transition-count likelihood
 
@@ -68,6 +68,32 @@ log L = -log(sigma * sqrt(2*pi)) - 0.5 * ((y - mu) / sigma)^2
 ```
 
 複数scalar観測は `scalar_observations_conditionally_independent_given_candidate` を明示してlog-likelihoodを加算します。observation unit、predictor unit、Gaussian error-model unitは完全一致が必要です。default sigma、epsilon smoothing、自動unit変換、prior、posteriorは導入しません。
+
+### Composite transition + scalar likelihood
+
+```text
+transition_plus_scalar_gaussian_composite_log_likelihood
+```
+
+同じsingle-parameter candidateへtransition-count evidenceとscalar Gaussian evidenceを使う場合、callerは次のevidence-block仮定を明示しなければなりません。
+
+```text
+transition_and_scalar_evidence_conditionally_independent_given_candidate
+```
+
+transition用観測IDとscalar bindingを明示分離し、全ObservationDataset recordをちょうど1つのblockへ割り当てます。未使用観測を黙って捨てません。
+
+既存2つのcomponent estimatorを再利用し、合成時だけ次を計算します。
+
+```text
+totalScore
+= transitionLogLikelihoodScore
++ scalarGaussianLogLikelihoodScore
+```
+
+transition componentはcandidate-independentなmultinomial constantを省略しているため、totalはそのconstantまでのlog-likelihood scoreです。candidate rankingとbestへのlikelihood ratioではconstantが相殺されます。
+
+transition componentがpositive observationに対してprobability 0を与えたcandidateは、scalar scoreが有限でもcompositeではimpossibleのままです。scalar predictorが非収束ならそのcandidateをlikelihood evidenceへ使いません。
 
 ### Finite multi-parameter grid
 
@@ -121,12 +147,8 @@ Single-parameter transition counts:
 one parameterized model
 + one unknown parameter ID
 + finite candidates
-+ optional min/max constraints
 + complete state_count / transition_count departures
-→ candidate resolution / validation
-→ conditional transition log-likelihood
-→ likelihood-ratio ranking
-→ unique estimate or explicit tie
+→ transition log-likelihood ranking
 ```
 
 Scalar Gaussian:
@@ -135,14 +157,24 @@ Scalar Gaussian:
 one parameterized model
 + one unknown parameter ID
 + finite candidates
-+ scalar ObservationDataset
-+ explicit observationId -> predictor bindings
-+ explicit Gaussian sigma and unit
-→ candidate resolution / validation
++ scalar observations
++ explicit predictor / sigma / unit
 → converged model-side prediction
-→ Gaussian log-likelihood density
-→ likelihood-ratio ranking
-→ unique estimate or explicit tie
+→ Gaussian log-likelihood ranking
+```
+
+Composite evidence:
+
+```text
+one parameterized model
++ one unknown parameter ID
++ finite candidates
++ explicit transition observation IDs
++ explicit scalar likelihood bindings
++ explicit between-block conditional independence assumption
+→ existing transition component score
++ existing scalar Gaussian component score
+→ composite likelihood-score ranking
 ```
 
 Multi-parameter transition grid:
@@ -151,17 +183,14 @@ Multi-parameter transition grid:
 one parameterized model
 + two or more unknown parameter IDs
 + finite candidate set per parameter
-+ optional per-parameter min/max constraints
 + explicit maxCombinations
-+ complete state_count / transition_count departures
-→ eligible Cartesian product count
-→ exhaustive assignment evaluation
++ transition-count evidence
+→ exhaustive Cartesian assignment search
 → existing transition likelihood score
-→ assignment ranking
 → unique best / tied best / no possible assignment
 ```
 
-現在のchecked external reverse JSON envelopeはsingle-parameter transition-count estimatorへ接続しています。scalar Gaussianとmulti-parameter gridは現時点ではtyped public APIです。
+現在のchecked external reverse JSON envelopeはsingle-parameter transition-count estimatorへ接続しています。scalar Gaussian、composite、multi-parameter gridは現時点ではtyped public APIです。
 
 ## Implemented public surface highlights
 
@@ -169,14 +198,13 @@ one parameterized model
 DefinitionModel / ExpandedModel / EvaluatedModel / SolvedModel
 RewardAxesDefinitionModel / RewardAxisDefinition
 ParameterizedDefinitionModel / ParameterizedRewardAxesDefinitionModel
-ParameterizedScalarSpec / ParameterDefinition
 ObservationDataset / ObservationRecord
-ModelValidationResult / SolverConvergenceDiagnostics
 ForwardEvaluationResult
 ScenarioComparisonResult
 ParameterSensitivityResult
 DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
 ScalarGaussianParameterEstimationRequest / ScalarGaussianParameterEstimationResult
+CompositeLikelihoodEstimationRequest / CompositeLikelihoodEstimationResult
 MultiParameterGridEstimationRequest / MultiParameterGridEstimationResult
 ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
 ```
@@ -192,6 +220,7 @@ parseObservationDataset / validateObservationDataset
 estimateDiscreteParameterCandidates
 estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
 estimateScalarGaussianParameterCandidates
+estimateCompositeParameterCandidates
 estimateMultiParameterGrid
 ```
 
@@ -201,23 +230,21 @@ estimateMultiParameterGrid
 solver target is explicit-only through transition.to
 generatedTo is diagnostics-only
 named reward axes are never implicitly netted or unit-converted
-legacy reward remains separate from rewardsByAxis
-structured validation and solver diagnostics are additive
-parameter/formula resolution happens before the ordinary model pipeline
-executable formula text is not accepted
 ObservationDataset is not converted into supplied parameters
 non-convergence remains explicit
 scenario comparison uses candidate - baseline
 one-at-a-time sensitivity changes one selected parameter per point
 contribution differences are descriptive, not unique causal attribution
 TeX/report remain partial rather than full forward/reverse renderers
-transition-count likelihood and scalar Gaussian likelihood are separately named methods
+transition-count and scalar Gaussian likelihood remain separately named methods
+composite likelihood requires explicit evidence partition and conditional-independence declaration
+composite total score is up to the omitted candidate-independent transition multinomial constant
 relative likelihood is not posterior probability
 scalar Gaussian sigma is explicit and strictly positive
 scalar Gaussian observation/predictor/error-model units must match exactly
 multi-parameter transition estimation is finite exhaustive grid search only
 multi-parameter grid requires an explicit hard combination limit
-tied best assignments are reported as finite-grid non-identifiability
+tied best assignments are finite-grid non-identifiability only
 continuous optimization remains unsupported
 Bayesian prior/posterior remains unsupported
 hidden-state inference remains unsupported
@@ -228,8 +255,6 @@ digipachi and Juoh remain later representative applications
 
 ## Primary docs
 
-- [Assistant autonomy](docs/assistant_autonomy.md)
-- [GitHub workflow](docs/github_workflow.md)
 - [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [External model input boundary](docs/external-input.md)
 - [Observation input surface](docs/observations.md)
@@ -239,14 +264,13 @@ digipachi and Juoh remain later representative applications
 - [Minimal discrete reverse estimation](docs/discrete-estimation.md)
 - [Checked external reverse-estimation input](docs/reverse-external-input.md)
 - [Scalar Gaussian reverse estimation](docs/scalar-gaussian-estimation.md)
+- [Composite likelihood estimation](docs/composite-likelihood-estimation.md)
 - [Finite multi-parameter grid estimation](docs/multi-parameter-grid-estimation.md)
 - [成果還元関数 continuation review](docs/outcome-continuation-review.md)
 - [Named reward axes](docs/reward-axes.md)
 - [Structured validation](docs/structured-validation.md)
 - [Solver convergence diagnostics](docs/solver-diagnostics.md)
 - [Parameter references and formula scalars](docs/parameterized-scalars.md)
-
-Historical design/boundary documents remain in `docs/`; the list above is the active handoff path.
 
 ## Representative examples
 
@@ -255,6 +279,7 @@ packages/core/examples/forward_evaluation.ts
 packages/core/examples/scenario_comparison.ts
 packages/core/examples/discrete_estimation.ts
 packages/core/examples/scalar_gaussian_estimation.ts
+packages/core/examples/composite_likelihood_estimation.ts
 packages/core/examples/multi_parameter_grid_estimation.ts
 ```
 
@@ -262,11 +287,9 @@ packages/core/examples/multi_parameter_grid_estimation.ts
 
 ## Next priority
 
-次はanalytical breadthを機械的に広げるより、第三者利用境界とlikelihood compositionを比較します。
+composite likelihoodでanalytical compositionはsingle-parameterまで成立しました。次の実務上の大きな差は、typed-onlyのscalar Gaussian / composite / multi-parameter gridへchecked external JSON / unknown input境界を追加することです。
 
-候補は、scalar Gaussian / multi-parameter gridをchecked external JSONへ接続すること、またはtransition-count likelihoodとscalar Gaussian likelihoodを**明示的な独立仮定の下でのみ**合成するcomposite likelihoodです。
-
-Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
+その後、multi-parameter composite gridへ進む価値があるかをgeneric exampleで再評価します。Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
 
 ## Verification
 
