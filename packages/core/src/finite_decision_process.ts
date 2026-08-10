@@ -145,6 +145,53 @@ type CommonContext<State> = {
   visitingStateKeys: Set<string>;
 };
 
+type ResolvedOutcome<State> = {
+  outcome: DecisionOutcome<State>;
+  nextStateKey?: string;
+};
+
+type FixedPolicyEnterFrame<State> = {
+  phase: 'enter';
+  state: State;
+  stateKey: string;
+  depth: number;
+};
+
+type FixedPolicyTraverseFrame<State> = {
+  phase: 'traverse';
+  state: State;
+  stateKey: string;
+  depth: number;
+  actionId: DecisionActionId;
+  outcomes: readonly DecisionOutcome<State>[];
+  resolvedOutcomes: ResolvedOutcome<State>[];
+  nextOutcomeIndex: number;
+};
+
+type FixedPolicyFrame<State> = FixedPolicyEnterFrame<State> | FixedPolicyTraverseFrame<State>;
+
+type OptimalEnterFrame<State> = {
+  phase: 'enter';
+  state: State;
+  stateKey: string;
+  depth: number;
+};
+
+type OptimalTraverseFrame<State> = {
+  phase: 'traverse';
+  state: State;
+  stateKey: string;
+  depth: number;
+  actions: readonly DecisionActionId[];
+  actionIndex: number;
+  currentOutcomes: readonly DecisionOutcome<State>[] | null;
+  currentResolvedOutcomes: ResolvedOutcome<State>[] | null;
+  nextOutcomeIndex: number;
+  resolvedOutcomesByAction: Map<DecisionActionId, ResolvedOutcome<State>[]>;
+};
+
+type OptimalFrame<State> = OptimalEnterFrame<State> | OptimalTraverseFrame<State>;
+
 function fail(failure: FiniteDecisionFailure): never {
   throw new FiniteDecisionEvaluationError(failure);
 }
@@ -422,6 +469,41 @@ function publicFailure(
   };
 }
 
+function policyActionForState<State>(
+  policy: DeterministicDecisionPolicy<State>,
+  state: State,
+  stateKey: string
+): DecisionActionId {
+  try {
+    return policy.selectAction(state);
+  } catch (error) {
+    fail({
+      code: 'process_callback_failed',
+      stateKey,
+      message: `policy.selectAction(state) failed for ${stateKey}: ${error instanceof Error ? error.message : String(error)}`
+    });
+  }
+}
+
+function requiredFixedPolicyMemoValue(
+  memo: Map<string, { expectedReward: number; expectedElapsedTimeSeconds: number }>,
+  stateKey: string
+): { expectedReward: number; expectedElapsedTimeSeconds: number } {
+  const value = memo.get(stateKey);
+  if (value === undefined) {
+    throw new Error(`Internal fixed-policy post-order dependency missing for ${stateKey}`);
+  }
+  return value;
+}
+
+function requiredOptimalMemoValue(memo: Map<string, number>, stateKey: string): number {
+  const value = memo.get(stateKey);
+  if (value === undefined) {
+    throw new Error(`Internal optimal post-order dependency missing for ${stateKey}`);
+  }
+  return value;
+}
+
 export function evaluateFiniteDecisionPolicy<State>(
   process: FiniteDecisionProcess<State>,
   policy: DeterministicDecisionPolicy<State>,
@@ -444,80 +526,113 @@ export function evaluateFiniteDecisionPolicy<State>(
       { expectedReward: number; expectedElapsedTimeSeconds: number }
     >();
     const policyActionByState = new Map<string, DecisionActionId>();
+    const startStateKey = safeStateKey(process, process.startState);
+    const stack: FixedPolicyFrame<State>[] = [
+      { phase: 'enter', state: process.startState, stateKey: startStateKey, depth: 0 }
+    ];
 
-    const evaluateState = (
-      state: State,
-      depth: number
-    ): { expectedReward: number; expectedElapsedTimeSeconds: number } => {
-      const stateKey = safeStateKey(process, state);
-      const cached = memo.get(stateKey);
-      if (cached !== undefined) {
-        diagnostics!.memoHitCount += 1;
-        return cached;
-      }
-      registerState(context, stateKey, depth);
-      if (context.visitingStateKeys.has(stateKey)) {
-        fail({
-          code: 'cycle_detected',
-          stateKey,
-          depth,
-          message: `Cycle detected while evaluating fixed policy at state ${stateKey}`
-        });
-      }
-      if (safeIsTerminal(process, state, stateKey)) {
-        const terminal = { expectedReward: 0, expectedElapsedTimeSeconds: 0 };
-        memo.set(stateKey, terminal);
-        return terminal;
-      }
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]!;
 
-      context.visitingStateKeys.add(stateKey);
-      try {
-        const actions = validateActions(safeActions(process, state, stateKey), stateKey);
-        let actionId: DecisionActionId;
-        try {
-          actionId = policy.selectAction(state);
-        } catch (error) {
+      if (frame.phase === 'enter') {
+        const cached = memo.get(frame.stateKey);
+        if (cached !== undefined) {
+          diagnostics.memoHitCount += 1;
+          stack.pop();
+          continue;
+        }
+
+        registerState(context, frame.stateKey, frame.depth);
+        if (context.visitingStateKeys.has(frame.stateKey)) {
           fail({
-            code: 'process_callback_failed',
-            stateKey,
-            message: `policy.selectAction(state) failed for ${stateKey}: ${error instanceof Error ? error.message : String(error)}`
+            code: 'cycle_detected',
+            stateKey: frame.stateKey,
+            depth: frame.depth,
+            message: `Cycle detected while evaluating fixed policy at state ${frame.stateKey}`
           });
         }
+        if (safeIsTerminal(process, frame.state, frame.stateKey)) {
+          memo.set(frame.stateKey, { expectedReward: 0, expectedElapsedTimeSeconds: 0 });
+          stack.pop();
+          continue;
+        }
+
+        context.visitingStateKeys.add(frame.stateKey);
+        const actions = validateActions(safeActions(process, frame.state, frame.stateKey), frame.stateKey);
+        const actionId = policyActionForState(policy, frame.state, frame.stateKey);
         if (!actions.includes(actionId)) {
           fail({
             code: 'policy_selected_unknown_action',
-            stateKey,
+            stateKey: frame.stateKey,
             actionId,
-            message: `Policy selected unavailable action ${actionId} at state ${stateKey}`
+            message: `Policy selected unavailable action ${actionId} at state ${frame.stateKey}`
           });
         }
-        policyActionByState.set(stateKey, actionId);
-        registerStateActionPair(context, stateKey, actionId);
-        const outcomes = safeOutcomes(process, state, stateKey, actionId);
-        validateOutcomes(outcomes, stateKey, actionId, resolved.probabilityTolerance);
+        policyActionByState.set(frame.stateKey, actionId);
+        registerStateActionPair(context, frame.stateKey, actionId);
+        const outcomes = safeOutcomes(process, frame.state, frame.stateKey, actionId);
+        validateOutcomes(outcomes, frame.stateKey, actionId, resolved.probabilityTolerance);
 
-        let expectedReward = 0;
-        let expectedElapsedTimeSeconds = 0;
-        for (const outcome of outcomes) {
-          if (outcome.probability === 0) {
-            continue;
-          }
-          const downstream = evaluateState(outcome.nextState, depth + 1);
-          expectedReward +=
-            outcome.probability * ((outcome.reward ?? 0) + downstream.expectedReward);
-          expectedElapsedTimeSeconds +=
-            outcome.probability *
-            ((outcome.elapsedTimeSeconds ?? 0) + downstream.expectedElapsedTimeSeconds);
-        }
-        const value = { expectedReward, expectedElapsedTimeSeconds };
-        memo.set(stateKey, value);
-        return value;
-      } finally {
-        context.visitingStateKeys.delete(stateKey);
+        stack[stack.length - 1] = {
+          phase: 'traverse',
+          state: frame.state,
+          stateKey: frame.stateKey,
+          depth: frame.depth,
+          actionId,
+          outcomes,
+          resolvedOutcomes: new Array<ResolvedOutcome<State>>(outcomes.length),
+          nextOutcomeIndex: 0
+        };
+        continue;
       }
-    };
 
-    const start = evaluateState(process.startState, 0);
+      if (frame.nextOutcomeIndex < frame.outcomes.length) {
+        const index = frame.nextOutcomeIndex;
+        frame.nextOutcomeIndex += 1;
+        const outcome = frame.outcomes[index]!;
+
+        if (outcome.probability === 0) {
+          frame.resolvedOutcomes[index] = { outcome };
+          continue;
+        }
+
+        const nextStateKey = safeStateKey(process, outcome.nextState);
+        frame.resolvedOutcomes[index] = { outcome, nextStateKey };
+        if (memo.has(nextStateKey)) {
+          diagnostics.memoHitCount += 1;
+          continue;
+        }
+
+        stack.push({
+          phase: 'enter',
+          state: outcome.nextState,
+          stateKey: nextStateKey,
+          depth: frame.depth + 1
+        });
+        continue;
+      }
+
+      let expectedReward = 0;
+      let expectedElapsedTimeSeconds = 0;
+      for (const resolvedOutcome of frame.resolvedOutcomes) {
+        const outcome = resolvedOutcome!.outcome;
+        if (outcome.probability === 0) {
+          continue;
+        }
+        const downstream = requiredFixedPolicyMemoValue(memo, resolvedOutcome!.nextStateKey!);
+        expectedReward +=
+          outcome.probability * ((outcome.reward ?? 0) + downstream.expectedReward);
+        expectedElapsedTimeSeconds +=
+          outcome.probability *
+          ((outcome.elapsedTimeSeconds ?? 0) + downstream.expectedElapsedTimeSeconds);
+      }
+
+      memo.set(frame.stateKey, { expectedReward, expectedElapsedTimeSeconds });
+      context.visitingStateKeys.delete(frame.stateKey);
+      stack.pop();
+    }
+
+    const start = requiredFixedPolicyMemoValue(memo, startStateKey);
     return {
       ok: true,
       objective: 'expected_total_reward',
@@ -557,66 +672,132 @@ export function optimizeFiniteDecisionExpectedReward<State>(
     const memo = new Map<string, number>();
     const actionValuesByState = new Map<string, Map<DecisionActionId, number>>();
     const bestActionIdsByState = new Map<string, DecisionActionId[]>();
+    const startStateKey = safeStateKey(process, process.startState);
+    const stack: OptimalFrame<State>[] = [
+      { phase: 'enter', state: process.startState, stateKey: startStateKey, depth: 0 }
+    ];
 
-    const evaluateState = (state: State, depth: number): number => {
-      const stateKey = safeStateKey(process, state);
-      const cached = memo.get(stateKey);
-      if (cached !== undefined) {
-        diagnostics!.memoHitCount += 1;
-        return cached;
-      }
-      registerState(context, stateKey, depth);
-      if (context.visitingStateKeys.has(stateKey)) {
-        fail({
-          code: 'cycle_detected',
-          stateKey,
-          depth,
-          message: `Cycle detected while optimizing expected reward at state ${stateKey}`
-        });
-      }
-      if (safeIsTerminal(process, state, stateKey)) {
-        memo.set(stateKey, 0);
-        return 0;
-      }
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1]!;
 
-      context.visitingStateKeys.add(stateKey);
-      try {
-        const actions = validateActions(safeActions(process, state, stateKey), stateKey);
-        const values = new Map<DecisionActionId, number>();
-        let bestValue = Number.NEGATIVE_INFINITY;
-
-        for (const actionId of actions) {
-          registerStateActionPair(context, stateKey, actionId);
-          const outcomes = safeOutcomes(process, state, stateKey, actionId);
-          validateOutcomes(outcomes, stateKey, actionId, resolved.probabilityTolerance);
-          let actionValue = 0;
-          for (const outcome of outcomes) {
-            if (outcome.probability === 0) {
-              continue;
-            }
-            const downstream = evaluateState(outcome.nextState, depth + 1);
-            actionValue += outcome.probability * ((outcome.reward ?? 0) + downstream);
-          }
-          values.set(actionId, actionValue);
-          bestValue = Math.max(bestValue, actionValue);
+      if (frame.phase === 'enter') {
+        if (memo.has(frame.stateKey)) {
+          diagnostics.memoHitCount += 1;
+          stack.pop();
+          continue;
         }
 
-        const bestActionIds = actions.filter(
-          (actionId) =>
-            Math.abs(
-              (values.get(actionId) ?? Number.NEGATIVE_INFINITY) - bestValue
-            ) <= resolved.actionValueTolerance
-        );
-        actionValuesByState.set(stateKey, values);
-        bestActionIdsByState.set(stateKey, [...bestActionIds]);
-        memo.set(stateKey, bestValue);
-        return bestValue;
-      } finally {
-        context.visitingStateKeys.delete(stateKey);
-      }
-    };
+        registerState(context, frame.stateKey, frame.depth);
+        if (context.visitingStateKeys.has(frame.stateKey)) {
+          fail({
+            code: 'cycle_detected',
+            stateKey: frame.stateKey,
+            depth: frame.depth,
+            message: `Cycle detected while optimizing expected reward at state ${frame.stateKey}`
+          });
+        }
+        if (safeIsTerminal(process, frame.state, frame.stateKey)) {
+          memo.set(frame.stateKey, 0);
+          stack.pop();
+          continue;
+        }
 
-    const optimalExpectedReward = evaluateState(process.startState, 0);
+        context.visitingStateKeys.add(frame.stateKey);
+        const actions = validateActions(safeActions(process, frame.state, frame.stateKey), frame.stateKey);
+        stack[stack.length - 1] = {
+          phase: 'traverse',
+          state: frame.state,
+          stateKey: frame.stateKey,
+          depth: frame.depth,
+          actions,
+          actionIndex: 0,
+          currentOutcomes: null,
+          currentResolvedOutcomes: null,
+          nextOutcomeIndex: 0,
+          resolvedOutcomesByAction: new Map<DecisionActionId, ResolvedOutcome<State>[]>()
+        };
+        continue;
+      }
+
+      if (frame.actionIndex < frame.actions.length) {
+        const actionId = frame.actions[frame.actionIndex]!;
+        if (frame.currentOutcomes === null || frame.currentResolvedOutcomes === null) {
+          registerStateActionPair(context, frame.stateKey, actionId);
+          const outcomes = safeOutcomes(process, frame.state, frame.stateKey, actionId);
+          validateOutcomes(outcomes, frame.stateKey, actionId, resolved.probabilityTolerance);
+          const resolvedOutcomes = new Array<ResolvedOutcome<State>>(outcomes.length);
+          frame.currentOutcomes = outcomes;
+          frame.currentResolvedOutcomes = resolvedOutcomes;
+          frame.nextOutcomeIndex = 0;
+          frame.resolvedOutcomesByAction.set(actionId, resolvedOutcomes);
+        }
+
+        if (frame.nextOutcomeIndex < frame.currentOutcomes.length) {
+          const index = frame.nextOutcomeIndex;
+          frame.nextOutcomeIndex += 1;
+          const outcome = frame.currentOutcomes[index]!;
+
+          if (outcome.probability === 0) {
+            frame.currentResolvedOutcomes[index] = { outcome };
+            continue;
+          }
+
+          const nextStateKey = safeStateKey(process, outcome.nextState);
+          frame.currentResolvedOutcomes[index] = { outcome, nextStateKey };
+          if (memo.has(nextStateKey)) {
+            diagnostics.memoHitCount += 1;
+            continue;
+          }
+
+          stack.push({
+            phase: 'enter',
+            state: outcome.nextState,
+            stateKey: nextStateKey,
+            depth: frame.depth + 1
+          });
+          continue;
+        }
+
+        frame.actionIndex += 1;
+        frame.currentOutcomes = null;
+        frame.currentResolvedOutcomes = null;
+        frame.nextOutcomeIndex = 0;
+        continue;
+      }
+
+      const values = new Map<DecisionActionId, number>();
+      let bestValue = Number.NEGATIVE_INFINITY;
+      for (const actionId of frame.actions) {
+        const resolvedOutcomes = frame.resolvedOutcomesByAction.get(actionId);
+        if (resolvedOutcomes === undefined) {
+          throw new Error(`Internal optimal post-order outcomes missing for ${frame.stateKey}/${actionId}`);
+        }
+        let actionValue = 0;
+        for (const resolvedOutcome of resolvedOutcomes) {
+          const outcome = resolvedOutcome!.outcome;
+          if (outcome.probability === 0) {
+            continue;
+          }
+          const downstream = requiredOptimalMemoValue(memo, resolvedOutcome!.nextStateKey!);
+          actionValue += outcome.probability * ((outcome.reward ?? 0) + downstream);
+        }
+        values.set(actionId, actionValue);
+        bestValue = Math.max(bestValue, actionValue);
+      }
+
+      const bestActionIds = frame.actions.filter(
+        (actionId) =>
+          Math.abs((values.get(actionId) ?? Number.NEGATIVE_INFINITY) - bestValue) <=
+          resolved.actionValueTolerance
+      );
+      actionValuesByState.set(frame.stateKey, values);
+      bestActionIdsByState.set(frame.stateKey, [...bestActionIds]);
+      memo.set(frame.stateKey, bestValue);
+      context.visitingStateKeys.delete(frame.stateKey);
+      stack.pop();
+    }
+
+    const optimalExpectedReward = requiredOptimalMemoValue(memo, startStateKey);
     return {
       ok: true,
       objective: 'expected_total_reward',
