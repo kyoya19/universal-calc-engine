@@ -77,7 +77,7 @@ describe('typed DefinitionModel forward evaluation', () => {
     const options = {
       reachabilityTargets: ['success'],
       solver: { maxIterations: 50, tolerance: 1e-12 }
-    } as const;
+    };
 
     const typed = evaluateDefinitionModel(model, options);
     const external = evaluateExternalModelInput(externalDocumentFor(model), options);
