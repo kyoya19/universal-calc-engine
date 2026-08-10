@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・scenario比較・one-at-a-time sensitivity・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult のforward系を中核に、外部入力・観測・scenario比較・感度分析・最小reverse estimationを段階的に固定します。
 
 ## License / Commercial Use
 
@@ -30,117 +30,89 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、最小キヨタン順方向エンジンを「第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1候補」として境界固定し、その上に最小セイカタンreverse-estimation契約を置けるか検証することです。
+最小キヨタンforward engineは、第三者が一続きに入力・評価・比較・感度確認・説明できる **forward v1候補** まで統合しています。
 
-外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。
+外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。
 
-観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱いますが、現時点のforward v1は観測値からparameterを推定しません。
+統合forward facadeは checked input から expected reward、expected elapsed time、`ratio_of_expectations` reward rate、optional reachability、contribution、named reward axes、solver convergence diagnosticsまでを返します。
 
-統合forward facadeは、checked inputから expected reward、expected elapsed time、`ratio_of_expectations` reward rate、optional reachability、既存contribution、named reward axes、solver convergence diagnosticsまでを一つのadditive APIで返します。solverが設定回数内に収束しない場合は入力失敗と混同せず、`ok: true / converged: false` と最後の近似値・diagnosticsを返します。
+scenario comparisonは同一model structureへbaseline/candidate parameter setを与え、差を `candidate - baseline` として構造化します。one-at-a-time sensitivityは他のsupplied baseline parametersを固定し、指定parameterだけを変更するcounterfactualです。
 
-scenario comparisonは、**同一model structure**へbaseline/candidateの2つのparameter setを与え、resolved parameter差、expected reward/time/rate/reachability差、legacy contribution行の差、named reward-axis差を構造化して返します。差の符号は `candidate - baseline` です。
+観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultから分離されています。
 
-one-at-a-time sensitivityはbaseline parameter setを固定し、指定した1 parameterだけをcandidate valueへ差し替えたscenario comparisonを複数実行します。これにより「他のsupplied parameterを固定したとき、このparameterの変更で結果がどう変わるか」という明示的なcounterfactualを扱えます。
+### Minimal Seikatan reverse estimation
 
-contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。
+最初のSeikatan-style production boundaryとして、単一unknown parameterを有限candidate集合から選ぶ離散maximum-likelihood推定を追加しています。
 
-forward v1の正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。TeX/reportは現時点では部分的境界であり、forward facade全体の正式レンダラーではありません。
+```text
+parameterized model
++ fixed parameter values
++ one unknown parameter
++ finite candidate values
++ ObservationDataset transition counts
++ optional numeric range constraint
+→ candidate-resolved transition probabilities
+→ complete-category multinomial log-likelihood
+→ maximum likelihood over supplied candidates
+```
 
-次のproduction候補はObservationDataset上の最小reverse-estimation contractです。prior/posteriorを未導入のまま、まず離散candidateと明示的likelihood/scoreを区別して扱える小さなSeikatan PoCを優先します。multi-parameter attributionはmethodを先に定義し、大型のデジパチ・獣王モデルを先に進めません。
+現在のreverse likelihoodは `transition_count` だけを使用します。`state_count` と generic `scalar` observation はvalidation対象ですが、観測モデルが未定義なのでlikelihoodへ暗黙投入しません。
 
-`generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
+prior / posterior / Bayesian updateは未実装です。`relativeLikelihoodToBest` は最良candidateに対するlikelihood ratioであり、posterior probabilityではありません。
+
+forward v1とminimal reverseの正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を参照してください。
+
+次のreverse候補は、versioned external reverse-request boundary、state_countを使う場合の明示的exposure observation model、または追加likelihood modelです。multi-parameter inferenceやBayesian prior/posteriorは数学・型契約を先に定義してから扱います。大型のデジパチ・獣王モデルを先に進めません。
+
+`generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。
 
 ## Implemented core
 
 ```text
-DefinitionModel
-ExpandedModel
-EvaluatedModel
-SolvedModel
-OutputResult
-ContributionResult
-ReachabilityResult
-ExpectedElapsedTimeResult
-RewardRateResult
-RewardAxesDefinitionModel
-RewardAxesExpandedModel
-RewardAxesEvaluatedModel
-RewardAxesSolvedModel
-RewardAxesOutputResult
-RewardAxesContributionResult
+DefinitionModel / ExpandedModel / EvaluatedModel / SolvedModel
+OutputResult / ContributionResult
+ReachabilityResult / ExpectedElapsedTimeResult / RewardRateResult
+RewardAxesDefinitionModel / RewardAxesEvaluatedModel / RewardAxesOutputResult
 ModelValidationResult / ModelValidationIssue
 SolverConvergenceDiagnostics / SolverDetailedResult
-ParameterizedDefinitionModel
-ParameterizedRewardAxesDefinitionModel
-ParameterizedScalarSpec
-ParameterDefinition / ParameterRefScalarSpec / ScalarFormulaSpec
+ParameterizedDefinitionModel / ParameterizedRewardAxesDefinitionModel
+ParameterizedScalarSpec / ParameterDefinition / ParameterRefScalarSpec / ScalarFormulaSpec
 ExternalModelDocument / ExternalModelPreparationResult
-ExternalInputIssue / ExternalInputStage
-ObservationDataset / ObservationRecord
-ObservationParseResult / ObservationValidationResult
+ObservationDataset / ObservationRecord / ObservationValidationResult
 ForwardEvaluationResult / ForwardEvaluationOptions
-ForwardElapsedTimeOutput / ForwardReachabilityOutput
-ScenarioComparisonResult / ScenarioComparisonParameterSets
-ScenarioForwardDelta / ScenarioContributionDelta
-ScenarioRewardAxesDelta / ScenarioRewardAxesContributionDelta
+ScenarioComparisonResult / ScenarioForwardDelta / ScenarioContributionDelta
 ParameterSensitivityResult / ParameterSensitivityRequest
-ParameterSensitivityKind
-ProbabilitySpec
-RewardSpec
-TimeSpec / TimeUnit
+DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
+DiscreteParameterEstimate / ParameterCandidateResult
+TransitionLikelihoodTerm / ReverseLikelihoodKind
+ProbabilitySpec / RewardSpec / TimeSpec / TimeUnit
 RewardAxisDefinition / RewardAxisKind
-TerminalCondition
-TransitionEffect
-expandModel
-evaluateModel
+TerminalCondition / TransitionEffect
+```
+
+Representative public operations include:
+
+```text
+expandModel / evaluateModel
 solveExpectedReward
 solveReachabilityProbability
 solveExpectedElapsedTime
-evaluateTimeSpecSeconds
 toRewardRateResult
-expandRewardAxesModel
-evaluateRewardAxesModel
 solveExpectedRewardAxes
-toRewardAxesOutputResult
-toRewardAxesContributionResult
-validateDefinitionModel
-validateRewardAxesDefinitionModel
-modelValidationResultToJson
+validateDefinitionModel / validateRewardAxesDefinitionModel
 solveExpectedRewardWithDiagnostics
 solveReachabilityProbabilityWithDiagnostics
 solveExpectedElapsedTimeWithDiagnostics
 solveExpectedRewardAxesWithDiagnostics
-solverConvergenceDiagnosticsToJson
-resolveParameterizedScalarSpec
 resolveParameterValues
 resolveParameterizedDefinitionModel
 resolveParameterizedRewardAxesDefinitionModel
-parseExternalModelDocument
-parseExternalModelDocumentJson
-prepareExternalModelDocument
-prepareExternalModelInput
-prepareExternalModelJson
-externalModelPreparationResultToJson
-parseObservationDataset
-parseObservationDatasetJson
-validateObservationDataset
-observationDatasetToJson
-evaluatePreparedExternalModel
-evaluateExternalModelInput
-evaluateExternalModelJson
-forwardEvaluationResultToJson
+parseExternalModelDocument / prepareExternalModelJson
+parseObservationDataset / validateObservationDataset
+evaluateExternalModelInput / evaluateExternalModelJson
 compareExternalModelScenarios
-scenarioComparisonResultToJson
 analyzeParameterSensitivity
-parameterSensitivityResultToJson
-toOutputResult
-toContributionResult
-JSON helper
-state generation
-graph diagnostics
-generated target planning boundary
-explicit-only solver target policy
-TeX / report / boundary digest boundary pieces
+estimateDiscreteParameterFromTransitions
 ```
 
 ## Forward v1 path
@@ -150,8 +122,7 @@ external JSON / unknown
 → checked external document
 → parameter / formula resolution
 → structured model validation
-→ expand
-→ evaluate
+→ expand / evaluate
 → expected reward
 → expected elapsed time
 → optional reachability
@@ -187,7 +158,21 @@ one checked external model
 → structured counterfactual deltas
 ```
 
-観測データはこれらの順方向pathへparameterとして注入しません。後の逆方向推定層から別入力として参照する前提です。
+## Minimal reverse path
+
+```text
+one checked external model
++ fixed supplied parameters
++ one declared unknown parameter
++ finite candidate set
++ complete transition_count categories
+→ resolve/validate each candidate model
+→ transition multinomial log-likelihood
+→ relative likelihood to best candidate
+→ maximum-likelihood estimate over the supplied candidate set
+```
+
+観測値をparameterへ直接コピーして推定とは呼びません。
 
 ## Phase order
 
@@ -208,7 +193,6 @@ one checked external model
 ```text
 solver target is explicit-only through transition.to
 generatedTo is diagnostics-only
-runtime target policy changes are out of scope until a dedicated policy PR
 named reward axes are never implicitly aggregated across meanings or units
 legacy reward remains separate from rewardsByAxis
 structured validation is additive; existing expand/evaluate exception behavior is unchanged
@@ -218,13 +202,14 @@ parameter unit metadata is descriptive; automatic dimensional analysis is not im
 external JSON input is shape-checked from unknown before parameter resolution or model validation
 external input formulas use explicit expression trees; executable formula text is not accepted
 observations remain separate from model parameters and solver results
-forward facade composes existing layers; it does not replace the lower-level APIs
-non-convergence remains visible through diagnostics and is not silently treated as a final converged result
-scenario comparison reuses one model structure and compares candidate - baseline
-one-at-a-time sensitivity changes one selected supplied parameter per comparison point
-contribution-row deltas are descriptive differences, not automatic unique causal attribution
-TeX/report are partial boundaries rather than complete forward-v1 renderers
-full reverse estimation / Seikatan behavior is not implemented yet
+forward facade composes existing layers; it does not replace lower-level APIs
+scenario comparison is descriptive for multi-parameter changes
+one-at-a-time sensitivity changes one selected supplied parameter per point
+minimal reverse estimation uses one unknown parameter and finite candidate values
+reverse likelihood currently consumes complete transition_count categories only
+state_count/scalar likelihoods are not implemented
+Bayesian prior/posterior and multi-parameter reverse estimation are not implemented
+TeX/report are partial boundaries rather than complete v1 renderers
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
 ```
@@ -233,19 +218,10 @@ digipachi and Juoh are later representative samples, not the current main phase
 
 - [Assistant autonomy](docs/assistant_autonomy.md)
 - [GitHub workflow](docs/github_workflow.md)
-- [Sugoroku PoC v0.3](docs/sugoroku-poc-v0.3.md)
-- [Sugoroku PoC v0.4 Boundary](docs/sugoroku-poc-v0.4-boundary.md)
-- [State Space Expansion Design](docs/state-space-expansion.md)
-- [Solver explicit policy](docs/solver-exp.md)
-- [Number text entrypoint](docs/number-text-entrypoint.md)
-- [Naming policy](docs/naming-policy.md)
-- [Public output naming boundary](docs/public-output-naming-boundary.md)
-- [Evaluate model effects boundary](docs/evaluate-model-effects-boundary.md)
 - [成果還元関数](docs/outcome-return-function.md)
 - [成果還元関数 roadmap](docs/outcome-roadmap.md)
-- [成果還元関数 current identifier map](docs/outcome-current-identifier-map.md)
 - [成果還元関数 continuation review](docs/outcome-continuation-review.md)
-- [成果還元関数 sample policy](docs/outcome-sample-policy.md)
+- [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [Named reward axes](docs/reward-axes.md)
 - [Structured validation](docs/structured-validation.md)
 - [Solver convergence diagnostics](docs/solver-diagnostics.md)
@@ -255,22 +231,21 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Forward evaluation facade](docs/forward-evaluation.md)
 - [Scenario comparison](docs/scenario-comparison.md)
 - [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
-- [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
+- [Discrete reverse estimation](docs/discrete-reverse-estimation.md)
 
 ## Representative examples
 
 ```text
 packages/core/examples/forward_evaluation.ts
 packages/core/examples/scenario_comparison.ts
+packages/core/examples/discrete_reverse_estimation.ts
 ```
 
-同じmodel structureに対してparameter値を差し替え、複数forward結果とscenario差分を評価する例です。sensitivity APIも同じscenario比較経路を再利用します。特定ゲーム固有の値やルールはcoreへ持ち込みません。
+examplesは特定ゲーム固有ルールをcoreへ持ち込まず、generic modelとしてforward/reverse境界を確認するためのものです。
 
 ## Historical / legacy docs notes
 
-README previously contained many one-line docs note checkpoints. They are no longer used as the main entry path.
-
-Those note files remain in `docs/` as historical records unless a later repair PR confirms that a specific file is empty, duplicated, or incorrect. This README now points to the active docs entry set instead of repeating every checkpoint line.
+Historical boundary notes remain in `docs/` where they still preserve review history. Active behavior should be read from the primary docs above and the production implementation rather than inferred from old checkpoint notes.
 
 ## Verification
 
