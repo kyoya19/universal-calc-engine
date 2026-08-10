@@ -27,22 +27,24 @@ observationDataset: ...
 request: ...
 ```
 
-Supported `estimationKind` values are:
+Supported `estimationKind` values are now:
 
 ```text
 discrete_parameter_candidates
 scalar_gaussian_parameter_candidates
 composite_parameter_candidates
 multi_parameter_transition_grid
+multi_parameter_composite_grid
 ```
 
-The generic dispatcher does not replace these existing typed APIs:
+The generic dispatcher does not replace the typed APIs:
 
 ```text
 estimateDiscreteParameterCandidates
 estimateScalarGaussianParameterCandidates
 estimateCompositeParameterCandidates
 estimateMultiParameterGrid
+estimateMultiParameterCompositeGrid
 ```
 
 It also does not replace the existing checked discrete-specific functions.
@@ -72,7 +74,8 @@ Examples:
 - candidate value is not a finite number;
 - scalar predictor discriminant is unsupported;
 - Gaussian error-model primitive has the wrong type;
-- `maxCombinations` is not a finite number.
+- `maxCombinations` is not a finite number;
+- composite independence discriminant is missing or unsupported.
 
 ### estimation
 
@@ -112,6 +115,8 @@ copy observations into model parameters
 ```
 
 These decisions either remain estimator semantics or require explicit caller input.
+
+For example, duplicate finite candidate values and zero finite Gaussian sigma pass the primitive shape stage, then fail in the typed estimator. An oversized finite grid is not truncated; it reaches the estimator and fails against `maxCombinations`.
 
 ## Nested model and observation reuse
 
@@ -164,16 +169,20 @@ standardDeviation: finite number
 unit: string
 ```
 
-The shape parser accepts zero or negative finite standard deviation as structurally numeric; the scalar estimator then rejects it semantically. This preserves the distinction between primitive shape and statistical validity.
+The shape parser accepts zero or negative finite standard deviation as structurally numeric; the scalar estimator then rejects it semantically.
 
-## Composite request shape
+## Single-parameter composite request shape
 
-The composite checked request additionally contains:
+The single-parameter composite checked request contains:
 
 ```text
+parameterId
+candidates
+constraints?
 transitionObservationIds
 scalarLikelihoods
 independenceAssumption
+solver?
 ```
 
 The independence discriminant must be supplied explicitly as:
@@ -186,9 +195,9 @@ The parser does not infer this assumption.
 
 Evidence partition correctness remains the composite estimator's semantic responsibility after shape parsing.
 
-## Multi-parameter grid request shape
+## Multi-parameter transition grid request shape
 
-The checked grid request contains:
+The checked transition grid request contains:
 
 ```text
 parameters[]
@@ -201,6 +210,50 @@ maxCombinations
 `maxCombinations` must be a finite number at the shape boundary. Positive safe-integer requirements and actual Cartesian-size enforcement remain estimator semantics.
 
 The parser never truncates an oversized grid.
+
+## Multi-parameter composite grid request shape
+
+The fifth checked kind combines the finite grid request shape with the existing composite evidence contract:
+
+```text
+estimationKind: multi_parameter_composite_grid
+request:
+  parameters[]
+    parameterId
+    candidates[]
+    constraints?
+  maxCombinations
+  transitionObservationIds[]
+  scalarLikelihoods[]
+  independenceAssumption
+  solver?
+```
+
+The parser reuses the same primitives used by the existing scalar, composite, and transition-grid envelopes. It does not define a second candidate or scalar-likelihood schema.
+
+The only supported evidence-block independence discriminant is still:
+
+```text
+transition_and_scalar_evidence_conditionally_independent_given_candidate
+```
+
+After shape parsing, the typed `estimateMultiParameterCompositeGrid` remains responsible for:
+
+```text
+2+ distinct declared parameter dimensions
+candidate uniqueness
+constraint semantics
+positive safe maxCombinations
+raw / eligible Cartesian limits
+evidence partition contract
+scalar sigma positivity and unit agreement
+model validation
+transition impossible events
+scalar solver convergence
+assignment ranking and finite-grid identifiability
+```
+
+No grid normalization or statistical repair is added at the external boundary.
 
 ## Compatibility
 
@@ -215,6 +268,8 @@ estimateExternalDiscreteParameterJson
 
 Existing callers do not need to migrate to the generic dispatcher.
 
+The first four generic kinds retain their existing wire discriminants and request shapes. The fifth kind is additive.
+
 ## Statistical boundary
 
 Adding checked external input does not change any likelihood formula, independence assumption, search method, prior rule, or posterior rule.
@@ -227,4 +282,4 @@ priorUsed remains false
 posteriorComputed remains false
 ```
 
-for the current reverse methods.
+for all current reverse methods, including the multi-parameter composite grid.
