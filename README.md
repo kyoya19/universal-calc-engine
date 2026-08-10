@@ -2,7 +2,7 @@
 
 汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
 
-このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・scenario比較・one-at-a-time sensitivity・JSON / TeX / report 境界を段階的に固定します。
+このリポジトリでは、DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult の流れを中核に、期待値・到達確率・時間評価・単位時間成果・複数成果軸・構造化検証・solver収束診断・parameter/formula解決・外部JSON入力境界・観測入力境界・寄与分解・統合forward評価・scenario比較・one-at-a-time sensitivity・最小reverse estimation・JSON / TeX / report 境界を段階的に固定します。
 
 ## License / Commercial Use
 
@@ -30,11 +30,11 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## Current focus
 
-現在の焦点は、最小キヨタン順方向エンジンを「第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1候補」として境界固定し、その上に最小セイカタンreverse-estimation契約を置けるか検証することです。
+最小キヨタン順方向エンジンは、第三者が一続きに入力・評価・比較・感度確認・説明できるforward v1候補として境界を固定しています。その正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。
 
 外部model documentは `schemaVersion: 1` を持ち、unknown / JSONからshape-checkし、parameter/formula resolution、structured model validationを経て既存DefinitionModelへ接続します。外部入力失敗は `json_syntax / shape / parameter_resolution / model_validation` を分離します。
 
-観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱いますが、現時点のforward v1は観測値からparameterを推定しません。
+観測値は `ObservationDataset` としてmodel definition、supplied parameter、evaluated resultとは別データ面に分離しています。`state_count / transition_count / scalar` を扱います。
 
 統合forward facadeは、checked inputから expected reward、expected elapsed time、`ratio_of_expectations` reward rate、optional reachability、既存contribution、named reward axes、solver convergence diagnosticsまでを一つのadditive APIで返します。solverが設定回数内に収束しない場合は入力失敗と混同せず、`ok: true / converged: false` と最後の近似値・diagnosticsを返します。
 
@@ -42,11 +42,11 @@ scenario comparisonは、**同一model structure**へbaseline/candidateの2つ�
 
 one-at-a-time sensitivityはbaseline parameter setを固定し、指定した1 parameterだけをcandidate valueへ差し替えたscenario comparisonを複数実行します。これにより「他のsupplied parameterを固定したとき、このparameterの変更で結果がどう変わるか」という明示的なcounterfactualを扱えます。
 
-contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。
+最小セイカタンreverse estimationは、1つのdeclared parameterについて有限candidate setを与え、`state_count / transition_count` 観測に対するconditional transition log-likelihood scoreでcandidateを順位付けします。priorは使わずposteriorも計算しません。`relativeLikelihoodToBest` はbest candidateに対するlikelihood ratioでありposterior probabilityではありません。
 
-forward v1の正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。TeX/reportは現時点では部分的境界であり、forward facade全体の正式レンダラーではありません。
+contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。TeX/reportも現時点では部分的境界であり、forward facade全体の正式レンダラーではありません。
 
-次のproduction候補はObservationDataset上の最小reverse-estimation contractです。prior/posteriorを未導入のまま、まず離散candidateと明示的likelihood/scoreを区別して扱える小さなSeikatan PoCを優先します。multi-parameter attributionはmethodを先に定義し、大型のデジパチ・獣王モデルを先に進めません。
+次の優先判断は、minimal reverse contractを安定させた上で、finite multi-parameter candidate grid、scalar observation向け明示的score/likelihood、またはpriorを別契約として導入する価値があるかを比較することです。大型のデジパチ・獣王モデルや巨大Bayesian engineを先に進めません。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -85,6 +85,8 @@ ScenarioForwardDelta / ScenarioContributionDelta
 ScenarioRewardAxesDelta / ScenarioRewardAxesContributionDelta
 ParameterSensitivityResult / ParameterSensitivityRequest
 ParameterSensitivityKind
+DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
+CandidateLikelihoodResult / EstimationConstraint
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
@@ -133,6 +135,8 @@ compareExternalModelScenarios
 scenarioComparisonResultToJson
 analyzeParameterSensitivity
 parameterSensitivityResultToJson
+estimateDiscreteParameterCandidates
+discreteParameterEstimationResultToJson
 toOutputResult
 toContributionResult
 JSON helper
@@ -187,7 +191,22 @@ one checked external model
 → structured counterfactual deltas
 ```
 
-観測データはこれらの順方向pathへparameterとして注入しません。後の逆方向推定層から別入力として参照する前提です。
+## Minimal Seikatan path
+
+```text
+one parameterized external model
++ one unknown parameter ID
++ finite candidate values
++ optional min/max candidate constraints
++ ObservationDataset with complete state_count / transition_count departures
+→ resolve and validate each candidate model
+→ conditional transition log-likelihood score
+→ likelihood ratio relative to the best candidate
+→ candidate ranking
+→ unique estimate or explicit tie
+```
+
+このreverse pathでは観測値をparameterへ直接コピーしません。prior/posteriorも未導入です。scalar observationは現在のtransition-count likelihood methodでは明示的にunsupportedです。
 
 ## Phase order
 
@@ -224,7 +243,10 @@ scenario comparison reuses one model structure and compares candidate - baseline
 one-at-a-time sensitivity changes one selected supplied parameter per comparison point
 contribution-row deltas are descriptive differences, not automatic unique causal attribution
 TeX/report are partial boundaries rather than complete forward-v1 renderers
-full reverse estimation / Seikatan behavior is not implemented yet
+minimal reverse estimation ranks a finite candidate set for one declared parameter
+minimal reverse likelihood uses complete transition departure counts and no prior
+relative likelihood is not posterior probability
+scalar observation likelihood, continuous optimization, multi-parameter estimation, and Bayesian posterior remain unsupported
 product UI / monetization is out of scope for this repository phase
 digipachi and Juoh are later representative samples, not the current main phase
 ```
@@ -256,15 +278,17 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [Scenario comparison](docs/scenario-comparison.md)
 - [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
 - [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
+- [Minimal discrete reverse estimation](docs/discrete-estimation.md)
 
 ## Representative examples
 
 ```text
 packages/core/examples/forward_evaluation.ts
 packages/core/examples/scenario_comparison.ts
+packages/core/examples/discrete_estimation.ts
 ```
 
-同じmodel structureに対してparameter値を差し替え、複数forward結果とscenario差分を評価する例です。sensitivity APIも同じscenario比較経路を再利用します。特定ゲーム固有の値やルールはcoreへ持ち込みません。
+forward examplesは同じmodel structureに対してparameter値を差し替え、複数forward結果とscenario差分を評価します。reverse exampleは観測countから有限candidateをlikelihood順位付けします。特定ゲーム固有の値やルールはcoreへ持ち込みません。
 
 ## Historical / legacy docs notes
 
