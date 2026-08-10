@@ -13,6 +13,7 @@ export * from './discrete_estimation';
 export * from './scalar_gaussian_estimation';
 export * from './multi_parameter_grid_estimation';
 export * from './composite_likelihood_estimation';
+export * from './multi_parameter_composite_grid_estimation';
 export * from './reverse_external_input';
 export * from './reverse_external_methods';
 export * from './reverse_result_handoff';
