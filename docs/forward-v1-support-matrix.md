@@ -38,8 +38,9 @@ Status words mean:
 | Scalar Gaussian reverse likelihood | supported with boundary | one unknown, finite candidates, explicit predictor/unit/sigma | scalar conditional independence declared; non-converged predictions rejected |
 | Composite transition + scalar likelihood | supported with boundary | one unknown, finite candidates, explicit evidence partition and component composition | between-block conditional independence must be declared; no silent unused evidence |
 | Multi-parameter transition grid | supported with boundary | 2+ unknowns, exhaustive finite Cartesian transition-likelihood search | mandatory `maxCombinations`; finite-grid ties only |
-| Checked reverse external input | supported with boundary | generic versioned dispatcher covers all four current reverse method/search kinds | parser validates shape but does not normalize statistical semantics; legacy discrete-specific checked API remains |
-| Reverse result handoff | supported with boundary | versioned structured summary for every current checked reverse result | summarizes existing semantics only; no posterior/confidence/causal claims are invented |
+| Multi-parameter composite grid | supported with boundary | 2+ unknowns, exhaustive finite Cartesian search using existing composite scorer | typed API in this stage; mandatory `maxCombinations`, explicit evidence partition/independence, finite-grid identifiability only |
+| Checked reverse external input | supported with boundary | generic versioned dispatcher covers the four previously checked reverse kinds | new multi-parameter composite kind is not yet wired into this dispatcher in this stage |
+| Reverse result handoff | supported with boundary | versioned structured summary for previously checked reverse results | new multi-parameter composite result is not yet included in handoff union in this stage |
 | JSON output | supported with boundary | structured result and handoff serializers | not one universal historical wire schema |
 | Plain-text reverse handoff | supported with boundary | concise method/estimate/evidence/prior/posterior/warning/limitation view | convenience renderer, not an independent statistical calculation |
 | TeX output | partial | expected-reward/contribution helpers | not a complete forward/reverse renderer |
@@ -48,7 +49,6 @@ Status words mean:
 | State generation | partial / diagnostic | graph/state-generation helpers | generated targets do not drive production solvers |
 | Automatic unit conversion | unsupported | — | unit strings are only compared where contracts require them |
 | Continuous parameter estimation | unsupported | — | no continuous optimizer/adaptive search |
-| Multi-parameter composite likelihood | unsupported | — | current composite contract is single-parameter only |
 | Multi-parameter causal attribution | unsupported | — | estimation is not causal attribution; an explicit interaction method is required |
 | Bayesian prior/posterior | unsupported | — | likelihood ratios must not be relabelled as posterior probabilities |
 | Hidden-state inference | unsupported | — | no HMM/state posterior contract |
@@ -119,7 +119,7 @@ The transition component still omits its candidate-independent multinomial const
 
 Every observation must be assigned to exactly one component block. A positive observed transition count with candidate probability zero keeps the composite candidate impossible. Scalar predictor non-convergence remains a rejection rather than a fabricated score.
 
-### Multi-parameter finite grid
+### Multi-parameter transition grid
 
 ```text
 searchMethod = finite_cartesian_parameter_grid
@@ -128,9 +128,40 @@ likelihoodMethod = conditional_transition_log_likelihood_without_multinomial_con
 
 The grid layer exhaustively scores eligible assignments through the existing transition estimator. `maxCombinations` is mandatory and no truncation or sampling is substituted silently. A tied best set indicates non-identifiability only on the supplied finite grid.
 
+### Multi-parameter composite grid
+
+The search method remains:
+
+```text
+finite_cartesian_parameter_grid
+```
+
+The per-assignment composite method remains:
+
+```text
+transition_plus_scalar_gaussian_composite_log_likelihood
+```
+
+The grid layer does not define another likelihood. For each complete eligible assignment it injects all assigned parameter values into the model and calls the existing single-parameter composite estimator with one assignment value as an anchor candidate. Therefore transition likelihood, scalar Gaussian likelihood, evidence partition, conditional-independence semantics, zero-probability impossible events, and scalar convergence rules remain owned by the established component/composite implementations.
+
+The result preserves:
+
+```text
+transitionLogLikelihoodScore
+scalarGaussianLogLikelihoodScore
+totalLogLikelihoodScore
+relativeLikelihoodToBest
+```
+
+as separate concepts.
+
+Constraints are applied before Cartesian expansion. `rawCombinationCount`, `eligibleCombinationCount`, and mandatory `maxCombinations` are explicit. No truncation, sampling, adaptive optimization, or continuous fallback is substituted.
+
+A tied best set means non-identifiability only on the supplied finite eligible grid. It is not causal attribution and not a proof of global structural identifiability.
+
 ## Checked reverse input boundary
 
-The generic reverse dispatcher supports:
+The generic reverse dispatcher currently supports:
 
 ```text
 discrete_parameter_candidates
@@ -155,6 +186,8 @@ Those remain explicit caller input or estimator semantics.
 
 The older discrete-specific checked functions remain supported for compatibility.
 
+The newly added multi-parameter composite typed estimator should be added to the generic checked dispatcher only after the typed contract remains CI-stable. That follow-up must preserve the same non-normalizing parser boundary.
+
 ## Reverse result handoff boundary
 
 The reverse handoff is an interpretation surface above `ExternalReverseMethodResult`:
@@ -167,16 +200,9 @@ ExternalReverseMethodResult
 
 It preserves method/search names, selection, method-specific ranking scores, used observations, constraints, explicit assumptions, search limits, diagnostics where present, prior/posterior flags, warnings, and limitations.
 
-It does not:
+It does not compute a new likelihood, create confidence/credible intervals, reinterpret likelihood ratios as posterior probability, choose one value from a tie, convert finite-grid identifiability into global structural identifiability, or convert estimation into causal attribution.
 
-- compute a new likelihood;
-- create confidence or credible intervals;
-- reinterpret likelihood ratios as posterior probability;
-- choose one value from a tie;
-- convert finite-grid identifiability into global structural identifiability;
-- convert estimation into causal attribution.
-
-Failure handoff preserves parse/shape/estimation stage and issues without fabricating a statistical result.
+The new multi-parameter composite typed result should join this handoff only after its checked external result kind exists, so that the handoff remains a stable summary over checked reverse results rather than a parallel execution path.
 
 ## Compatibility boundary
 
@@ -187,12 +213,13 @@ Current additions remain additive:
 - parameter/formula resolution occurs before ordinary evaluation;
 - ObservationDataset is not converted into supplied parameters;
 - transition, scalar Gaussian, and composite likelihood methods remain explicitly named and separate;
-- composite composition reuses existing component estimators;
-- multi-parameter grid reuses the transition scorer;
+- single-parameter composite composition reuses existing component estimators;
+- multi-parameter transition grid reuses the transition scorer;
+- multi-parameter composite grid reuses the single-parameter composite scorer;
 - generic checked reverse input sits above existing typed estimators instead of replacing them;
 - reverse handoff sits above checked results instead of mutating estimator result types;
 - forward comparison/sensitivity remain analytical layers, not reverse aliases;
-- estimation is not causal attribution.
+- multi-parameter estimation is not causal attribution.
 
 ## Handoff map
 
@@ -217,20 +244,23 @@ docs/reverse-external-methods.md
 docs/scalar-gaussian-estimation.md
 docs/composite-likelihood-estimation.md
 docs/multi-parameter-grid-estimation.md
+docs/multi-parameter-composite-grid-estimation.md
 docs/reverse-result-handoff.md
 ```
 
-Representative entry points:
+Representative typed entry points:
 
 ```text
-prepareExternalModelInput / prepareExternalModelJson
-evaluateExternalModelInput / evaluateExternalModelJson
-compareExternalModelScenarios
-analyzeParameterSensitivity
 estimateDiscreteParameterCandidates
 estimateScalarGaussianParameterCandidates
 estimateCompositeParameterCandidates
 estimateMultiParameterGrid
+estimateMultiParameterCompositeGrid
+```
+
+Checked / handoff entry points currently remain:
+
+```text
 parseExternalReverseEstimationDocument / parseExternalReverseEstimationJson
 estimateExternalReverseInput / estimateExternalReverseJson
 toReverseResultHandoff
@@ -242,6 +272,6 @@ formatReverseResultHandoffPlainText
 
 Kiyotan remains a coherent **forward v1 candidate**.
 
-Seikatan remains deliberately bounded but now has explicit finite-candidate likelihood/search contracts for transition counts, scalar Gaussian measurements, single-parameter composite evidence, and multi-parameter transition grids, checked third-party input for every current reverse API family, and a structured third-party result handoff across those methods.
+Seikatan now has explicit finite-candidate likelihood/search contracts for transition counts, scalar Gaussian measurements, single-parameter composite evidence, multi-parameter transition grids, and a typed multi-parameter composite grid that reuses the established composite scorer. The previously checked reverse methods also have checked third-party input and structured result handoff.
 
-Multi-parameter composite search is analytically justifiable when multiple unknowns and both evidence families are required simultaneously, but remains a separate next-step decision. Bayesian prior/posterior remains lower priority until meaningful prior information is supplied.
+The immediate remaining parity gap is to add the new multi-parameter composite kind to checked external input and `ReverseResultHandoff` without relaxing parser, statistical, or finite-grid boundaries. Bayesian prior/posterior remains lower priority until meaningful prior information is supplied.
