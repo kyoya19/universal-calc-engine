@@ -44,9 +44,11 @@ one-at-a-time sensitivityはbaseline parameter setを固定し、指定した1 p
 
 最小セイカタンreverse estimationは、1つのdeclared parameterについて有限candidate setを与え、`state_count / transition_count` 観測に対するconditional transition log-likelihood scoreでcandidateを順位付けします。priorは使わずposteriorも計算しません。`relativeLikelihoodToBest` はbest candidateに対するlikelihood ratioでありposterior probabilityではありません。
 
+reverse estimationにもversionedなchecked external input境界を追加しています。`unknown` / JSONからreverse envelope、nested model document、ObservationDataset、candidate requestをshape-checkしてから既存estimatorへ接続します。JSON構文・shape・estimation semanticsは別stageで返し、duplicate candidateや観測count不整合をparserが勝手に補正しません。
+
 contribution差は `difference_of_existing_contributions` と明示し、scenario comparisonやsensitivityの結果を自動的な一意の因果分解とは扱いません。TeX/reportも現時点では部分的境界であり、forward facade全体の正式レンダラーではありません。
 
-次の優先判断は、minimal reverse contractを安定させた上で、finite multi-parameter candidate grid、scalar observation向け明示的score/likelihood、またはpriorを別契約として導入する価値があるかを比較することです。大型のデジパチ・獣王モデルや巨大Bayesian engineを先に進めません。
+次の優先判断は、明示的な観測モデルを持つscalar observation likelihood、有限multi-parameter candidate grid、またはpriorを別契約として導入する価値があるかを比較することです。大型のデジパチ・獣王モデルや巨大Bayesian engineを先に進めません。
 
 `generatedTo` は diagnostics-only です。solver target は `transition.to` の explicit-only を維持します。`generatedTo` を solver target に使う変更は、専用 solver policy PR まで行いません。
 
@@ -87,64 +89,42 @@ ParameterSensitivityResult / ParameterSensitivityRequest
 ParameterSensitivityKind
 DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
 CandidateLikelihoodResult / EstimationConstraint
+ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
+ReverseExternalInputIssue / ReverseExternalInputStage
 ProbabilitySpec
 RewardSpec
 TimeSpec / TimeUnit
 RewardAxisDefinition / RewardAxisKind
 TerminalCondition
 TransitionEffect
-expandModel
-evaluateModel
+```
+
+Representative public operations include:
+
+```text
+expandModel / evaluateModel
 solveExpectedReward
 solveReachabilityProbability
 solveExpectedElapsedTime
-evaluateTimeSpecSeconds
 toRewardRateResult
-expandRewardAxesModel
-evaluateRewardAxesModel
 solveExpectedRewardAxes
-toRewardAxesOutputResult
-toRewardAxesContributionResult
-validateDefinitionModel
-validateRewardAxesDefinitionModel
-modelValidationResultToJson
+validateDefinitionModel / validateRewardAxesDefinitionModel
 solveExpectedRewardWithDiagnostics
 solveReachabilityProbabilityWithDiagnostics
 solveExpectedElapsedTimeWithDiagnostics
 solveExpectedRewardAxesWithDiagnostics
-solverConvergenceDiagnosticsToJson
 resolveParameterizedScalarSpec
 resolveParameterValues
 resolveParameterizedDefinitionModel
 resolveParameterizedRewardAxesDefinitionModel
-parseExternalModelDocument
-parseExternalModelDocumentJson
-prepareExternalModelDocument
-prepareExternalModelInput
-prepareExternalModelJson
-externalModelPreparationResultToJson
-parseObservationDataset
-parseObservationDatasetJson
-validateObservationDataset
-observationDatasetToJson
-evaluatePreparedExternalModel
-evaluateExternalModelInput
-evaluateExternalModelJson
-forwardEvaluationResultToJson
+parseExternalModelDocument / prepareExternalModelJson
+parseObservationDataset / validateObservationDataset
+evaluateExternalModelInput / evaluateExternalModelJson
 compareExternalModelScenarios
-scenarioComparisonResultToJson
 analyzeParameterSensitivity
-parameterSensitivityResultToJson
 estimateDiscreteParameterCandidates
-discreteParameterEstimationResultToJson
-toOutputResult
-toContributionResult
-JSON helper
-state generation
-graph diagnostics
-generated target planning boundary
-explicit-only solver target policy
-TeX / report / boundary digest boundary pieces
+parseExternalDiscreteEstimationDocument / parseExternalDiscreteEstimationJson
+estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
 ```
 
 ## Forward v1 path
@@ -193,6 +173,8 @@ one checked external model
 
 ## Minimal Seikatan path
 
+Typed path:
+
 ```text
 one parameterized external model
 + one unknown parameter ID
@@ -204,6 +186,17 @@ one parameterized external model
 → likelihood ratio relative to the best candidate
 → candidate ranking
 → unique estimate or explicit tie
+```
+
+Third-party checked path:
+
+```text
+external JSON / unknown
+→ versioned reverse envelope
+→ nested model + observation shape checks
+→ typed discrete request
+→ existing estimator
+→ structured result
 ```
 
 このreverse pathでは観測値をparameterへ直接コピーしません。prior/posteriorも未導入です。scalar observationは現在のtransition-count likelihood methodでは明示的にunsupportedです。
@@ -245,6 +238,7 @@ contribution-row deltas are descriptive differences, not automatic unique causal
 TeX/report are partial boundaries rather than complete forward-v1 renderers
 minimal reverse estimation ranks a finite candidate set for one declared parameter
 minimal reverse likelihood uses complete transition departure counts and no prior
+reverse external input is checked from unknown/JSON before estimator semantics run
 relative likelihood is not posterior probability
 scalar observation likelihood, continuous optimization, multi-parameter estimation, and Bayesian posterior remain unsupported
 product UI / monetization is out of scope for this repository phase
@@ -279,6 +273,7 @@ digipachi and Juoh are later representative samples, not the current main phase
 - [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
 - [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [Minimal discrete reverse estimation](docs/discrete-estimation.md)
+- [Checked external reverse-estimation input](docs/reverse-external-input.md)
 
 ## Representative examples
 
@@ -294,7 +289,7 @@ forward examplesは同じmodel structureに対してparameter値を差し替え�
 
 README previously contained many one-line docs note checkpoints. They are no longer used as the main entry path.
 
-Those note files remain in `docs/` as historical records unless a later repair PR confirms that a specific file is empty, duplicated, or incorrect. This README now points to the active docs entry set instead of repeating every checkpoint line.
+Those note files remain in `docs/` as historical records unless a later repair PR confirms that a specific file is empty, duplicated, or incorrect. Active behavior should be read from the primary docs and production implementation.
 
 ## Verification
 
