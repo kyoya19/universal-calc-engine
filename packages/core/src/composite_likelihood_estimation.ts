@@ -10,7 +10,6 @@ import { ExternalModelDocument } from './external_input';
 import { ObservationDataset, ObservationRecord } from './observations';
 import {
   ScalarGaussianCandidateDiagnostics,
-  ScalarGaussianCandidateResult,
   ScalarGaussianEstimationMethod,
   ScalarGaussianLikelihoodBinding,
   ScalarGaussianObservationScore,
@@ -100,6 +99,7 @@ export type CompositeLikelihoodEstimationResult =
   | CompositeLikelihoodEstimationFailure;
 
 type EvidencePartition = {
+  ok: true;
   transition: ObservationDataset;
   scalar: ObservationDataset;
   transitionIds: string[];
@@ -281,6 +281,7 @@ function partitionEvidence(
   );
 
   return {
+    ok: true,
     transition: { schemaVersion: 1, observations: transitionRecords },
     scalar: { schemaVersion: 1, observations: scalarRecords },
     transitionIds: transitionRecords.map((observation) => observation.id),
@@ -391,7 +392,7 @@ export function estimateCompositeParameterCandidates(
   }
 
   const partition = partitionEvidence(observations, request);
-  if ('ok' in partition && partition.ok === false) {
+  if (!partition.ok) {
     return partition;
   }
 
@@ -441,7 +442,10 @@ export function estimateCompositeParameterCandidates(
 
     if (transitionCandidate === undefined || scalarCandidate === undefined) {
       const entry = rejected.get(value) ?? { value, components: [] };
-      if (transitionCandidate === undefined && !entry.components.some((item) => item.component === 'transition')) {
+      if (
+        transitionCandidate === undefined &&
+        !entry.components.some((item) => item.component === 'transition')
+      ) {
         entry.components.push({
           component: 'transition',
           stage: 'candidate_evaluation',
@@ -454,7 +458,10 @@ export function estimateCompositeParameterCandidates(
           ]
         });
       }
-      if (scalarCandidate === undefined && !entry.components.some((item) => item.component === 'scalar_gaussian')) {
+      if (
+        scalarCandidate === undefined &&
+        !entry.components.some((item) => item.component === 'scalar_gaussian')
+      ) {
         entry.components.push({
           component: 'scalar_gaussian',
           stage: 'candidate_evaluation',
@@ -495,10 +502,9 @@ export function estimateCompositeParameterCandidates(
         ...(scalarCandidate.diagnostics.rewardAxes !== undefined
           ? {
               rewardAxes: Object.fromEntries(
-                Object.entries(scalarCandidate.diagnostics.rewardAxes).map(([axisId, diagnostics]) => [
-                  axisId,
-                  { ...diagnostics }
-                ])
+                Object.entries(scalarCandidate.diagnostics.rewardAxes).map(
+                  ([axisId, diagnostics]) => [axisId, { ...diagnostics }]
+                )
               )
             }
           : {})
