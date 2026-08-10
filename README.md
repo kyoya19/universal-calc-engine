@@ -34,7 +34,7 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ObservationDatasetはmodel definition、supplied parameter、evaluated value、forward result、estimateから分離された証拠データ面です。`state_count / transition_count / scalar` を扱います。
 
-セイカタン側は、まだ有限candidate searchに限定していますが、現在2つの明示的likelihood familyがあります。
+セイカタン側は有限candidate searchを中心に、現在2つの明示的likelihood familyと1つのmulti-parameter search layerがあります。
 
 ### Transition-count likelihood
 
@@ -54,26 +54,32 @@ conditionally_independent_gaussian_scalar_log_likelihood
 
 scalar observationをparameterへ直接コピーせず、各`observationId`を明示的なmodel-side predictorへ結びます。
 
-現在のpredictorは、unitを明示できるものに限定しています。
+現在のpredictorはunitを明示できるものに限定しています。
 
 ```text
 expected_elapsed_time_seconds
 reward_axis_expected_value(axisId)
 ```
 
-観測値 `y`、candidateから計算した予測値 `mu`、callerが明示した `sigma > 0` に対して、normalized Gaussian log-likelihood densityを使います。
+観測値 `y`、candidateから計算した予測値 `mu`、callerが明示した `sigma > 0` に対してnormalized Gaussian log-likelihood densityを使います。
 
 ```text
 log L = -log(sigma * sqrt(2*pi)) - 0.5 * ((y - mu) / sigma)^2
 ```
 
-複数scalar観測は、以下を明示した場合にlog-likelihoodを加算します。
+複数scalar観測は `scalar_observations_conditionally_independent_given_candidate` を明示してlog-likelihoodを加算します。observation unit、predictor unit、Gaussian error-model unitは完全一致が必要です。default sigma、epsilon smoothing、自動unit変換、prior、posteriorは導入しません。
+
+### Finite multi-parameter grid
 
 ```text
-scalar_observations_conditionally_independent_given_candidate
+finite_cartesian_parameter_grid
 ```
 
-observation unit、predictor unit、Gaussian error-model unitは完全一致が必要です。default sigma、epsilon smoothing、自動unit変換、prior、posteriorは導入しません。solver非収束の予測値もlikelihoodへ入れません。
+複数のdeclared unknown parameterへ有限candidate setを与え、constraint適用後のCartesian productを全列挙して既存transition-count likelihoodでassignmentを順位付けします。
+
+`maxCombinations` は必須です。eligible gridが上限を超える場合は実行前に拒否し、暗黙のtruncate・sampling・random searchへ切り替えません。
+
+複数assignmentがbest scoreでtieした場合は `tied_best_assignments` として返し、`estimatedAssignment` を勝手に1つ選びません。これはsupplied finite grid上のidentifiability情報であり、因果寄与分解ではありません。
 
 ## Forward v1 path
 
@@ -109,7 +115,7 @@ scenario差やcontribution差をmethod未定義のまま一意な因果寄与と
 
 ## Minimal Seikatan paths
 
-Transition counts:
+Single-parameter transition counts:
 
 ```text
 one parameterized model
@@ -139,7 +145,23 @@ one parameterized model
 → unique estimate or explicit tie
 ```
 
-現在のchecked external reverse JSON envelopeはtransition-count estimatorへ接続しています。scalar Gaussian estimatorは現時点ではtyped public APIであり、専用external envelopeはまだ未追加です。
+Multi-parameter transition grid:
+
+```text
+one parameterized model
++ two or more unknown parameter IDs
++ finite candidate set per parameter
++ optional per-parameter min/max constraints
++ explicit maxCombinations
++ complete state_count / transition_count departures
+→ eligible Cartesian product count
+→ exhaustive assignment evaluation
+→ existing transition likelihood score
+→ assignment ranking
+→ unique best / tied best / no possible assignment
+```
+
+現在のchecked external reverse JSON envelopeはsingle-parameter transition-count estimatorへ接続しています。scalar Gaussianとmulti-parameter gridは現時点ではtyped public APIです。
 
 ## Implemented public surface highlights
 
@@ -155,6 +177,7 @@ ScenarioComparisonResult
 ParameterSensitivityResult
 DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
 ScalarGaussianParameterEstimationRequest / ScalarGaussianParameterEstimationResult
+MultiParameterGridEstimationRequest / MultiParameterGridEstimationResult
 ExternalDiscreteEstimationDocument / ExternalDiscreteEstimationResult
 ```
 
@@ -169,6 +192,7 @@ parseObservationDataset / validateObservationDataset
 estimateDiscreteParameterCandidates
 estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
 estimateScalarGaussianParameterCandidates
+estimateMultiParameterGrid
 ```
 
 ## Current boundaries
@@ -191,10 +215,13 @@ transition-count likelihood and scalar Gaussian likelihood are separately named 
 relative likelihood is not posterior probability
 scalar Gaussian sigma is explicit and strictly positive
 scalar Gaussian observation/predictor/error-model units must match exactly
+multi-parameter transition estimation is finite exhaustive grid search only
+multi-parameter grid requires an explicit hard combination limit
+tied best assignments are reported as finite-grid non-identifiability
 continuous optimization remains unsupported
-multi-parameter estimation remains unsupported
 Bayesian prior/posterior remains unsupported
 hidden-state inference remains unsupported
+multi-parameter causal attribution remains unsupported without a defined method
 product UI / monetization is outside the current core phase
 digipachi and Juoh remain later representative applications
 ```
@@ -212,6 +239,7 @@ digipachi and Juoh remain later representative applications
 - [Minimal discrete reverse estimation](docs/discrete-estimation.md)
 - [Checked external reverse-estimation input](docs/reverse-external-input.md)
 - [Scalar Gaussian reverse estimation](docs/scalar-gaussian-estimation.md)
+- [Finite multi-parameter grid estimation](docs/multi-parameter-grid-estimation.md)
 - [成果還元関数 continuation review](docs/outcome-continuation-review.md)
 - [Named reward axes](docs/reward-axes.md)
 - [Structured validation](docs/structured-validation.md)
@@ -227,17 +255,18 @@ packages/core/examples/forward_evaluation.ts
 packages/core/examples/scenario_comparison.ts
 packages/core/examples/discrete_estimation.ts
 packages/core/examples/scalar_gaussian_estimation.ts
+packages/core/examples/multi_parameter_grid_estimation.ts
 ```
 
 特定ゲーム固有の値やルールはgeneric coreへ持ち込みません。
 
 ## Next priority
 
-次のreverse候補としては、Bayesian prior/posteriorより先に **finite multi-parameter candidate grid** を検討します。
+次はanalytical breadthを機械的に広げるより、第三者利用境界とlikelihood compositionを比較します。
 
-実装する場合は最低限、複数unknown parameter、parameterごとのcandidate set、Cartesian product数、hard maximum combination limit、constraint、assignment単位のtie / identifiabilityを明示し、candidate-spaceを暗黙にtruncateまたはsamplingしません。
+候補は、scalar Gaussian / multi-parameter gridをchecked external JSONへ接続すること、またはtransition-count likelihoodとscalar Gaussian likelihoodを**明示的な独立仮定の下でのみ**合成するcomposite likelihoodです。
 
-scalar Gaussianのchecked external JSON envelopeは、第三者利用上の優先度がmulti-parameter analytical capabilityを上回った場合の安全な次候補です。
+Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
 
 ## Verification
 
