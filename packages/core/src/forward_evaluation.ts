@@ -125,10 +125,73 @@ type CommonForwardEvaluation = {
   reachability?: ForwardReachabilityOutput;
 };
 
+type NonFiniteNumberLocation = {
+  path: string;
+  value: number;
+};
+
 function isForwardEvaluationFailure(
   value: CommonForwardEvaluation | ForwardEvaluationFailure
 ): value is ForwardEvaluationFailure {
   return 'ok' in value && value.ok === false;
+}
+
+function findNonFiniteNumber(
+  value: unknown,
+  path = '$'
+): NonFiniteNumberLocation | undefined {
+  if (typeof value === 'number') {
+    return Number.isFinite(value) ? undefined : { path, value };
+  }
+
+  if (Array.isArray(value)) {
+    for (let index = 0; index < value.length; index += 1) {
+      const found = findNonFiniteNumber(value[index], `${path}[${index}]`);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+    return undefined;
+  }
+
+  if (value !== null && typeof value === 'object') {
+    for (const [key, nested] of Object.entries(value)) {
+      const found = findNonFiniteNumber(nested, `${path}.${key}`);
+      if (found !== undefined) {
+        return found;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function nonFiniteAnalyticalResultFailure(
+  validation: ModelValidationResult,
+  found: NonFiniteNumberLocation
+): ForwardEvaluationFailure {
+  return {
+    ok: false,
+    stage: 'evaluation',
+    validation,
+    issues: [
+      {
+        stage: 'evaluation',
+        code: 'non_finite_analytical_result',
+        path: found.path,
+        message: `Forward evaluation produced non-finite numeric value ${String(found.value)} at ${found.path}`
+      }
+    ]
+  };
+}
+
+function requireFiniteForwardSuccess<T extends ForwardBaseEvaluationSuccess | ForwardRewardAxesEvaluationSuccess>(
+  result: T
+): T | ForwardEvaluationFailure {
+  const found = findNonFiniteNumber(result);
+  return found === undefined
+    ? result
+    : nonFiniteAnalyticalResultFailure(result.validation, found);
 }
 
 function preparationFailure(
@@ -305,11 +368,11 @@ function evaluateBaseDefinitionModel(
       return common;
     }
 
-    return {
+    return requireFiniteForwardSuccess({
       ok: true,
       modelKind: 'base',
       ...common
-    };
+    });
   } catch (error) {
     return evaluationFailure(error);
   }
@@ -354,13 +417,13 @@ function evaluatePreparedRewardAxesModel(
     common.diagnostics.rewardAxes = { ...rewardAxesDetailed.diagnosticsByAxis };
     common.converged = common.converged && rewardAxesDetailed.converged;
 
-    return {
+    return requireFiniteForwardSuccess({
       ok: true,
       modelKind: 'reward_axes',
       ...common,
       rewardAxes,
       rewardAxesContribution
-    };
+    });
   } catch (error) {
     return evaluationFailure(error);
   }
@@ -408,5 +471,11 @@ export function evaluateExternalModelJson(
 export function forwardEvaluationResultToJson(
   result: ForwardEvaluationResult
 ): string {
+  const found = findNonFiniteNumber(result);
+  if (found !== undefined) {
+    throw new Error(
+      `Cannot serialize ForwardEvaluationResult with non-finite numeric value ${String(found.value)} at ${found.path}`
+    );
+  }
   return JSON.stringify(result);
 }
