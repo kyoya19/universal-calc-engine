@@ -7,6 +7,7 @@ export * from './parameterized_scalars';
 export * from './external_input';
 export * from './observations';
 export * from './forward_evaluation';
+export * from './forward_result_handoff';
 export * from './scenario_comparison';
 export * from './parameter_sensitivity';
 export * from './discrete_estimation';
