@@ -1,5 +1,6 @@
 import {
   DecisionActionId,
+  DecisionOutcome,
   DeterministicDecisionPolicy,
   FiniteDecisionDiagnostics,
   FiniteDecisionFailure,
@@ -58,16 +59,29 @@ export type FiniteDecisionMaterializationResult =
   | FiniteDecisionMaterializationCaptureFailure
   | FiniteDecisionMaterializationValidationFailure;
 
-type MaterializationFrame<State> =
-  | {
-      phase: 'enter';
-      state: State;
-      stateKey: string;
-    }
-  | {
-      phase: 'exit';
-      stateKey: string;
-    };
+type SnapshotOutcome<State> = {
+  probability: number;
+  nextState: State;
+  nextStateKey?: string;
+  reward?: number;
+  elapsedTimeSeconds?: number;
+};
+
+type PolicySnapshotRecorder<State> = {
+  startStateKey?: string;
+  latestStateKeyByState: Map<State, string>;
+  pendingOutcomesByNextState: Map<State, SnapshotOutcome<State>[]>;
+  outcomesByStateAction: Map<
+    string,
+    Map<DecisionActionId, SnapshotOutcome<State>[]>
+  >;
+  nonterminalStateOrder: string[];
+  recordedNonterminalStateKeys: Set<string>;
+};
+
+type SnapshotOrderFrame =
+  | { phase: 'enter'; stateKey: string }
+  | { phase: 'exit'; stateKey: string };
 
 class FiniteDecisionMaterializationError extends Error {
   constructor(readonly failure: FiniteDecisionMaterializationFailure) {
@@ -91,50 +105,211 @@ function materializationFail(
   throw new FiniteDecisionMaterializationError(failure);
 }
 
-function captureStateKey<State>(process: FiniteDecisionProcess<State>, state: State): string {
-  let stateKey: string;
-  try {
-    stateKey = process.stateKey(state);
-  } catch (error) {
-    materializationFail(
-      'process_callback_failed',
-      `stateKey(state) failed during materialization: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-
-  if (typeof stateKey !== 'string' || stateKey.length === 0) {
-    materializationFail(
-      'process_changed_during_materialization',
-      'stateKey(state) returned an invalid key after the decision-process preflight succeeded'
-    );
-  }
-  return stateKey;
+function createSnapshotRecorder<State>(): PolicySnapshotRecorder<State> {
+  return {
+    latestStateKeyByState: new Map<State, string>(),
+    pendingOutcomesByNextState: new Map<State, SnapshotOutcome<State>[]>(),
+    outcomesByStateAction: new Map<
+      string,
+      Map<DecisionActionId, SnapshotOutcome<State>[]>
+    >(),
+    nonterminalStateOrder: [],
+    recordedNonterminalStateKeys: new Set<string>()
+  };
 }
 
-function captureOutcomes<State>(
-  process: FiniteDecisionProcess<State>,
+function copyOutcome<State>(outcome: DecisionOutcome<State>): SnapshotOutcome<State> {
+  const copy: SnapshotOutcome<State> = {
+    probability: outcome.probability,
+    nextState: outcome.nextState
+  };
+  if (outcome.reward !== undefined) {
+    copy.reward = outcome.reward;
+  }
+  if (outcome.elapsedTimeSeconds !== undefined) {
+    copy.elapsedTimeSeconds = outcome.elapsedTimeSeconds;
+  }
+  return copy;
+}
+
+function enqueuePendingOutcome<State>(
+  recorder: PolicySnapshotRecorder<State>,
+  outcome: SnapshotOutcome<State>
+): void {
+  if (!(outcome.probability > 0)) {
+    return;
+  }
+  const pending = recorder.pendingOutcomesByNextState.get(outcome.nextState);
+  if (pending === undefined) {
+    recorder.pendingOutcomesByNextState.set(outcome.nextState, [outcome]);
+    return;
+  }
+  pending.push(outcome);
+}
+
+function recordStateKey<State>(
+  recorder: PolicySnapshotRecorder<State>,
   state: State,
+  stateKey: string
+): void {
+  if (typeof stateKey !== 'string' || stateKey.length === 0) {
+    return;
+  }
+  if (recorder.startStateKey === undefined) {
+    recorder.startStateKey = stateKey;
+  }
+  recorder.latestStateKeyByState.set(state, stateKey);
+
+  const pending = recorder.pendingOutcomesByNextState.get(state);
+  if (pending === undefined) {
+    return;
+  }
+  const outcome = pending.shift();
+  if (outcome !== undefined) {
+    outcome.nextStateKey = stateKey;
+  }
+  if (pending.length === 0) {
+    recorder.pendingOutcomesByNextState.delete(state);
+  }
+}
+
+function recordOutcomes<State>(
+  recorder: PolicySnapshotRecorder<State>,
+  state: State,
+  actionId: DecisionActionId,
+  outcomes: readonly DecisionOutcome<State>[]
+): DecisionOutcome<State>[] {
+  const stateKey = recorder.latestStateKeyByState.get(state);
+  if (stateKey === undefined) {
+    throw new Error(
+      'Internal decision snapshot recorder did not observe stateKey(state) before outcomes(state, actionId)'
+    );
+  }
+
+  const copies = outcomes.map(copyOutcome);
+  let byAction = recorder.outcomesByStateAction.get(stateKey);
+  if (byAction === undefined) {
+    byAction = new Map<DecisionActionId, SnapshotOutcome<State>[]>();
+    recorder.outcomesByStateAction.set(stateKey, byAction);
+  }
+  byAction.set(actionId, copies);
+
+  if (!recorder.recordedNonterminalStateKeys.has(stateKey)) {
+    recorder.recordedNonterminalStateKeys.add(stateKey);
+    recorder.nonterminalStateOrder.push(stateKey);
+  }
+
+  for (const outcome of copies) {
+    enqueuePendingOutcome(recorder, outcome);
+  }
+
+  return copies;
+}
+
+function createSnapshottingProcess<State>(
+  process: FiniteDecisionProcess<State>,
+  recorder: PolicySnapshotRecorder<State>
+): FiniteDecisionProcess<State> {
+  return {
+    startState: process.startState,
+    stateKey: (state) => {
+      const stateKey = process.stateKey(state);
+      recordStateKey(recorder, state, stateKey);
+      return stateKey;
+    },
+    isTerminal: (state) => process.isTerminal(state),
+    actions: (state) => [...process.actions(state)],
+    outcomes: (state, actionId) =>
+      recordOutcomes(recorder, state, actionId, process.outcomes(state, actionId))
+  };
+}
+
+function requiredSnapshotOutcomes<State>(
+  recorder: PolicySnapshotRecorder<State>,
   stateKey: string,
   actionId: DecisionActionId
-) {
-  try {
-    return process.outcomes(state, actionId);
-  } catch (error) {
+): SnapshotOutcome<State>[] {
+  const outcomes = recorder.outcomesByStateAction.get(stateKey)?.get(actionId);
+  if (outcomes === undefined) {
     materializationFail(
-      'process_callback_failed',
-      `outcomes(state, actionId) failed during materialization for ${stateKey}/${actionId}: ${
-        error instanceof Error ? error.message : String(error)
-      }`,
+      'process_changed_during_materialization',
+      `Validated decision snapshot is missing outcomes for ${stateKey}/${actionId}`,
       stateKey,
       actionId
     );
   }
+  return outcomes;
+}
+
+function requiredSnapshotNextStateKey<State>(
+  outcome: SnapshotOutcome<State>,
+  stateKey: string,
+  actionId: DecisionActionId
+): string {
+  if (outcome.nextStateKey === undefined) {
+    materializationFail(
+      'process_changed_during_materialization',
+      `Validated decision snapshot is missing an outcome target key for ${stateKey}/${actionId}`,
+      stateKey,
+      actionId
+    );
+  }
+  return outcome.nextStateKey;
+}
+
+function hasPolicyAction(
+  policyActionByState: Record<string, DecisionActionId>,
+  stateKey: string
+): boolean {
+  return Object.prototype.hasOwnProperty.call(policyActionByState, stateKey);
+}
+
+function buildPostorderStateKeys<State>(
+  startStateKey: string,
+  policyActionByState: Record<string, DecisionActionId>,
+  recorder: PolicySnapshotRecorder<State>
+): { stateKeys: string[]; visitedStateKeys: Set<string> } {
+  const stateKeys: string[] = [];
+  const visitedStateKeys = new Set<string>();
+  const stack: SnapshotOrderFrame[] = [{ phase: 'enter', stateKey: startStateKey }];
+
+  while (stack.length > 0) {
+    const frame = stack.pop()!;
+    if (frame.phase === 'exit') {
+      stateKeys.push(frame.stateKey);
+      continue;
+    }
+    if (visitedStateKeys.has(frame.stateKey)) {
+      continue;
+    }
+
+    visitedStateKeys.add(frame.stateKey);
+    stack.push({ phase: 'exit', stateKey: frame.stateKey });
+
+    if (!hasPolicyAction(policyActionByState, frame.stateKey)) {
+      continue;
+    }
+    const actionId = policyActionByState[frame.stateKey]!;
+    const outcomes = requiredSnapshotOutcomes(recorder, frame.stateKey, actionId);
+    for (let index = outcomes.length - 1; index >= 0; index -= 1) {
+      const outcome = outcomes[index]!;
+      if (outcome.probability === 0) {
+        continue;
+      }
+      stack.push({
+        phase: 'enter',
+        stateKey: requiredSnapshotNextStateKey(outcome, frame.stateKey, actionId)
+      });
+    }
+  }
+
+  return { stateKeys, visitedStateKeys };
 }
 
 function makeTransition<State>(
   from: string,
   to: string,
-  outcome: ReturnType<FiniteDecisionProcess<State>['outcomes']>[number]
+  outcome: SnapshotOutcome<State>
 ): TransitionDefinition {
   const transition: TransitionDefinition = {
     from,
@@ -168,7 +343,12 @@ export function materializeFiniteDecisionPolicy<State>(
   policy: DeterministicDecisionPolicy<State>,
   options: FiniteDecisionProcessOptions = {}
 ): FiniteDecisionMaterializationResult {
-  const preflight = evaluateFiniteDecisionPolicy(process, policy, options);
+  const recorder = createSnapshotRecorder<State>();
+  const preflight = evaluateFiniteDecisionPolicy(
+    createSnapshottingProcess(process, recorder),
+    policy,
+    options
+  );
   if (!preflight.ok) {
     return {
       ok: false,
@@ -183,122 +363,61 @@ export function materializeFiniteDecisionPolicy<State>(
   const reachableStateKeys = new Set(Object.keys(preflight.expectedRewardByState));
 
   try {
-    const startStateKey = captureStateKey(process, process.startState);
-    if (!reachableStateKeys.has(startStateKey)) {
+    const startStateKey = recorder.startStateKey;
+    if (startStateKey === undefined || !reachableStateKeys.has(startStateKey)) {
       materializationFail(
         'process_changed_during_materialization',
-        `Start state ${startStateKey} was not present in the successful preflight snapshot`,
-        startStateKey
+        'Validated decision snapshot is missing the successful preflight start state'
       );
     }
 
-    const stateDefinitionByKey = new Map<string, StateDefinition>();
-    const postorderStateKeys: string[] = [];
-    const transitions: TransitionDefinition[] = [];
-    const visitedStateKeys = new Set<string>();
-    const activeStateKeys = new Set<string>();
-    const stack: MaterializationFrame<State>[] = [
-      { phase: 'enter', state: process.startState, stateKey: startStateKey }
-    ];
-
-    while (stack.length > 0) {
-      const frame = stack.pop()!;
-
-      if (frame.phase === 'exit') {
-        activeStateKeys.delete(frame.stateKey);
-        postorderStateKeys.push(frame.stateKey);
-        continue;
-      }
-
-      if (activeStateKeys.has(frame.stateKey)) {
-        materializationFail(
-          'process_changed_during_materialization',
-          `Cycle appeared during materialization after the acyclic preflight succeeded at ${frame.stateKey}`,
-          frame.stateKey
-        );
-      }
-      if (visitedStateKeys.has(frame.stateKey)) {
-        continue;
-      }
-      if (!reachableStateKeys.has(frame.stateKey)) {
-        materializationFail(
-          'process_changed_during_materialization',
-          `State ${frame.stateKey} appeared during materialization but was absent from the successful preflight snapshot`,
-          frame.stateKey
-        );
-      }
-
-      visitedStateKeys.add(frame.stateKey);
-      activeStateKeys.add(frame.stateKey);
-
-      const hasPolicyAction = Object.prototype.hasOwnProperty.call(
-        policyActionByState,
-        frame.stateKey
-      );
-      if (!hasPolicyAction) {
-        stateDefinitionByKey.set(frame.stateKey, {
-          id: frame.stateKey,
-          terminal: true
-        });
-        activeStateKeys.delete(frame.stateKey);
-        postorderStateKeys.push(frame.stateKey);
-        continue;
-      }
-
-      const actionId = policyActionByState[frame.stateKey]!;
-      stateDefinitionByKey.set(frame.stateKey, { id: frame.stateKey });
-      const outcomes = captureOutcomes(process, frame.state, frame.stateKey, actionId);
-      const childFrames: Array<{ state: State; stateKey: string }> = [];
-
-      for (const outcome of outcomes) {
-        if (outcome.probability === 0) {
-          continue;
-        }
-
-        const nextStateKey = captureStateKey(process, outcome.nextState);
-        if (!reachableStateKeys.has(nextStateKey)) {
-          materializationFail(
-            'process_changed_during_materialization',
-            `Outcome target ${nextStateKey} from ${frame.stateKey}/${actionId} was absent from the successful preflight snapshot`,
-            frame.stateKey,
-            actionId
-          );
-        }
-
-        transitions.push(makeTransition(frame.stateKey, nextStateKey, outcome));
-        childFrames.push({ state: outcome.nextState, stateKey: nextStateKey });
-      }
-
-      stack.push({ phase: 'exit', stateKey: frame.stateKey });
-      for (let index = childFrames.length - 1; index >= 0; index -= 1) {
-        const child = childFrames[index]!;
-        stack.push({ phase: 'enter', state: child.state, stateKey: child.stateKey });
-      }
-    }
-
-    if (visitedStateKeys.size !== reachableStateKeys.size) {
+    const postorder = buildPostorderStateKeys(
+      startStateKey,
+      policyActionByState,
+      recorder
+    );
+    if (postorder.visitedStateKeys.size !== reachableStateKeys.size) {
       materializationFail(
         'process_changed_during_materialization',
-        `Materialization reached ${visitedStateKeys.size} states but the successful preflight reached ${reachableStateKeys.size}`
+        `Validated decision snapshot contains ${postorder.visitedStateKeys.size} reachable states but the successful preflight contains ${reachableStateKeys.size}`
       );
     }
     for (const stateKey of reachableStateKeys) {
-      if (!visitedStateKeys.has(stateKey)) {
+      if (!postorder.visitedStateKeys.has(stateKey)) {
         materializationFail(
           'process_changed_during_materialization',
-          `Preflight state ${stateKey} was no longer reachable during materialization`,
+          `Successful preflight state ${stateKey} is missing from the validated decision snapshot`,
           stateKey
         );
       }
     }
 
-    const states = postorderStateKeys.map((stateKey) => {
-      const state = stateDefinitionByKey.get(stateKey);
-      if (state === undefined) {
-        throw new Error(`Internal materialization state definition missing for ${stateKey}`);
+    const states: StateDefinition[] = postorder.stateKeys.map((stateKey) =>
+      hasPolicyAction(policyActionByState, stateKey)
+        ? { id: stateKey }
+        : { id: stateKey, terminal: true }
+    );
+    const transitions: TransitionDefinition[] = [];
+
+    for (const stateKey of recorder.nonterminalStateOrder) {
+      if (!hasPolicyAction(policyActionByState, stateKey)) {
+        continue;
       }
-      return state;
-    });
+      const actionId = policyActionByState[stateKey]!;
+      const outcomes = requiredSnapshotOutcomes(recorder, stateKey, actionId);
+      for (const outcome of outcomes) {
+        if (outcome.probability === 0) {
+          continue;
+        }
+        transitions.push(
+          makeTransition(
+            stateKey,
+            requiredSnapshotNextStateKey(outcome, stateKey, actionId),
+            outcome
+          )
+        );
+      }
+    }
 
     const model: DefinitionModel = {
       startState: startStateKey,
