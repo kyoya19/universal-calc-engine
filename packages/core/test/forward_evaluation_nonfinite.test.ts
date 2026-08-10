@@ -90,7 +90,7 @@ describe('forward evaluation non-finite analytical boundary', () => {
           lastMaxDelta: 0
         }
       }
-    } as Parameters<typeof forwardEvaluationResultToJson>[0];
+    } as unknown as Parameters<typeof forwardEvaluationResultToJson>[0];
 
     expect(() => forwardEvaluationResultToJson(fabricated)).toThrow(/non-finite numeric value Infinity/);
   });
