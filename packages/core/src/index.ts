@@ -3,6 +3,7 @@ export * from './reward_rate';
 export * from './reward_axes';
 export * from './validation';
 export * from './solver_diagnostics';
+export * from './acyclic_direct_solver';
 export * from './parameterized_scalars';
 export * from './external_input';
 export * from './observations';
