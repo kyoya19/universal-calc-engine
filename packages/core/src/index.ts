@@ -5,6 +5,7 @@ export * from './validation';
 export * from './solver_diagnostics';
 export * from './acyclic_direct_solver';
 export * from './acyclic_direct_forward_evaluation';
+export * from './forward_solver_dispatcher';
 export * from './parameterized_scalars';
 export * from './external_input';
 export * from './observations';
