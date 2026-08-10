@@ -1,8 +1,21 @@
 # universal-calc-engine
 
-汎用確率状態遷移モデルに基づく万能計算機プロジェクトです。
+汎用確率状態遷移モデルに基づく万能計算機／成果還元関数のcore repositoryです。
 
-DefinitionModel → ExpandedModel → EvaluatedModel → SolvedModel → OutputResult → ContributionResult を中核に、キヨタンforward評価と、観測からparameter candidate / assignmentを順位付けする最小セイカタンreverse estimationを段階的に固定しています。
+現在の分析coreは、
+
+```text
+Kiyotan forward v1
++
+finite-candidate / finite-assignment centered Seikatan v1
+```
+
+として **functional-contract v1 boundary** に到達しています。
+
+Authoritative completion review:
+
+- [v1 completion boundary](docs/v1-completion-boundary.md)
+- [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 
 ## License / Commercial Use
 
@@ -28,154 +41,177 @@ For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 商用利用を希望する場合は、利用前にリポジトリ所有者へ連絡してください。
 
-## Current position
+## v1 の意味
 
-キヨタン側は、第三者がchecked external inputから評価・比較・one-at-a-time sensitivityまで一続きに実行できる **forward v1 candidate** です。正式な対応範囲・partial boundary・unsupported機能・数学上の制約は [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md) を正とします。
+このrepositoryでいうv1は、**分析機能・数学/統計semantics・checked input・structured result・third-party handoff・互換境界が一続きに固定された状態**を指します。
 
-ObservationDatasetはmodel definition、supplied parameter、evaluated value、forward result、estimateから分離された証拠データ面です。`state_count / transition_count / scalar` を扱います。
+これはnpm package release `1.0.0`を意味しません。
 
-セイカタン側は有限candidate / assignment searchを中心に、transition-count likelihood、scalar Gaussian likelihood、single-parameter composite likelihood、finite multi-parameter transition grid、finite multi-parameter composite gridを持ちます。
+Root `package.json`は現在もprivate development package metadataです。Package publishing / exports map / semantic versioningは別のdistribution workとして扱います。
 
-現在のreverse 5 kindsはすべてgeneric checked external input dispatcherから`unknown` / JSONで到達でき、すべてversioned `ReverseResultHandoff`へ変換できます。raw estimator resultを変更せず、method/search、selection、ranking、evidence、constraints、assumptions、diagnostics、prior/posterior status、warnings、limitationsを第三者へ渡します。
+## Core pipeline
 
-旧discrete専用checked APIも互換のため残しています。
-
-### Transition-count likelihood
+Forwardの基礎pipeline:
 
 ```text
-conditional_transition_log_likelihood_without_multinomial_constant
+DefinitionModel
+→ ExpandedModel
+→ EvaluatedModel
+→ solver outputs
+→ OutputResult / ContributionResult
 ```
 
-1つのdeclared parameterについて有限candidate setを評価し、completeな`state_count / transition_count` departure観測に対して `sum k * log(p)` を計算します。
+第三者向けには直接内部pipelineを組み立てるより、checked facade / handoffを推奨します。
 
-`relativeLikelihoodToBest` はbest candidateへのlikelihood ratioでありposterior probabilityではありません。
-
-### Scalar Gaussian likelihood
-
-```text
-conditionally_independent_gaussian_scalar_log_likelihood
-```
-
-scalar observationをparameterへ直接コピーせず、各`observationId`を明示的なmodel-side predictorへ結びます。
-
-現在のpredictorはunitを明示できるものに限定しています。
-
-```text
-expected_elapsed_time_seconds
-reward_axis_expected_value(axisId)
-```
-
-観測値 `y`、candidateから計算した予測値 `mu`、callerが明示した `sigma > 0` に対してnormalized Gaussian log-likelihood densityを使います。
-
-```text
-log L = -log(sigma * sqrt(2*pi)) - 0.5 * ((y - mu) / sigma)^2
-```
-
-複数scalar観測は `scalar_observations_conditionally_independent_given_candidate` を明示してlog-likelihoodを加算します。observation unit、predictor unit、Gaussian error-model unitは完全一致が必要です。default sigma、epsilon smoothing、自動unit変換、prior、posteriorは導入しません。
-
-### Composite transition + scalar likelihood
-
-```text
-transition_plus_scalar_gaussian_composite_log_likelihood
-```
-
-同じcandidate / assignmentへtransition-count evidenceとscalar Gaussian evidenceを使う場合、callerは次のevidence-block仮定を明示しなければなりません。
-
-```text
-transition_and_scalar_evidence_conditionally_independent_given_candidate
-```
-
-transition用観測IDとscalar bindingを明示分離し、全ObservationDataset recordをちょうど1つのblockへ割り当てます。未使用観測を黙って捨てません。
-
-既存2つのcomponent estimatorを再利用し、合成時だけ次を計算します。
-
-```text
-totalScore
-= transitionLogLikelihoodScore
-+ scalarGaussianLogLikelihoodScore
-```
-
-transition componentはcandidate-independentなmultinomial constantを省略しているため、totalはそのconstantまでのlog-likelihood scoreです。candidate / assignment rankingとbestへのlikelihood ratioではconstantが相殺されます。
-
-transition componentがpositive observationに対してprobability 0を与えたcandidate / assignmentは、scalar scoreが有限でもcompositeではimpossibleのままです。scalar predictorが非収束ならそのcandidate / assignmentをlikelihood evidenceへ使いません。
-
-### Finite multi-parameter transition grid
-
-```text
-finite_cartesian_parameter_grid
-```
-
-複数のdeclared unknown parameterへ有限candidate setを与え、constraint適用後のCartesian productを全列挙して既存transition-count likelihoodでassignmentを順位付けします。
-
-`maxCombinations` は必須です。eligible gridが上限を超える場合は実行前に拒否し、暗黙のtruncate・sampling・random searchへ切り替えません。
-
-複数assignmentがbest scoreでtieした場合は `tied_best_assignments` として返し、`estimatedAssignment` を勝手に1つ選びません。これはsupplied finite grid上のidentifiability情報であり、因果寄与分解ではありません。
-
-### Finite multi-parameter composite grid
-
-Generic use caseとして、unknown transition success probability `p` とunknown success-side quality/value `q` を同時に推定できます。
-
-Transition countsは主に`p`へ情報を持ち、scalar expected qualityは`p`と`q`の組合せへ情報を持つため、両方が未知ならsingle-parameter compositeではjoint assignmentを扱えません。
-
-Search method:
-
-```text
-finite_cartesian_parameter_grid
-```
-
-Per-assignment composite method:
-
-```text
-transition_plus_scalar_gaussian_composite_log_likelihood
-```
-
-Grid layerは新しいlikelihood式を定義しません。全parameter assignmentをmodelへ注入し、既存`estimateCompositeParameterCandidates`を1-value anchor candidateで再利用します。
-
-Resultは少なくとも次を分離して保持します。
-
-```text
-transitionLogLikelihoodScore
-scalarGaussianLogLikelihoodScore
-totalLogLikelihoodScore
-relativeLikelihoodToBest
-```
-
-さらに:
-
-```text
-rawCombinationCount
-eligibleCombinationCount
-maxCombinations
-bestAssignments
-estimatedAssignment
-identifiability
-rejectedAssignments
-excludedCandidatesByParameter
-```
-
-を保持します。
-
-`maxCombinations`は必須です。constraint適用後のeligible gridが上限を超えたら実行前に拒否し、truncate / sample / random search / continuous optimizationへ切り替えません。
-
-Scalar predictor非収束はassignment rejectionです。Transition impossible assignmentはscalar scoreがfiniteでも`possible: false`、`totalLogLikelihoodScore: null`のままです。
-
-Multi-parameter estimationはcausal attributionではありません。
-
-## Checked reverse external path
-
-Generic public path:
+## Complete forward v1 path
 
 ```text
 external JSON / unknown
-→ schemaVersion / estimationKind shape check
-→ existing ExternalModelDocument parser
-→ existing ObservationDataset parser
-→ estimation-specific request shape check
-→ existing typed estimator semantics
-→ structured result
+→ checked model input
+→ parameter / formula resolution
+→ structured validation
+→ expand / evaluate
+→ expected reward
+→ expected elapsed time
+→ optional reachability
+→ ratio-of-expectations reward rate
+→ contribution
+→ optional named reward axes
+→ convergence diagnostics
+→ ForwardEvaluationResult
+→ ForwardResultHandoff
 ```
 
-Supported checked kinds:
+Preferred entry points:
+
+```text
+evaluateExternalModelInput
+evaluateExternalModelJson
+toForwardResultHandoff
+forwardResultHandoffToJson
+formatForwardResultHandoffPlainText
+```
+
+Representative complete example:
+
+```text
+packages/core/examples/forward_result_handoff.ts
+```
+
+### Forward result handoff
+
+Versioned handoff:
+
+```text
+schemaVersion: 1
+kind: forward_evaluation_handoff
+```
+
+It preserves:
+
+```text
+modelKind
+converged
+validation
+expectedReward
+expectedElapsedTime
+rewardRate
+contribution
+diagnostics
+optional reachability
+optional named reward axes
+warnings
+limitations
+```
+
+### Forward mathematical boundaries
+
+Reward rate:
+
+```text
+rateKind = ratio_of_expectations
+E[reward] / E[elapsed time]
+```
+
+It is not `E[reward / elapsed time]`.
+
+Reachability is generic target-state probability, not automatically a domain-specific win probability.
+
+Named reward axes remain independent; the core does not silently net axes or convert units.
+
+Contribution rows, scenario differences, and sensitivity are descriptive analytical outputs, not automatically causal attribution.
+
+A valid forward evaluation can return:
+
+```text
+ok: true
+converged: false
+```
+
+with explicit solver diagnostics and the last approximation. Non-convergence is never hidden.
+
+Additional forward analyses:
+
+```text
+compareExternalModelScenarios
+analyzeParameterSensitivity
+```
+
+Scenario comparison uses `candidate - baseline`.
+
+One-at-a-time sensitivity changes one selected parameter while other supplied baseline parameter values remain fixed.
+
+## Observation boundary
+
+`ObservationDataset` is a first-class evidence surface separate from:
+
+```text
+model definition
+supplied parameter values
+evaluated values
+forward result
+reverse estimate
+```
+
+Current records:
+
+```text
+state_count
+transition_count
+scalar
+```
+
+Observations are not copied directly into model parameters by the checked reverse parser.
+
+## Complete Seikatan v1 path
+
+```text
+external reverse JSON / unknown
+→ checked model + ObservationDataset + request
+→ selected typed reverse estimator
+→ structured reverse result
+→ ReverseResultHandoff
+```
+
+Preferred generic entry points:
+
+```text
+parseExternalReverseEstimationDocument
+parseExternalReverseEstimationJson
+estimateExternalReverseInput
+estimateExternalReverseJson
+toReverseResultHandoff
+reverseResultHandoffToJson
+formatReverseResultHandoffPlainText
+```
+
+Representative complete example:
+
+```text
+packages/core/examples/multi_parameter_composite_external_handoff.ts
+```
+
+## Current reverse kinds
 
 ```text
 discrete_parameter_candidates
@@ -185,16 +221,79 @@ multi_parameter_transition_grid
 multi_parameter_composite_grid
 ```
 
-Public entry points:
+### Transition-count likelihood
 
 ```text
-parseExternalReverseEstimationDocument
-parseExternalReverseEstimationJson
-estimateExternalReverseInput
-estimateExternalReverseJson
+conditional_transition_log_likelihood_without_multinomial_constant
 ```
 
-Failure stages remain separate:
+For observed count `k` and candidate transition probability `p`:
+
+```text
+score = sum k * log(p)
+```
+
+The candidate-independent multinomial constant for the same evidence is omitted.
+
+### Scalar Gaussian likelihood
+
+```text
+conditionally_independent_gaussian_scalar_log_likelihood
+```
+
+The caller explicitly supplies:
+
+```text
+observation binding
+model-side predictor
+Gaussian sigma
+unit
+```
+
+The parser does not invent sigma, epsilon, predictor mapping, or unit conversion.
+
+### Composite likelihood
+
+```text
+transition_plus_scalar_gaussian_composite_log_likelihood
+```
+
+Required explicit assumption:
+
+```text
+transition_and_scalar_evidence_conditionally_independent_given_candidate
+```
+
+Every observation must belong to exactly one evidence block.
+
+A transition impossible event is not rescued by finite scalar evidence.
+
+A non-converged scalar predictor is not used as successful likelihood evidence.
+
+### Multi-parameter search
+
+```text
+finite_cartesian_parameter_grid
+```
+
+Both transition and composite multi-parameter estimators require:
+
+```text
+finite candidate dimensions
+per-parameter constraints
+mandatory maxCombinations
+rawCombinationCount
+eligibleCombinationCount
+unique / tied / no-possible finite-grid identifiability
+```
+
+No silent truncation, sampling, adaptive search, or continuous fallback occurs.
+
+Multi-parameter composite reuses the existing single-parameter composite scorer per assignment; it does not define another likelihood formula.
+
+## Reverse checked parser boundary
+
+The generic parser keeps:
 
 ```text
 json_syntax
@@ -202,173 +301,92 @@ shape
 estimation
 ```
 
-The parser does not deduplicate candidates, truncate grids, invent or repair sigma, infer predictors, convert units, auto-clip constraints, or infer composite independence assumptions. Estimator-semantic failures remain estimator-semantic failures.
+separate.
 
-The established discrete-specific checked functions remain available unchanged for compatibility.
+It deliberately does not:
+
+```text
+deduplicate candidates
+truncate or sample grids
+invent or repair sigma
+infer predictors from metric names
+convert units
+auto-clip constraints
+infer evidence partition
+infer independence assumptions
+copy observations into parameters
+```
+
+The older discrete-specific checked API remains available for compatibility.
 
 ## Reverse result handoff
 
-All five current checked reverse results can be converted into one structured third-party handoff without changing the underlying estimator types.
+Versioned handoff:
 
 ```text
-ExternalReverseMethodResult
-→ toReverseResultHandoff
-→ ReverseResultHandoff
+schemaVersion: 1
+kind: reverse_estimation_handoff
 ```
 
-Public helpers:
+It preserves method/search identity, estimate/assignment, ranking, evidence, constraints, assumptions, component scores, diagnostics where applicable, finite-grid limits/identifiability, warnings, limitations, and:
 
 ```text
-toReverseResultHandoff
-reverseResultHandoffToJson
-formatReverseResultHandoffPlainText
+priorUsed: false
+posteriorComputed: false
 ```
 
-Success handoffs preserve method/component/search names, selected estimate or assignment, method-specific ranking scores, used observation IDs, composite evidence blocks, constraints, explicit assumptions, solver diagnostics where present, finite-grid search limits where present, `priorUsed`, `posteriorComputed`, warnings, and limitations.
+`relativeLikelihoodToBest` remains a likelihood ratio to the best supplied finite candidate/assignment. It is not posterior probability.
 
-Multi-parameter composite handoff keeps all four method levels together:
+Finite-grid identifiability is not proof of global structural identifiability.
+
+Multi-parameter estimation is not causal attribution.
+
+## Public TypeScript root
+
+Current core exports are collected in:
 
 ```text
-searchMethod
-compositeMethod
-transitionMethod
-scalarMethod
+packages/core/src/index.ts
 ```
 
-and preserves assignment-level transition/scalar/total scores plus scalar diagnostics.
-
-The handoff does not create confidence intervals, credible intervals, posterior probabilities, global structural-identifiability claims, or causal attribution.
-
-`relativeLikelihoodToBest` remains a likelihood ratio. A tie remains a tie. Failed parse/shape/estimation results remain failure handoffs rather than fabricated statistical results.
-
-## Forward v1 path
-
-```text
-external JSON / unknown
-→ checked external document
-→ parameter / formula resolution
-→ structured model validation
-→ expand / evaluate
-→ expected reward
-→ expected elapsed time
-→ optional reachability
-→ E[reward] / E[elapsed time] reward rate
-→ contribution
-→ optional named reward axes
-→ convergence diagnostics
-→ structured forward result
-```
-
-Additional forward analysis:
-
-```text
-same model + baseline/candidate parameters
-→ scenario comparison (candidate - baseline)
-```
-
-```text
-same model + baseline + one selected parameter + candidate values
-→ one-at-a-time sensitivity
-```
-
-scenario差やcontribution差をmethod未定義のまま一意な因果寄与とは扱いません。
-
-## Implemented public surface highlights
-
-```text
-DefinitionModel / ExpandedModel / EvaluatedModel / SolvedModel
-RewardAxesDefinitionModel / RewardAxisDefinition
-ParameterizedDefinitionModel / ParameterizedRewardAxesDefinitionModel
-ObservationDataset / ObservationRecord
-ForwardEvaluationResult
-ScenarioComparisonResult
-ParameterSensitivityResult
-DiscreteParameterEstimationRequest / DiscreteParameterEstimationResult
-ScalarGaussianParameterEstimationRequest / ScalarGaussianParameterEstimationResult
-CompositeLikelihoodEstimationRequest / CompositeLikelihoodEstimationResult
-MultiParameterGridEstimationRequest / MultiParameterGridEstimationResult
-MultiParameterCompositeGridEstimationRequest / MultiParameterCompositeGridEstimationResult
-ExternalReverseMethodDocument / ExternalReverseMethodResult
-ReverseResultHandoff
-```
-
-Representative operations:
-
-```text
-prepareExternalModelInput / prepareExternalModelJson
-evaluateExternalModelInput / evaluateExternalModelJson
-compareExternalModelScenarios
-analyzeParameterSensitivity
-parseObservationDataset / validateObservationDataset
-estimateDiscreteParameterCandidates
-estimateScalarGaussianParameterCandidates
-estimateCompositeParameterCandidates
-estimateMultiParameterGrid
-estimateMultiParameterCompositeGrid
-parseExternalReverseEstimationDocument / parseExternalReverseEstimationJson
-estimateExternalReverseInput / estimateExternalReverseJson
-toReverseResultHandoff
-reverseResultHandoffToJson
-formatReverseResultHandoffPlainText
-```
-
-## Current boundaries
-
-```text
-solver target is explicit-only through transition.to
-generatedTo is diagnostics-only
-named reward axes are never implicitly netted or unit-converted
-ObservationDataset is not converted into supplied parameters
-non-convergence remains explicit
-scenario comparison uses candidate - baseline
-one-at-a-time sensitivity changes one selected parameter per point
-contribution differences are descriptive, not unique causal attribution
-TeX/report remain partial rather than full forward/reverse renderers
-transition-count and scalar Gaussian likelihood remain separately named methods
-composite likelihood requires explicit evidence partition and conditional-independence declaration
-composite total score is up to the omitted candidate-independent transition multinomial constant
-relative likelihood is not posterior probability
-scalar Gaussian sigma is explicit and strictly positive
-scalar Gaussian observation/predictor/error-model units must match exactly
-multi-parameter transition and composite estimation use finite exhaustive grids only
-multi-parameter grids require an explicit hard combination limit
-tied best assignments are finite-grid non-identifiability only
-checked reverse parsing never normalizes statistical input
-all five current reverse kinds have checked external input and structured handoff
-reverse handoff summarizes existing semantics but does not create new inference
-continuous optimization remains unsupported
-Bayesian prior/posterior remains unsupported
-hidden-state inference remains unsupported
-multi-parameter causal attribution remains unsupported without a defined method
-product UI / monetization is outside the current core phase
-digipachi and Juoh remain later representative applications
-```
+Historical/direct APIs remain exported for compatibility. The preferred v1 third-party paths are the checked facade + versioned handoff paths described above.
 
 ## Primary docs
 
-- [Forward v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
-- [External model input boundary](docs/external-input.md)
-- [Observation input surface](docs/observations.md)
-- [Forward evaluation facade](docs/forward-evaluation.md)
+### v1 authority
+
+- [v1 completion boundary](docs/v1-completion-boundary.md)
+- [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
+- [Continuation / post-v1 policy](docs/outcome-continuation-review.md)
+
+### Forward
+
+- [External model input](docs/external-input.md)
+- [Forward evaluation](docs/forward-evaluation.md)
+- [Forward result handoff](docs/forward-result-handoff.md)
 - [Scenario comparison](docs/scenario-comparison.md)
-- [One-at-a-time parameter sensitivity](docs/parameter-sensitivity.md)
-- [Minimal discrete reverse estimation](docs/discrete-estimation.md)
-- [Checked reverse input for current methods](docs/reverse-external-methods.md)
-- [Scalar Gaussian reverse estimation](docs/scalar-gaussian-estimation.md)
-- [Composite likelihood estimation](docs/composite-likelihood-estimation.md)
-- [Finite multi-parameter transition grid estimation](docs/multi-parameter-grid-estimation.md)
-- [Finite multi-parameter composite grid estimation](docs/multi-parameter-composite-grid-estimation.md)
-- [Reverse result handoff](docs/reverse-result-handoff.md)
-- [成果還元関数 continuation review](docs/outcome-continuation-review.md)
+- [One-at-a-time sensitivity](docs/parameter-sensitivity.md)
 - [Named reward axes](docs/reward-axes.md)
 - [Structured validation](docs/structured-validation.md)
-- [Solver convergence diagnostics](docs/solver-diagnostics.md)
-- [Parameter references and formula scalars](docs/parameterized-scalars.md)
+- [Solver diagnostics](docs/solver-diagnostics.md)
+- [Parameterized scalars](docs/parameterized-scalars.md)
+
+### Reverse
+
+- [Observation input](docs/observations.md)
+- [Discrete estimation](docs/discrete-estimation.md)
+- [Scalar Gaussian estimation](docs/scalar-gaussian-estimation.md)
+- [Composite likelihood estimation](docs/composite-likelihood-estimation.md)
+- [Finite multi-parameter transition grid](docs/multi-parameter-grid-estimation.md)
+- [Finite multi-parameter composite grid](docs/multi-parameter-composite-grid-estimation.md)
+- [Checked reverse methods](docs/reverse-external-methods.md)
+- [Reverse result handoff](docs/reverse-result-handoff.md)
 
 ## Representative examples
 
 ```text
 packages/core/examples/forward_evaluation.ts
+packages/core/examples/forward_result_handoff.ts
 packages/core/examples/scenario_comparison.ts
 packages/core/examples/discrete_estimation.ts
 packages/core/examples/scalar_gaussian_estimation.ts
@@ -381,13 +399,27 @@ packages/core/examples/reverse_result_handoff.ts
 
 特定ゲーム固有の値やルールはgeneric coreへ持ち込みません。
 
-## Next priority
+## Explicit partial / post-v1 areas
 
-キヨタンはforward v1 candidateを維持し、セイカタンは有限candidate / assignmentを中心とするcurrent 5 reverse kindsについてtyped estimator・checked external input・structured result handoffが揃いました。
+Current v1 does not claim completion for:
 
-ここからは新しいstatistical familyを機械的に増やすより、**キヨタンforward v1＋この最小セイカタンをv1相当の区切りとして固定できるか**をrepository全体から再棚卸しするのが第一候補です。
+```text
+npm/package distribution 1.0
+complete TeX/report renderer
+transition effects beyond set_property
+exact/closed-form solver family
+automatic unit conversion/general dimensional algebra
+continuous/adaptive optimization
+Bayesian prior/posterior
+MCMC / variational inference
+confidence / credible intervals
+hidden-state inference
+undefined Shapley / causal attribution
+GUI / web product layer
+large digipachi / Juoh core models
+```
 
-Bayesian prior/posteriorは、意味のあるprior mass/densityを供給する具体的use caseが出るまで低優先度を維持します。
+These are not silent omissions; they are explicit partial or post-v1 boundaries.
 
 ## Verification
 
@@ -396,4 +428,18 @@ npm run typecheck
 npm test
 ```
 
-本プロジェクトはツモロジ（仮）のマネタイズ企画そのものではなく、同企画にも利用され得る中核計算エンジンの実装を目的とします。
+## Next work
+
+Do not add another statistical family by roadmap momentum alone.
+
+After v1, new work should start from a concrete requirement such as:
+
+```text
+external distribution/package hardening
+a real generic/domain application exposing a missing core capability
+a separately justified analytical method with explicit semantics
+```
+
+If no such requirement exists, the current v1 safe point should be maintained rather than expanded mechanically.
+
+本プロジェクトはツモロジ（仮）のマネタイズ企画そのものではなく、同企画にも利用され得る中核計算エンジンです。
