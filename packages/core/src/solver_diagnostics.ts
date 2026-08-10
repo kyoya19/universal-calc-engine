@@ -124,6 +124,100 @@ function toDiagnostics(
   return diagnostics;
 }
 
+function hasEffectiveNonterminalCycle(model: EvaluatedModel): boolean {
+  const visiting = new Set<StateId>();
+  const visited = new Set<StateId>();
+
+  const visit = (stateId: StateId): boolean => {
+    if (visiting.has(stateId)) {
+      return true;
+    }
+    if (visited.has(stateId)) {
+      return false;
+    }
+
+    const state = model.stateById.get(stateId);
+    if (state === undefined || isTerminalState(state)) {
+      visited.add(stateId);
+      return false;
+    }
+
+    visiting.add(stateId);
+    for (const transition of model.transitionsByState.get(stateId) ?? []) {
+      if (transition.probability === 0) {
+        continue;
+      }
+      const target = model.stateById.get(transition.to);
+      if (target !== undefined && !isTerminalState(target) && visit(transition.to)) {
+        return true;
+      }
+    }
+    visiting.delete(stateId);
+    visited.add(stateId);
+    return false;
+  };
+
+  return model.states.some((state) => !isTerminalState(state) && visit(state.id));
+}
+
+function validateCumulativeRewardSequence(
+  model: EvaluatedModel,
+  options: ResolvedSolverOptions,
+  rewardForTransition: (
+    transition: EvaluatedModel['transitions'][number]
+  ) => number
+): IterationRunResult {
+  let previousByState = new Map<StateId, number>();
+  for (const state of model.states) {
+    previousByState.set(state.id, 0);
+  }
+
+  return runIterations(options, () => {
+    const nextByState = new Map<StateId, number>();
+    let maxDelta = 0;
+
+    for (const state of model.states) {
+      if (isTerminalState(state)) {
+        nextByState.set(state.id, 0);
+        continue;
+      }
+
+      const nextValue = stableSum(
+        (model.transitionsByState.get(state.id) ?? []).map((transition) => {
+          const downstream = previousByState.get(transition.to) ?? 0;
+          return transition.probability * (rewardForTransition(transition) + downstream);
+        })
+      );
+      const previous = previousByState.get(state.id) ?? 0;
+      maxDelta = Math.max(maxDelta, Math.abs(nextValue - previous));
+      nextByState.set(state.id, nextValue);
+    }
+
+    previousByState = nextByState;
+    return maxDelta;
+  });
+}
+
+function guardCumulativeRewardConvergence(
+  model: EvaluatedModel,
+  options: ResolvedSolverOptions,
+  fixedPointRun: IterationRunResult,
+  rewardForTransition: (
+    transition: EvaluatedModel['transitions'][number]
+  ) => number
+): IterationRunResult {
+  if (!fixedPointRun.converged || !hasEffectiveNonterminalCycle(model)) {
+    return fixedPointRun;
+  }
+
+  const cumulativeRun = validateCumulativeRewardSequence(
+    model,
+    options,
+    rewardForTransition
+  );
+  return cumulativeRun.converged ? fixedPointRun : cumulativeRun;
+}
+
 export function solveExpectedRewardWithDiagnostics(
   model: EvaluatedModel,
   options: SolverDiagnosticsOptions = {}
@@ -135,7 +229,7 @@ export function solveExpectedRewardWithDiagnostics(
     expectedRewardByState.set(state.id, 0);
   }
 
-  const run = runIterations(resolved, () => {
+  const fixedPointRun = runIterations(resolved, () => {
     let maxDelta = 0;
 
     for (const state of model.states) {
@@ -160,6 +254,13 @@ export function solveExpectedRewardWithDiagnostics(
 
     return maxDelta;
   });
+
+  const run = guardCumulativeRewardConvergence(
+    model,
+    resolved,
+    fixedPointRun,
+    (transition) => transition.reward ?? 0
+  );
 
   return {
     result: { expectedRewardByState },
@@ -283,7 +384,7 @@ export function solveExpectedRewardAxesWithDiagnostics(
       expectedRewardByState.set(state.id, 0);
     }
 
-    const run = runIterations(resolved, () => {
+    const fixedPointRun = runIterations(resolved, () => {
       let maxDelta = 0;
 
       for (const state of model.states) {
@@ -308,6 +409,13 @@ export function solveExpectedRewardAxesWithDiagnostics(
 
       return maxDelta;
     });
+
+    const run = guardCumulativeRewardConvergence(
+      model,
+      resolved,
+      fixedPointRun,
+      (transition) => transition.rewardsByAxis?.[axis.id] ?? 0
+    );
 
     expectedRewardByAxisByState.set(axis.id, expectedRewardByState);
     diagnosticsByAxis[axis.id] = toDiagnostics('expected_reward_axis', resolved, run, {
