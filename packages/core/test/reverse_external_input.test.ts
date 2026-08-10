@@ -201,10 +201,16 @@ describe('external reverse estimation input boundary', () => {
   });
 
   it('shape-checks constraint primitives before estimation semantics run', () => {
-    const input = validEnvelope();
-    input.request.constraints = [
-      { type: 'minimum', value: 0, inclusive: 'yes' as unknown as boolean }
-    ];
+    const base = validEnvelope();
+    const input = {
+      ...base,
+      request: {
+        ...base.request,
+        constraints: [
+          { type: 'minimum', value: 0, inclusive: 'yes' }
+        ]
+      }
+    };
 
     const result = parseExternalDiscreteEstimationDocument(input);
     expect(result.ok).toBe(false);
