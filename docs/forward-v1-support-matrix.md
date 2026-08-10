@@ -2,132 +2,133 @@
 
 ## Purpose
 
-This document states what the current Kiyotan-style forward engine supports as a v1 candidate, what is only partially supported, and what remains outside the current contract.
+This document is the implementation-backed support boundary for the current Kiyotan forward-v1 candidate and the small Seikatan reverse layer that now sits beside it.
 
-It is based on the implementation currently exported from `packages/core/src/index.ts`. It is not a roadmap promise and it does not treat research ideas as implemented features.
+Status words mean:
 
-## Status vocabulary
-
-- **supported**: implemented in production code, exposed through the public core surface, and covered by the current CI/test suite.
-- **supported with boundary**: implemented, but with an explicit semantic or scope limitation that callers must preserve.
-- **partial**: useful implementation exists, but it is not a complete v1-wide output or modelling contract.
-- **unsupported**: not implemented as a production capability and must not be inferred from adjacent helpers.
+- **supported**: production implementation, public core export, and CI coverage exist;
+- **supported with boundary**: implemented with a semantic or scope limit callers must preserve;
+- **partial**: useful implementation exists but does not cover the full project surface;
+- **unsupported**: no production contract exists and adjacent helpers must not be reinterpreted as one.
 
 ## Support matrix
 
 | Capability | Status | Current contract | Important boundary |
 |---|---|---|---|
-| Model definition | supported | `DefinitionModel`, parameterized variants | Explicit finite state model; no arbitrary executable model code |
-| State / transition | supported | explicit state IDs and explicit `from -> to` transitions | solver target remains `transition.to`; generated targets are diagnostics-only |
-| Probability | supported with boundary | scalar, parameter reference, explicit formula tree after resolution | validated as finite probabilities and outgoing totals; no symbolic algebra engine |
-| Reward | supported | legacy scalar reward per transition | legacy reward is one scalar axis and remains separate from named axes |
-| Elapsed time | supported | milliseconds / seconds / minutes / hours, normalized to seconds | descriptive units only; no general dimensional algebra |
-| Expected reward | supported | iterative forward solver plus diagnostics | iterative convergence contract applies |
-| Reachability probability | supported | explicit target-state set | generic reachability, not a domain-specific “win” semantic |
-| Expected elapsed time | supported | downstream transition time expectation | divergent/non-convergent models remain visible through diagnostics |
-| Reward rate | supported with boundary | `E[reward] / E[elapsed time]` | explicitly not `E[reward / elapsed time]` |
-| Named reward axes | supported with boundary | independent named benefit/cost/neutral axes with unit metadata | axes are never implicitly netted or converted |
-| Parameter references | supported | declared numeric parameters with optional defaults | supplied values must be finite; parameter IDs are explicit |
-| Formula scalars | supported with boundary | add / subtract / multiply / divide expression trees | no string `eval`, no arbitrary code, no symbolic simplification |
-| External input | supported | versioned JSON/unknown document boundary for base and reward-axis models | successful `JSON.parse` is not treated as type validation |
-| Input failure stages | supported | JSON syntax, shape, parameter resolution, model validation | stages remain distinct and machine-readable where implemented |
-| Structured validation | supported | `code / severity / path / message` issues | additive API; legacy expand/evaluate exception contracts remain |
-| Solver diagnostics | supported | convergence, iterations, tolerance, last max delta, context | legacy solver defaults and exception contracts remain unchanged |
-| Contribution output | supported with boundary | transition contribution rows within a solved scenario | explains solved transition contributions; not automatically causal attribution |
-| Scenario comparison | supported with boundary | same model, baseline vs candidate parameters, `candidate - baseline` deltas | multi-parameter difference is descriptive, not a unique causal decomposition |
-| One-at-a-time sensitivity | supported with boundary | one selected parameter changed per candidate point | counterfactual is conditional on other supplied baseline parameters being fixed |
-| ObservationDataset | supported as input boundary | `state_count`, `transition_count`, generic scalar observations | observations are evidence, not parameters or solver results |
-| Observation parsing / validation | supported | JSON/unknown parsing plus model-linked state/transition checks | no likelihood or inference is implied by validation |
-| JSON output | supported with boundary | serialization helpers for current structured results | not a versioned universal wire schema for every historical helper |
-| TeX output | partial | expected-reward and contribution TeX helpers | not yet a complete TeX rendering of forward facade/scenario/sensitivity results |
-| Report model | partial | state graph, probability audit and generated-target boundary reports | not yet a unified report for the integrated forward-v1 result |
-| Transition effects | partial | `set_property` | richer mutations/actions are not part of v1 without a demonstrated generic use case |
-| State generation | partial / diagnostic | graph/state-generation helpers exist | generated transition targets are not used by the production solver path |
-| Automatic unit conversion | unsupported | — | named-axis units are metadata; unrelated units are not converted or checked dimensionally |
-| Multi-parameter causal attribution | unsupported | — | requires an explicit method such as ordered marginal or Shapley-style attribution |
-| Reverse estimation / Seikatan | unsupported at this v1 boundary | ObservationDataset exists as preparation | no production likelihood, candidate ranking, prior, posterior or estimate contract yet |
-| Bayesian prior / posterior | unsupported | — | must not be inferred from parameter sensitivity or scenario comparison |
+| Model definition | supported | `DefinitionModel`, parameterized variants | explicit finite state model; no arbitrary executable model code |
+| State / transition | supported | explicit state IDs and `from -> to` transitions | solver target remains `transition.to`; generated targets are diagnostics-only |
+| Probability | supported with boundary | scalar, parameter reference, explicit formula tree after resolution | finite probability validation; no symbolic algebra engine |
+| Reward | supported | legacy scalar reward per transition | legacy reward has no explicit unit metadata |
+| Elapsed time | supported | milliseconds / seconds / minutes / hours normalized to seconds | no general dimensional algebra |
+| Expected reward | supported | iterative forward solver plus diagnostics | convergence contract applies |
+| Reachability probability | supported | explicit target-state set | generic reachability, not a domain-specific win semantic |
+| Expected elapsed time | supported | downstream transition time expectation | divergent/non-convergent models remain explicit |
+| Reward rate | supported with boundary | `E[reward] / E[elapsed time]` | not `E[reward / elapsed time]` |
+| Named reward axes | supported with boundary | independent axes with id/unit/kind metadata | no implicit netting or conversion across axes |
+| Parameter references | supported | declared numeric parameters with optional defaults | supplied values must be finite |
+| Formula scalars | supported with boundary | add/subtract/multiply/divide trees | no string eval, arbitrary code, or symbolic simplification |
+| External forward input | supported | versioned JSON/unknown boundary for base and reward-axis models | JSON syntax success is not type validation |
+| Structured validation | supported | code/severity/path/message issues | additive; legacy expand/evaluate exceptions remain |
+| Solver diagnostics | supported | convergence, iterations, tolerance, last max delta, context | legacy defaults unchanged |
+| Contribution output | supported with boundary | transition contribution rows within one solved scenario | explanatory decomposition, not automatic causal attribution |
+| Scenario comparison | supported with boundary | same model, baseline vs candidate parameters, `candidate - baseline` | multi-parameter difference is descriptive |
+| One-at-a-time sensitivity | supported with boundary | one selected parameter changed per point | conditional on other supplied baseline parameters being fixed |
+| ObservationDataset | supported | `state_count`, `transition_count`, `scalar` records | observations remain evidence, not parameters |
+| Observation parsing/validation | supported | JSON/unknown parsing plus model-linked checks | validation alone implies no likelihood |
+| Transition-count reverse likelihood | supported with boundary | one unknown parameter, finite candidates, conditional transition log-likelihood | requires complete departure counts; no prior/posterior |
+| Scalar Gaussian reverse likelihood | supported with boundary | one unknown parameter, finite candidates, explicit scalar binding and Gaussian error model | only explicit unit-bearing predictors are accepted; conditional independence is declared |
+| Checked reverse external input | supported with boundary | current transition-count estimator has versioned reverse JSON envelope | scalar Gaussian external envelope is not yet part of this contract |
+| JSON output | supported with boundary | serialization helpers for structured results | not one universal historical wire schema |
+| TeX output | partial | expected-reward and contribution TeX helpers | not a complete forward/reverse renderer |
+| Report model | partial | state graph, probability audit and generated-target reports | not a unified v1 report |
+| Transition effects | partial | `set_property` | richer actions require a demonstrated generic use case |
+| State generation | partial / diagnostic | graph/state-generation helpers | generated targets do not drive production solvers |
+| Automatic unit conversion | unsupported | — | unit strings are compared where contracts require them; no conversion engine |
+| Multi-parameter estimation | unsupported | — | no Cartesian candidate grid or continuous optimizer yet |
+| Multi-parameter causal attribution | unsupported | — | requires an explicit ordered-marginal, Shapley-style, or other interaction method |
+| Bayesian prior/posterior | unsupported | — | likelihood ratios must not be called posterior probabilities |
+| Hidden-state inference | unsupported | — | no HMM/state posterior contract |
 | GUI / web API | unsupported | — | core package boundary only |
-| Domain-specific large models | unsupported as core commitments | — | digipachi / Juoh etc. remain representative later applications, not core semantics |
+| Domain-specific large models | unsupported as core commitments | — | digipachi/Juoh remain later representative applications |
 
-## Mathematical boundaries
+## Forward mathematical boundaries
 
-### Expectations
+The engine keeps expected reward, reachability probability, expected elapsed time, and reward rate distinct.
 
-The engine distinguishes:
-
-- expected reward,
-- reachability probability,
-- expected elapsed time,
-- ratio-of-expectations reward rate.
-
-The reward-rate contract is:
+Reward rate is:
 
 ```text
 E[reward] / E[elapsed time]
 ```
 
-and is not equivalent in general to:
+and not generally:
 
 ```text
 E[reward / elapsed time]
 ```
 
-### Iterative solvers
+A valid model may return a non-converged diagnostic result. The last approximation must not be silently presented as an exact converged value.
 
-Forward solvers expose convergence diagnostics. A structurally valid model may therefore produce a detailed result with:
+Scenario comparison reports `candidate - baseline`. A multi-parameter scenario difference is not automatically assigned to unique causes. One-at-a-time sensitivity changes one selected parameter while holding the caller's other supplied baseline parameters fixed; it is not a global sensitivity index.
 
-```text
-ok: true
-converged: false
-```
+## Reverse mathematical boundaries
 
-when the configured iteration limit is reached. Such a result contains the last approximation and must not be silently treated as an exact converged value.
+### Transition-count likelihood
 
-### Scenario differences
-
-Scenario comparison reports:
+The first reverse estimator uses:
 
 ```text
-candidate - baseline
+sum k * log(p)
 ```
 
-for supported outputs. When more than one parameter changes, that difference is not assigned to unique causes.
+for observed transition counts `k` and candidate transition probabilities `p`, omitting only the multinomial constant that is common to all candidates for the same observations.
 
-Contribution-row differences are explicitly descriptive differences between already-solved contribution structures.
+It reports a likelihood ratio relative to the best candidate and explicitly states that no prior or posterior was computed.
 
-### One-at-a-time sensitivity
+### Scalar Gaussian likelihood
 
-One-at-a-time sensitivity has a clearer counterfactual interpretation:
+The scalar estimator does not infer a model predictor from an observation metric string. Each `observationId` is explicitly bound to a supported predictor.
+
+Current predictor contracts are:
 
 ```text
-change selected parameter
-hold other supplied baseline parameters fixed
-re-evaluate the same model
+expected_elapsed_time_seconds
+reward_axis_expected_value(axisId)
 ```
 
-This is still local to the chosen baseline and candidate values. It is not a derivative, global sensitivity index, or multi-parameter causal decomposition unless a later API explicitly defines such a method.
+For observed value `y`, predicted value `mu`, and caller-supplied finite `sigma > 0`:
+
+```text
+log L = -log(sigma * sqrt(2*pi)) - 0.5 * ((y - mu) / sigma)^2
+```
+
+Multiple bound scalar observations are summed under the declared assumption:
+
+```text
+scalar_observations_conditionally_independent_given_candidate
+```
+
+Observation unit, predictor unit, and Gaussian error-model unit must match exactly. No default sigma, epsilon smoothing, unit conversion, prior, or posterior is introduced.
 
 ## Compatibility boundary
 
-Forward v1 is additive over the historical lower-level APIs.
-
-The following compatibility decisions are intentional:
+The current work remains additive:
 
 - existing `DefinitionModel` remains usable;
-- legacy scalar `reward` remains separate from named reward axes;
-- structured validation does not replace existing expand/evaluate exception behavior;
-- diagnostic solver variants do not silently change legacy solver defaults;
-- parameter/formula resolution happens before the ordinary DefinitionModel pipeline;
-- external input parsing rebuilds recognized structures from `unknown` instead of trusting casts;
+- legacy scalar reward remains separate from named reward axes;
+- structured validation does not replace historical exception behavior;
+- diagnostic solvers do not change legacy solver defaults;
+- parameter/formula resolution occurs before ordinary model evaluation;
+- external input rebuilds recognized data from `unknown` instead of trusting casts;
 - ObservationDataset is not converted into supplied parameters;
-- forward facade, scenario comparison and sensitivity compose existing layers instead of replacing them.
+- transition-count and scalar Gaussian likelihoods remain separately named statistical methods;
+- scenario comparison and sensitivity remain forward analytical layers rather than reverse inference aliases.
 
-A future breaking v2 should be a deliberate compatibility decision, not an incidental side effect of adding reverse estimation.
+A future breaking v2 must be deliberate rather than an incidental consequence of adding reverse features.
 
-## Public forward-v1 handoff path
+## Handoff map
 
-A contributor evaluating the current forward engine should begin with:
+Forward entry path:
 
 ```text
 README.md
@@ -135,50 +136,37 @@ docs/external-input.md
 docs/forward-evaluation.md
 docs/scenario-comparison.md
 docs/parameter-sensitivity.md
-docs/observations.md
 docs/forward-v1-support-matrix.md
 ```
 
-Representative production entry points are:
+Reverse entry path:
+
+```text
+docs/observations.md
+docs/discrete-estimation.md
+docs/reverse-external-input.md
+docs/scalar-gaussian-estimation.md
+```
+
+Representative public entry points include:
 
 ```text
 prepareExternalModelInput / prepareExternalModelJson
 evaluateExternalModelInput / evaluateExternalModelJson
 compareExternalModelScenarios
 analyzeParameterSensitivity
+estimateDiscreteParameterCandidates
+estimateExternalDiscreteParameterInput / estimateExternalDiscreteParameterJson
+estimateScalarGaussianParameterCandidates
 ```
 
-Lower-level APIs remain available when direct solver or model control is required.
+## Completion judgment
 
-## Forward v1 completion judgment
+The Kiyotan side is sufficiently integrated to remain a **forward v1 candidate**.
 
-For the current project scope, the forward path is sufficiently integrated to be treated as a **forward v1 candidate** rather than an unfinished collection of isolated helpers.
+The Seikatan side is still intentionally small, but it now has two explicit likelihood families over a finite single-parameter candidate set:
 
-The next work should not invent another forward feature merely because it is easy to add. It should either:
+1. transition-count conditional likelihood;
+2. scalar Gaussian likelihood with explicit predictor, unit, sigma, and independence assumptions.
 
-1. repair a concrete forward-v1 correctness gap discovered by a representative model, or
-2. establish the smallest mathematically explicit reverse-estimation contract on top of the already separate ObservationDataset boundary.
-
-## Reverse-estimation handoff boundary
-
-The smallest next Seikatan-style layer should keep these concepts separate:
-
-```text
-unknown parameter
-candidate value / candidate set
-observation dataset
-constraint
-likelihood or explicitly named score
-estimation result
-```
-
-A first reverse PoC may rank a finite candidate set using an explicitly documented likelihood computed from observation counts.
-
-It must not:
-
-- copy an observed frequency directly into a parameter and call that inference;
-- call a likelihood a posterior;
-- introduce a prior unless prior semantics are actually used;
-- claim continuous estimation from a finite candidate search;
-- consume generic scalar observations without a declared observation model;
-- hide impossible observations or zero-probability events behind arbitrary smoothing.
+The next reverse expansion should be selected by demonstrated analytical value. Multi-parameter candidate grids are a plausible next step because they preserve finite likelihood semantics, but candidate-space growth and identifiability must be explicit. Bayesian prior/posterior work remains lower priority until a concrete use case requires it.
