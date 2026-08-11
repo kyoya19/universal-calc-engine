@@ -56,6 +56,14 @@ jobs:
       - name: Generate package API manifest
         run: npm run package:api:generate
 
+      - name: Upload generated package API manifest
+        uses: actions/upload-artifact@v7
+        with:
+          name: generated-package-api-v1-node-${{ matrix.node }}
+          path: docs/package-api-v1.json
+          if-no-files-found: error
+          retention-days: 7
+
       - name: Verify committed package API manifest
         run: git diff --exit-code -- docs/package-api-v1.json
 
