@@ -1,0 +1,79 @@
+name: Distribution Qualification
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  qualify:
+    name: Node ${{ matrix.node }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 22.14.0
+          - 24.18.1
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Record exact toolchain
+        run: |
+          node --version
+          npm --version
+          npx tsc --version
+
+      - name: Audit production dependencies
+        run: npm run audit:production
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate package API manifest
+        run: npm run package:api:generate
+
+      - name: Verify committed package API manifest
+        run: git diff --exit-code -- docs/package-api-v1.json
+
+      - name: Verify npm package identity
+        run: npm run distribution:identity
+
+      - name: Run DIST-001 through DIST-009 and DIST-011
+        run: npm run package:check
+
+      - name: Record DIST-010 matrix evidence
+        run: |
+          mkdir -p qualification-output
+          node -e "const fs=require('fs');fs.writeFileSync('qualification-output/DIST-010-node-${{ matrix.node }}.json',JSON.stringify({schemaVersion:1,testId:'DIST-010',status:'PASS',requestedNode:'${{ matrix.node }}',executedNode:process.version,platform:process.platform,arch:process.arch},null,2)+'\n')"
+
+      - name: Upload distribution qualification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: distribution-qualification-node-${{ matrix.node }}
+          path: qualification-output/
+          if-no-files-found: error
+          retention-days: 30

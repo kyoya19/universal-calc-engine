@@ -12,44 +12,97 @@ finite-candidate / finite-assignment centered Seikatan v1
 
 として **functional-contract v1 boundary** に到達しています。
 
-Authoritative completion review:
+Current qualified analytical subject:
+
+```text
+subject-public-1df6235d58a5
+1df6235d58a5027fdae0390f7a73a09cfb4ee1ee
+```
+
+Authoritative completion / distribution review:
 
 - [Qualified scope status](docs/qualified-scope-status.md)
 - [Promoted Showcase guide](docs/promoted-showcases.md)
+- [External distribution contract v1](docs/distribution-contract-v1.md)
+- [Package API v1 manifest](docs/package-api-v1.json)
 - [v1 completion boundary](docs/v1-completion-boundary.md)
 - [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
+
+## Package distribution v1
+
+The first stable external package contract is:
+
+```text
+package: universal-calc-engine
+package 1.0.0
+registry: npm public registry
+module contract: ESM only
+runtime dependencies: zero
+```
+
+After publication:
+
+```bash
+npm install universal-calc-engine
+```
+
+Package-name ESM import:
+
+```ts
+import {
+  evaluateExternalModelJson,
+  estimateExternalReverseJson,
+  toForwardResultHandoff,
+  toReverseResultHandoff
+} from 'universal-calc-engine';
+```
+
+Distribution v1 qualifies Linux x64 consumer execution on these Node lines:
+
+```text
+>=22.14.0 <23
+>=24.0.0 <25
+```
+
+The package ships TypeScript declarations through `./dist/index.d.ts` and the root `exports` map. CommonJS `require` and undocumented deep imports are unsupported.
+
+The package is qualified from an independently installed packed artifact: clean consumer install, package-name runtime import, TypeScript declaration compile, representative already-qualified forward/reverse execution, root export/declaration consistency, normalized artifact reproducibility, and provenance linkage.
+
+The analytical functional-contract v1 and npm package 1.0.0 are historically separate concepts. Package 1.0.0 means the existing qualified analytical contract is connected to the first stable external distribution contract; it does not rewrite earlier project history or create new analytical capabilities.
+
+See [External distribution contract v1](docs/distribution-contract-v1.md) for the distribution boundary and Gate DIST-v1 rules.
 
 ## License / Commercial Use
 
 Copyright (c) 2026 Kyoya Sato. All rights reserved.
 
-This repository is source-available for review, study, and non-commercial evaluation only.
+This repository and public package are source-available for review, study, and non-commercial evaluation only.
 
 Commercial use is not permitted without a prior written paid license from the copyright holder.
 
 Commercial use includes, but is not limited to, use in paid products or services, SaaS, web services, applications, commercial tools, consulting, paid analysis reports, business deliverables, client work, redistribution, sublicensing, modification for commercial purposes, or incorporation into proprietary systems, commercial decision-support systems, or internal business systems.
 
-Making this repository public does not grant a commercial license.
+Public npm availability does not grant commercial-use permission.
 
 For details, see [Commercial License Notice](COMMERCIAL-LICENSE.md).
 
 ## ライセンス / 商用利用
 
-本リポジトリは、閲覧・研究・非商用評価のために公開する source-available project です。
+本リポジトリおよび公開packageは、閲覧・研究・非商用評価のために公開する source-available project です。
 
 権利者による事前の書面許諾および有料ライセンスなしに、商用利用することを禁止します。
 
-本リポジトリの公開は、商用ライセンスの付与を意味しません。
+Public registryからpackageを取得できることは、商用利用許諾を意味しません。
 
 商用利用を希望する場合は、利用前にリポジトリ所有者へ連絡してください。
 
 ## v1 の意味
 
-このrepositoryでいうv1は、**分析機能・数学/統計semantics・checked input・structured result・third-party handoff・互換境界が一続きに固定された状態**を指します。
+このrepositoryでいうanalytical functional-contract v1は、**分析機能・数学/統計semantics・checked input・structured result・third-party handoff・互換境界が一続きに固定された状態**を指します。
 
-これはnpm package release `1.0.0`を意味しません。
+npm package `1.0.0`は別のdistribution identityです。両者はlinkedされていますが、analytical subjectとdistribution subjectは別registry identityとして管理します。
 
-Root `package.json`は現在もprivate development package metadataです。Package publishing / exports map / semantic versioningは別のdistribution workとして扱います。
+Package-only metadata/build/release changesはanalytical subjectを更新しません。runtime/API/schema/solver/statistical semanticsが変化する場合だけ、change-control authorityに従ってtargeted analytical requalificationへ戻ります。
 
 ## Core pipeline
 
@@ -353,12 +406,16 @@ packages/core/src/index.ts
 
 Historical/direct APIs remain exported for compatibility. The preferred v1 third-party paths are the checked facade + versioned handoff paths described above.
 
+The package 1.0.0 root compatibility snapshot is machine-readable in `docs/package-api-v1.json`.
+
 ## Primary docs
 
-### v1 authority
+### v1 authority / distribution
 
 - [Qualified scope status](docs/qualified-scope-status.md)
 - [Promoted Showcase guide](docs/promoted-showcases.md)
+- [External distribution contract v1](docs/distribution-contract-v1.md)
+- [Package API v1 manifest](docs/package-api-v1.json)
 - [v1 completion boundary](docs/v1-completion-boundary.md)
 - [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [Continuation / post-v1 policy](docs/outcome-continuation-review.md)
@@ -403,47 +460,50 @@ packages/core/examples/reverse_result_handoff.ts
 
 特定ゲーム固有の値やルールはgeneric coreへ持ち込みません。
 
-## Explicit partial / post-v1 areas
+## Explicit analytical partial / post-v1 areas
 
-Current v1 does not claim completion for:
+Current qualified analytical scope does not claim completion for:
 
 ```text
-npm/package distribution 1.0
 complete TeX/report renderer
 transition effects beyond set_property
 exact/closed-form solver family
 automatic unit conversion/general dimensional algebra
+continuous inference
 continuous/adaptive optimization
 Bayesian prior/posterior
 MCMC / variational inference
 confidence / credible intervals
 hidden-state inference
-undefined Shapley / causal attribution
+causal inference / undefined Shapley attribution
 GUI / web product layer
 large digipachi / Juoh core models
 ```
 
 These are not silent omissions; they are explicit partial or post-v1 boundaries.
 
+Package publication does not change these boundaries.
+
 ## Verification
+
+Repository hygiene:
 
 ```bash
 npm run typecheck
 npm test
+npm run build
+npm run package:check
+npm run audit:production
 ```
 
-## Next work
+Distribution qualification additionally runs clean-consumer and supported-Node matrix verification under Gate DIST-v1.
+
+## Change control
 
 Do not add another statistical family by roadmap momentum alone.
 
-After v1, new work should start from a concrete requirement such as:
+Distribution work is controlled by `ORF-DISTRIBUTION-CONTRACT-v1`; analytical capability changes remain controlled by `ORF-CURRENT-SCOPE-COMPLETION-v1`.
 
-```text
-external distribution/package hardening
-a real generic/domain application exposing a missing core capability
-a separately justified analytical method with explicit semantics
-```
-
-If no such requirement exists, the current v1 safe point should be maintained rather than expanded mechanically.
+Package-only changes do not authorize Wave 4, Level 9, known-limitation resolution, Public analytical scope expansion, or a new Showcase candidate.
 
 本プロジェクトはツモロジ（仮）のマネタイズ企画そのものではなく、同企画にも利用され得る中核計算エンジンです。

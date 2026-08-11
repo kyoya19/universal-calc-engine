@@ -6,6 +6,9 @@ on:
     branches:
       - main
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -17,7 +20,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 20
+          node-version: 22.14.0
           package-manager-cache: false
 
       - name: Install locked dependencies
@@ -35,5 +38,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Package smoke test
+      - name: Generate package API manifest
+        run: npm run package:api:generate
+
+      - name: Verify committed package API manifest
+        run: git diff --exit-code -- docs/package-api-v1.json
+
+      - name: Package distribution smoke test
         run: npm run package:check

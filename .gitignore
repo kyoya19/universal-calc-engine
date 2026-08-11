@@ -5,6 +5,8 @@ node_modules/
 dist/
 build/
 coverage/
+qualification-output/
+*.tgz
 
 # Logs
 *.log
