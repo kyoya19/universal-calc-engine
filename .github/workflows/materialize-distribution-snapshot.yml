@@ -24,7 +24,7 @@ jobs:
           node-version: 24.18.1
           package-manager-cache: false
 
-      - name: Fix distribution harness source boundary and remove temporary manifest upload
+      - name: Fix distribution harness source boundary
         shell: python
         run: |
           from pathlib import Path
@@ -37,17 +37,6 @@ jobs:
               raise SystemExit('expected TypeScript denylist pattern not found')
           text = text.replace(old, new)
           harness.write_text(text)
-
-          workflow = Path('.github/workflows/distribution-qualification.yml')
-          lines = workflow.read_text().splitlines(keepends=True)
-          marker = '      - name: Upload generated package API manifest\n'
-          if marker in lines:
-              start = lines.index(marker)
-              end = start + 1
-              while end < len(lines) and not lines[end].startswith('      - name: '):
-                  end += 1
-              del lines[start:end]
-              workflow.write_text(''.join(lines))
 
       - name: Align package-lock metadata
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
@@ -64,12 +53,12 @@ jobs:
       - name: Commit materialized distribution files
         shell: bash
         run: |
-          if git diff --quiet -- docs/package-api-v1.json package-lock.json scripts/qualify-distribution.mjs .github/workflows/distribution-qualification.yml; then
+          if git diff --quiet -- docs/package-api-v1.json package-lock.json scripts/qualify-distribution.mjs; then
             echo "Distribution snapshot already materialized."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/package-api-v1.json package-lock.json scripts/qualify-distribution.mjs .github/workflows/distribution-qualification.yml
+          git add docs/package-api-v1.json package-lock.json scripts/qualify-distribution.mjs
           git commit -m "Materialize distribution qualification snapshot"
           git push origin HEAD:agent/distribution-hardening-v1
