@@ -14,6 +14,7 @@ finite-candidate / finite-assignment centered Seikatan v1
 
 Authoritative completion review:
 
+- [Qualified scope status](docs/qualified-scope-status.md)
 - [v1 completion boundary](docs/v1-completion-boundary.md)
 - [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 
@@ -355,6 +356,7 @@ Historical/direct APIs remain exported for compatibility. The preferred v1 third
 
 ### v1 authority
 
+- [Qualified scope status](docs/qualified-scope-status.md)
 - [v1 completion boundary](docs/v1-completion-boundary.md)
 - [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
 - [Continuation / post-v1 policy](docs/outcome-continuation-review.md)
