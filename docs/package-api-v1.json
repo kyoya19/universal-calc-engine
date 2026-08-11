@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "packageName": "universal-calc-engine",
+  "packageVersion": "1.0.0",
+  "distributionContract": "ORF-DISTRIBUTION-CONTRACT-v1",
+  "analyticalSubject": {
+    "subjectId": "subject-public-1df6235d58a5",
+    "commitSha": "1df6235d58a5027fdae0390f7a73a09cfb4ee1ee"
+  },
+  "qualifiedEntryPoints": {
+    "runtimeFunctions": [
+      "analyzeParameterSensitivity",
+      "compareExternalModelScenarios",
+      "estimateExternalReverseInput",
+      "estimateExternalReverseJson",
+      "evaluateAcyclicDirectDefinitionModel",
+      "evaluateDefinitionModel",
+      "evaluateDefinitionModelWithSolver",
+      "evaluateExternalModelInput",
+      "evaluateExternalModelJson",
+      "formatForwardResultHandoffPlainText",
+      "formatReverseResultHandoffPlainText",
+      "forwardResultHandoffToJson",
+      "reverseResultHandoffToJson",
+      "toForwardResultHandoff",
+      "toReverseResultHandoff"
+    ],
+    "typeExports": [
+      "DefinitionModel",
+      "ForwardResultHandoff",
+      "ForwardSolverRequest",
+      "ObservationDataset",
+      "ReverseResultHandoff"
+    ]
+  },
+  "rootCompatibilityExports": {
+    "runtime": [],
+    "declarations": []
+  }
+}
