@@ -300,7 +300,7 @@ async function normalizedManifest(packageJson, packed) {
     /^coverage\//,
     /^tsconfig/,
     /^vitest\.config/,
-    /\.ts$/,
+    /^(?!.*\.d\.ts$).*\.ts$/,
     /^\.npmrc$/,
     /\.map$/
   ];
