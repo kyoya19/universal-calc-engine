@@ -1,7 +1,7 @@
 {
   "name": "universal-calc-engine",
-  "version": "0.0.1",
-  "private": true,
+  "version": "1.0.0",
+  "private": false,
   "type": "module",
   "main": "./dist/index.js",
   "module": "./dist/index.js",
@@ -18,11 +18,33 @@
     "COMMERCIAL-LICENSE.md"
   ],
   "license": "SEE LICENSE IN COMMERCIAL-LICENSE.md",
+  "engines": {
+    "node": ">=22.14.0 <23 || >=24.0.0 <25"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/kyoya19/universal-calc-engine.git"
+  },
+  "bugs": {
+    "url": "https://github.com/kyoya19/universal-calc-engine/issues"
+  },
+  "homepage": "https://github.com/kyoya19/universal-calc-engine#readme",
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "orfs": {
+    "distributionContract": "ORF-DISTRIBUTION-CONTRACT-v1",
+    "analyticalSubject": "subject-public-1df6235d58a5",
+    "analyticalCommit": "1df6235d58a5027fdae0390f7a73a09cfb4ee1ee"
+  },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build-package.mjs",
-    "package:check": "node scripts/verify-package.mjs",
+    "package:api:generate": "node scripts/qualify-distribution.mjs --generate-api-manifest",
+    "package:check": "node scripts/qualify-distribution.mjs",
+    "distribution:identity": "node scripts/check-package-identity.mjs",
     "audit:production": "npm audit --omit=dev --audit-level=moderate"
   },
   "devDependencies": {
