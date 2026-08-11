@@ -24,7 +24,7 @@ jobs:
           node-version: 24.18.1
           package-manager-cache: false
 
-      - name: Fix distribution harness source-map boundary and remove temporary manifest upload
+      - name: Fix distribution harness source boundary and remove temporary manifest upload
         shell: python
         run: |
           from pathlib import Path
@@ -39,18 +39,15 @@ jobs:
           harness.write_text(text)
 
           workflow = Path('.github/workflows/distribution-qualification.yml')
-          text = workflow.read_text()
-          block = """      - name: Upload generated package API manifest
-          uses: actions/upload-artifact@v7
-          with:
-            name: generated-package-api-v1-node-${{ matrix.node }}
-            path: docs/package-api-v1.json
-            if-no-files-found: error
-            retention-days: 7
-
-"""
-          text = text.replace(block, '')
-          workflow.write_text(text)
+          lines = workflow.read_text().splitlines(keepends=True)
+          marker = '      - name: Upload generated package API manifest\n'
+          if marker in lines:
+              start = lines.index(marker)
+              end = start + 1
+              while end < len(lines) and not lines[end].startswith('      - name: '):
+                  end += 1
+              del lines[start:end]
+              workflow.write_text(''.join(lines))
 
       - name: Align package-lock metadata
         run: npm install --package-lock-only --ignore-scripts --no-audit --no-fund
