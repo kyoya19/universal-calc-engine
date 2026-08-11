@@ -414,7 +414,10 @@ export function solveExpectedRewardAxesWithDiagnostics(
       model,
       resolved,
       fixedPointRun,
-      (transition) => transition.rewardsByAxis?.[axis.id] ?? 0
+      (transition) =>
+        (transition as RewardAxesEvaluatedModel['transitions'][number]).rewardsByAxis?.[
+          axis.id
+        ] ?? 0
     );
 
     expectedRewardByAxisByState.set(axis.id, expectedRewardByState);
