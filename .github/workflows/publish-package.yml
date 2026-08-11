@@ -1,0 +1,76 @@
+name: Publish Package
+
+on:
+  push:
+    tags:
+      - 'package-v*'
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish-candidate:
+    runs-on: ubuntu-latest
+    environment: npm-release
+
+    steps:
+      - name: Checkout exact release tag
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24.18.1
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install OIDC-capable npm CLI
+        run: npm install --global npm@12.0.2
+
+      - name: Verify release tag matches package version
+        shell: bash
+        run: |
+          VERSION="$(node -p "require('./package.json').version")"
+          test "${GITHUB_REF_NAME}" = "package-v${VERSION}"
+          test "${VERSION}" = "1.0.0"
+
+      - name: Install locked dependencies
+        run: npm ci --no-audit --no-fund
+
+      - name: Test
+        run: npm test
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Build
+        run: npm run build
+
+      - name: Generate and verify package API manifest
+        run: |
+          npm run package:api:generate
+          git diff --exit-code -- docs/package-api-v1.json
+
+      - name: Prepublication distribution qualification
+        run: npm run package:check
+
+      - name: Audit production dependencies
+        run: npm run audit:production
+
+      - name: Publish exact stable version under candidate dist-tag using npm Trusted Publishing
+        run: npm publish --tag candidate --provenance
+
+      - name: Verify candidate from registry (DIST-012)
+        env:
+          ORF_PREPUBLICATION_MANIFEST: qualification-output/normalized-manifest-node-24.18.1.json
+        run: node scripts/verify-registry-release.mjs
+
+      - name: Verify candidate dist-tag
+        run: |
+          test "$(npm view universal-calc-engine@candidate version)" = "1.0.0"
+
+      - name: Record latest-promotion boundary
+        run: |
+          echo "DIST-012 passed for candidate."
+          echo "Do not promote latest until the separately authenticated dist-tag action authorized after DIST-012 PASS is completed."
