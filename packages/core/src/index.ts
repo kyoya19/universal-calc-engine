@@ -12,6 +12,7 @@ export * from './observations';
 export * from './forward_evaluation';
 export * from './forward_result_handoff';
 export * from './state_distribution';
+export * from './first_passage';
 export * from './model_family_identifiability';
 export * from './hidden_state_observation';
 export * from './finite_decision_process';
