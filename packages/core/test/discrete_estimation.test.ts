@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { estimateDiscreteParameterCandidates } from '../src/discrete_estimation';
 import { ExternalModelDocument } from '../src/external_input';
 import { ObservationDataset } from '../src/observations';
+import { analyzeParameterSensitivity } from '../src/parameter_sensitivity';
 
 function baseDocument(): ExternalModelDocument {
   return {
@@ -180,5 +181,91 @@ describe('discrete parameter estimation', () => {
     );
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.estimatedValue).toBe(0.7);
+  });
+
+  it('feeds the Seikatan estimate into Kiyotan contribution and OAT sensitivity', () => {
+    const document: ExternalModelDocument = {
+      schemaVersion: 1,
+      modelKind: 'base',
+      model: {
+        startState: 'start',
+        states: [
+          { id: 'start' },
+          { id: 'success', terminal: true },
+          { id: 'failure', terminal: true }
+        ],
+        parameters: [{ id: 'successProbability' }],
+        transitions: [
+          {
+            from: 'start',
+            to: 'success',
+            probability: { type: 'parameter_ref', parameter: 'successProbability' },
+            reward: 10
+          },
+          {
+            from: 'start',
+            to: 'failure',
+            probability: {
+              type: 'formula',
+              operator: 'subtract',
+              left: 1,
+              right: { type: 'parameter_ref', parameter: 'successProbability' }
+            },
+            reward: 0
+          }
+        ]
+      }
+    };
+
+    const estimate = estimateDiscreteParameterCandidates(
+      document,
+      observations(60, 40),
+      { parameterId: 'successProbability', candidates: [0.4, 0.6, 0.8] }
+    );
+    expect(estimate.ok).toBe(true);
+    if (!estimate.ok) return;
+
+    const inferredProbability = estimate.estimatedValue;
+    expect(inferredProbability).toBe(0.6);
+    if (inferredProbability === null) return;
+
+    const sensitivity = analyzeParameterSensitivity(
+      document,
+      { successProbability: inferredProbability },
+      { parameterId: 'successProbability', candidateValues: [0.5, 0.7] },
+      { reachabilityTargets: ['success'] }
+    );
+    expect(sensitivity.ok).toBe(true);
+    if (!sensitivity.ok || sensitivity.modelKind !== 'base') return;
+
+    expect(sensitivity.baselineValue).toBe(inferredProbability);
+    expect(sensitivity.points).toHaveLength(2);
+
+    const lower = sensitivity.points[0]?.comparison;
+    const upper = sensitivity.points[1]?.comparison;
+    expect(lower?.baseline.expectedReward.expectedReward).toBeCloseTo(6);
+    expect(lower?.baseline.reachability?.probabilityFromStart).toBeCloseTo(0.6);
+
+    const baselineSuccessContribution =
+      lower?.baseline.contribution.transitionContributionsByState.start?.find(
+        (row) => row.to === 'success'
+      )?.contribution;
+    expect(baselineSuccessContribution).toBeCloseTo(6);
+
+    expect(lower?.delta.expectedReward).toBeCloseTo(-1);
+    expect(lower?.delta.reachabilityProbabilityFromStart).toBeCloseTo(-0.1);
+    expect(
+      lower?.contributionDelta.transitionContributionsByState.start?.find(
+        (row) => row.to === 'success'
+      )?.delta
+    ).toBeCloseTo(-1);
+
+    expect(upper?.delta.expectedReward).toBeCloseTo(1);
+    expect(upper?.delta.reachabilityProbabilityFromStart).toBeCloseTo(0.1);
+    expect(
+      upper?.contributionDelta.transitionContributionsByState.start?.find(
+        (row) => row.to === 'success'
+      )?.delta
+    ).toBeCloseTo(1);
   });
 });
