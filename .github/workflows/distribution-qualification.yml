@@ -60,6 +60,8 @@ jobs:
         run: git diff --exit-code -- docs/package-api-v1.json
 
       - name: Verify npm package identity
+        env:
+          ORF_NPM_IDENTITY_LIFECYCLE: published_verified
         run: npm run distribution:identity
 
       - name: Run DIST-001 through DIST-009 and DIST-011
