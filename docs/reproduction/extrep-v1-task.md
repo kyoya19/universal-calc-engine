@@ -37,6 +37,8 @@ Across the three cases:
 
 ## ERQ-101 — Checked Forward / Handoff Consumer Reproduction
 
+Fixture ID: `FIX-EXTREP-FORWARD-BLIND-v1`
+
 Fixture: `docs/reproduction/extrep-v1/fixtures/erq101-forward.json`
 
 The original control numbers used during distribution qualification are already visible in Public repository history. To avoid a false blindness claim, this task uses an equivalent control fixture authorized by the reproduction fixture-derivation rule. This does not change package bytes, analytical subject, distribution subject, or analytical scope.
@@ -63,6 +65,8 @@ Independently derive the expected values using exact arithmetic. Compare direct 
 
 ## ERQ-102 — CMP605 Cyclic Multi-Parameter Round Trip
 
+Fixture ID: `FIX-EXTREP-CMP605-v1`
+
 Reverse fixture: `docs/reproduction/extrep-v1/fixtures/erq102-reverse.json`
 
 Use the checked Public reverse entry point documented for external JSON, with the fixture as the complete reverse request. Record all scored assignments, the best-assignment set, and any unique estimated assignment returned by the Public contract.
@@ -83,7 +87,13 @@ Independently solve the two-state absorbing linear system for reward and time. U
 
 ## ERQ-103 — Maintenance Decision and Ambiguity Reproduction
 
+Principal fixture ID: `FIX-EXTREP-MAINTENANCE-v1`
+
+Unique-evidence variant ID: `VAR-EXTREP-MAINT-UNIQUE-v1`
+
 Unique-evidence reverse fixture: `docs/reproduction/extrep-v1/fixtures/erq103-unique-reverse.json`
+
+Evidence-limited variant ID: `VAR-EXTREP-MAINT-AMBIG-v1`
 
 Evidence-limited reverse fixture: `docs/reproduction/extrep-v1/fixtures/erq103-ambiguous-reverse.json`
 
