@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { estimateDiscreteParameterCandidates } from '../src/discrete_estimation';
 import { ExternalModelDocument } from '../src/external_input';
+import {
+  FiniteDecisionProcess,
+  optimizeFiniteDecisionExpectedReward
+} from '../src/finite_decision_process';
 import { ObservationDataset } from '../src/observations';
 import { analyzeParameterSensitivity } from '../src/parameter_sensitivity';
 
@@ -267,5 +271,48 @@ describe('discrete parameter estimation', () => {
         (row) => row.to === 'success'
       )?.delta
     ).toBeCloseTo(1);
+  });
+
+  it('feeds the Seikatan estimate into acyclic Kiyotan policy ranking', () => {
+    const estimate = estimateDiscreteParameterCandidates(
+      baseDocument(),
+      observations(60, 40),
+      { parameterId: 'successProbability', candidates: [0.4, 0.6, 0.8] }
+    );
+    expect(estimate.ok).toBe(true);
+    if (!estimate.ok || estimate.estimatedValue === null) return;
+
+    const inferredProbability = estimate.estimatedValue;
+    const process: FiniteDecisionProcess<string> = {
+      startState: 'start',
+      stateKey: (state) => state,
+      isTerminal: (state) => state === 'done',
+      actions: () => ['risky', 'safe'],
+      outcomes: (_state, actionId) =>
+        actionId === 'risky'
+          ? [
+              {
+                probability: inferredProbability,
+                nextState: 'done',
+                reward: 10
+              },
+              {
+                probability: 1 - inferredProbability,
+                nextState: 'done',
+                reward: 0
+              }
+            ]
+          : [{ probability: 1, nextState: 'done', reward: 5.5 }]
+    };
+
+    const decision = optimizeFiniteDecisionExpectedReward(process);
+    expect(decision.ok).toBe(true);
+    if (!decision.ok) return;
+
+    expect(inferredProbability).toBe(0.6);
+    expect(decision.actionValuesByState.start?.risky).toBeCloseTo(6);
+    expect(decision.actionValuesByState.start?.safe).toBeCloseTo(5.5);
+    expect(decision.bestActionIdsByState.start).toEqual(['risky']);
+    expect(decision.optimalExpectedReward).toBeCloseTo(6);
   });
 });
