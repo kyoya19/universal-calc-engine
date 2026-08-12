@@ -7,6 +7,7 @@ import {
 } from '../src/finite_decision_process';
 import { ObservationDataset } from '../src/observations';
 import { analyzeParameterSensitivity } from '../src/parameter_sensitivity';
+import { compareExternalModelScenarios } from '../src/scenario_comparison';
 
 function baseDocument(): ExternalModelDocument {
   return {
@@ -314,5 +315,138 @@ describe('discrete parameter estimation', () => {
     expect(decision.actionValuesByState.start?.safe).toBeCloseTo(5.5);
     expect(decision.bestActionIdsByState.start).toEqual(['risky']);
     expect(decision.optimalExpectedReward).toBeCloseTo(6);
+  });
+
+  it('feeds the Seikatan estimate into Kiyotan scenario reward, time, rate, and reachability while isolating reward/time from inverse ranking', () => {
+    const document: ExternalModelDocument = {
+      schemaVersion: 1,
+      modelKind: 'base',
+      parameterValues: {
+        successReward: 100,
+        failureReward: -20,
+        elapsedSeconds: 2
+      },
+      model: {
+        startState: 'start',
+        states: [
+          { id: 'start' },
+          { id: 'success', terminal: true },
+          { id: 'failure', terminal: true }
+        ],
+        parameters: [
+          { id: 'successProbability' },
+          { id: 'successReward', unit: 'points' },
+          { id: 'failureReward', unit: 'points' },
+          { id: 'elapsedSeconds', unit: 'seconds' }
+        ],
+        transitions: [
+          {
+            from: 'start',
+            to: 'success',
+            probability: { type: 'parameter_ref', parameter: 'successProbability' },
+            reward: { type: 'parameter_ref', parameter: 'successReward' },
+            elapsedTime: {
+              value: { type: 'parameter_ref', parameter: 'elapsedSeconds' },
+              unit: 'seconds'
+            }
+          },
+          {
+            from: 'start',
+            to: 'failure',
+            probability: {
+              type: 'formula',
+              operator: 'subtract',
+              left: 1,
+              right: { type: 'parameter_ref', parameter: 'successProbability' }
+            },
+            reward: { type: 'parameter_ref', parameter: 'failureReward' },
+            elapsedTime: {
+              value: { type: 'parameter_ref', parameter: 'elapsedSeconds' },
+              unit: 'seconds'
+            }
+          }
+        ]
+      }
+    };
+
+    const request = {
+      parameterId: 'successProbability',
+      candidates: [0.4, 0.6, 0.8]
+    };
+    const baselineEstimate = estimateDiscreteParameterCandidates(
+      document,
+      observations(60, 40),
+      request
+    );
+    const rewardTimeOnlyChangedEstimate = estimateDiscreteParameterCandidates(
+      {
+        ...document,
+        parameterValues: {
+          successReward: 140,
+          failureReward: -30,
+          elapsedSeconds: 3
+        }
+      },
+      observations(60, 40),
+      request
+    );
+
+    expect(baselineEstimate.ok).toBe(true);
+    expect(rewardTimeOnlyChangedEstimate.ok).toBe(true);
+    if (!baselineEstimate.ok || !rewardTimeOnlyChangedEstimate.ok) return;
+
+    expect(baselineEstimate.estimatedValue).toBe(0.6);
+    expect(rewardTimeOnlyChangedEstimate.estimatedValue).toBe(0.6);
+    expect(
+      rewardTimeOnlyChangedEstimate.candidates.map((candidate) => candidate.logLikelihoodScore)
+    ).toEqual(
+      baselineEstimate.candidates.map((candidate) => candidate.logLikelihoodScore)
+    );
+
+    const inferredProbability = baselineEstimate.estimatedValue;
+    if (inferredProbability === null) return;
+
+    const comparison = compareExternalModelScenarios(
+      document,
+      {
+        baseline: {
+          successProbability: inferredProbability,
+          successReward: 100,
+          failureReward: -20,
+          elapsedSeconds: 2
+        },
+        candidate: {
+          successProbability: inferredProbability,
+          successReward: 140,
+          failureReward: -30,
+          elapsedSeconds: 3
+        }
+      },
+      { reachabilityTargets: ['success'] }
+    );
+
+    expect(comparison.ok).toBe(true);
+    if (!comparison.ok || comparison.modelKind !== 'base') return;
+
+    expect(comparison.comparisonKind).toBe('paired_scenario_difference');
+    expect(comparison.parameters.valuesByParameter.successProbability?.baseline).toBe(
+      inferredProbability
+    );
+    expect(comparison.parameters.valuesByParameter.successProbability?.candidate).toBe(
+      inferredProbability
+    );
+    expect(comparison.parameters.valuesByParameter.successProbability?.changed).toBe(false);
+    expect(comparison.baseline.expectedReward.expectedReward).toBeCloseTo(52);
+    expect(comparison.baseline.expectedElapsedTime.expectedElapsedTimeSeconds).toBeCloseTo(2);
+    expect(comparison.baseline.rewardRate.rewardPerSecond).toBeCloseTo(26);
+    expect(comparison.baseline.reachability?.probabilityFromStart).toBeCloseTo(0.6);
+    expect(comparison.candidate.expectedReward.expectedReward).toBeCloseTo(72);
+    expect(comparison.candidate.expectedElapsedTime.expectedElapsedTimeSeconds).toBeCloseTo(3);
+    expect(comparison.candidate.rewardRate.rewardPerSecond).toBeCloseTo(24);
+    expect(comparison.candidate.reachability?.probabilityFromStart).toBeCloseTo(0.6);
+    expect(comparison.delta.expectedReward).toBeCloseTo(20);
+    expect(comparison.delta.expectedElapsedTimeSeconds).toBeCloseTo(1);
+    expect(comparison.delta.rewardPerSecond).toBeCloseTo(-2);
+    expect(comparison.delta.reachabilityProbabilityFromStart).toBeCloseTo(0);
   });
 });
