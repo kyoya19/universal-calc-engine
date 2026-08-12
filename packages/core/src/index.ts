@@ -11,6 +11,7 @@ export * from './external_input';
 export * from './observations';
 export * from './forward_evaluation';
 export * from './forward_result_handoff';
+export * from './state_distribution';
 export * from './finite_decision_process';
 export * from './finite_decision_materialization';
 export * from './scenario_comparison';
