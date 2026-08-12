@@ -1,0 +1,28 @@
+{
+  "schemaVersion": 1,
+  "modelKind": "base",
+  "model": {
+    "startState": "start",
+    "states": [
+      {"id": "start"},
+      {"id": "success", "terminal": true},
+      {"id": "failure", "terminal": true}
+    ],
+    "transitions": [
+      {
+        "from": "start",
+        "to": "success",
+        "probability": 0.7,
+        "reward": 180,
+        "elapsedTime": {"value": 1.25, "unit": "minutes"}
+      },
+      {
+        "from": "start",
+        "to": "failure",
+        "probability": 0.3,
+        "reward": 0,
+        "elapsedTime": {"value": 1.25, "unit": "minutes"}
+      }
+    ]
+  }
+}

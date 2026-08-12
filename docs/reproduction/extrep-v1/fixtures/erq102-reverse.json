@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "estimationKind": "multi_parameter_transition_grid",
+  "modelDocument": {
+    "schemaVersion": 1,
+    "modelKind": "base",
+    "model": {
+      "startState": "G",
+      "states": [
+        {"id": "G"},
+        {"id": "W"},
+        {"id": "T", "terminal": true}
+      ],
+      "parameters": [
+        {"id": "p"},
+        {"id": "q"}
+      ],
+      "transitions": [
+        {"from": "G", "to": "G", "probability": {"type": "formula", "operator": "subtract", "left": 0.9, "right": {"type": "parameter_ref", "parameter": "p"}}, "reward": 5, "elapsedTime": {"value": 1, "unit": "seconds"}},
+        {"from": "G", "to": "W", "probability": {"type": "parameter_ref", "parameter": "p"}, "reward": 5, "elapsedTime": {"value": 1, "unit": "seconds"}},
+        {"from": "G", "to": "T", "probability": 0.1, "reward": 5, "elapsedTime": {"value": 1, "unit": "seconds"}},
+        {"from": "W", "to": "G", "probability": {"type": "parameter_ref", "parameter": "q"}, "reward": 2, "elapsedTime": {"value": 1, "unit": "seconds"}},
+        {"from": "W", "to": "W", "probability": {"type": "formula", "operator": "subtract", "left": 0.8, "right": {"type": "parameter_ref", "parameter": "q"}}, "reward": 2, "elapsedTime": {"value": 1, "unit": "seconds"}},
+        {"from": "W", "to": "T", "probability": 0.2, "reward": 2, "elapsedTime": {"value": 1, "unit": "seconds"}}
+      ]
+    }
+  },
+  "observationDataset": {
+    "schemaVersion": 1,
+    "observations": [
+      {"id": "G-departures", "type": "state_count", "state": "G", "count": 100},
+      {"id": "G-G", "type": "transition_count", "from": "G", "to": "G", "count": 60},
+      {"id": "G-W", "type": "transition_count", "from": "G", "to": "W", "count": 30},
+      {"id": "G-T", "type": "transition_count", "from": "G", "to": "T", "count": 10},
+      {"id": "W-departures", "type": "state_count", "state": "W", "count": 100},
+      {"id": "W-G", "type": "transition_count", "from": "W", "to": "G", "count": 50},
+      {"id": "W-W", "type": "transition_count", "from": "W", "to": "W", "count": 30},
+      {"id": "W-T", "type": "transition_count", "from": "W", "to": "T", "count": 20}
+    ]
+  },
+  "request": {
+    "parameters": [
+      {"parameterId": "p", "candidates": [0.2, 0.3, 0.4]},
+      {"parameterId": "q", "candidates": [0.4, 0.5, 0.6]}
+    ],
+    "maxCombinations": 9
+  }
+}

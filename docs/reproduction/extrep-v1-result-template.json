@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "specificationId": "ORF-EXTERNAL-REPRODUCTION-QUALIFICATION-v1",
+  "submissionState": "DRAFT",
+  "reproducer": {
+    "reproducerId": null,
+    "independenceDeclaration": null,
+    "priorProjectInvolvement": null,
+    "privateRepositoryAccessBeforeSubmission": null,
+    "aiAssistance": []
+  },
+  "package": {
+    "requested": "universal-calc-engine@1.0.0",
+    "resolvedVersion": null,
+    "integrity": null
+  },
+  "environment": {
+    "os": null,
+    "node": null,
+    "npm": null,
+    "typescript": null,
+    "consumerProjectDescription": null
+  },
+  "consumptionModes": {
+    "esmJavaScript": {"status": null, "cases": []},
+    "typeScript": {"status": null, "cases": [], "strict": true, "moduleResolution": "NodeNext-compatible"}
+  },
+  "cases": {
+    "ERQ-101": {"status": null, "consumerSourceFiles": [], "commands": [], "rawOutput": null, "independentOracle": null, "comparison": null},
+    "ERQ-102": {"status": null, "consumerSourceFiles": [], "commands": [], "rawOutput": null, "independentOracle": null, "comparison": null},
+    "ERQ-103": {
+      "variantA": {"status": null, "consumerSourceFiles": [], "commands": [], "rawOutput": null, "independentOracle": null, "comparison": null},
+      "variantB": {"status": null, "consumerSourceFiles": [], "commands": [], "rawOutput": null, "independentOracle": null, "comparison": null}
+    }
+  },
+  "documentationSemantics": {
+    "SEM-EXT-01": {"answer": null, "status": null},
+    "SEM-EXT-02": {"answer": null, "status": null},
+    "SEM-EXT-03": {"answer": null, "status": null},
+    "SEM-EXT-04": {"answer": null, "status": null},
+    "SEM-EXT-05": {"answer": null, "status": null}
+  },
+  "adoption": {
+    "ADOPT-001": {"status": null, "evidence": null},
+    "ADOPT-002": {"status": null, "evidence": null},
+    "ADOPT-003": {"status": null, "evidence": null},
+    "ADOPT-004": {"status": null, "evidence": null},
+    "ADOPT-005": {"status": null, "evidence": null},
+    "ADOPT-006": {"status": null, "evidence": null},
+    "ADOPT-007": {"status": null, "evidence": null},
+    "ADOPT-008": {"status": null, "evidence": null},
+    "ADOPT-009": {"status": null, "evidence": null},
+    "ADOPT-010": {"status": null, "evidence": null}
+  },
+  "clarificationLog": [],
+  "suspectedDefects": [],
+  "completionDeclaration": null,
+  "completedAt": null
+}

@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "estimationKind": "multi_parameter_transition_grid",
+  "modelDocument": {
+    "schemaVersion": 1,
+    "modelKind": "reward_axes",
+    "model": {
+      "startState": "G",
+      "states": [
+        {"id": "G"},
+        {"id": "W"},
+        {"id": "T", "terminal": true}
+      ],
+      "parameters": [
+        {"id": "p"},
+        {"id": "q"},
+        {"id": "m"}
+      ],
+      "rewardAxes": [
+        {"id": "production_value", "unit": "utility_point", "kind": "benefit"},
+        {"id": "maintenance_cost", "unit": "utility_point", "kind": "cost"}
+      ],
+      "transitions": [
+        {
+          "from": "G", "to": "G",
+          "probability": {"type":"formula","operator":"subtract","left":0.9,"right":{"type":"formula","operator":"multiply","left":{"type":"parameter_ref","parameter":"p"},"right":{"type":"formula","operator":"subtract","left":1,"right":{"type":"formula","operator":"divide","left":{"type":"parameter_ref","parameter":"m"},"right":2}}}},
+          "reward": {"type":"formula","operator":"subtract","left":10,"right":{"type":"formula","operator":"multiply","left":2,"right":{"type":"parameter_ref","parameter":"m"}}},
+          "elapsedTime": {"value":1,"unit":"hours"},
+          "rewardsByAxis": {"production_value":10,"maintenance_cost":{"type":"formula","operator":"multiply","left":2,"right":{"type":"parameter_ref","parameter":"m"}}}
+        },
+        {
+          "from": "G", "to": "W",
+          "probability": {"type":"formula","operator":"multiply","left":{"type":"parameter_ref","parameter":"p"},"right":{"type":"formula","operator":"subtract","left":1,"right":{"type":"formula","operator":"divide","left":{"type":"parameter_ref","parameter":"m"},"right":2}}},
+          "reward": {"type":"formula","operator":"subtract","left":10,"right":{"type":"formula","operator":"multiply","left":2,"right":{"type":"parameter_ref","parameter":"m"}}},
+          "elapsedTime": {"value":1,"unit":"hours"},
+          "rewardsByAxis": {"production_value":10,"maintenance_cost":{"type":"formula","operator":"multiply","left":2,"right":{"type":"parameter_ref","parameter":"m"}}}
+        },
+        {
+          "from": "G", "to": "T", "probability": 0.1,
+          "reward": {"type":"formula","operator":"subtract","left":10,"right":{"type":"formula","operator":"multiply","left":2,"right":{"type":"parameter_ref","parameter":"m"}}},
+          "elapsedTime": {"value":1,"unit":"hours"},
+          "rewardsByAxis": {"production_value":10,"maintenance_cost":{"type":"formula","operator":"multiply","left":2,"right":{"type":"parameter_ref","parameter":"m"}}}
+        },
+        {
+          "from": "W", "to": "G",
+          "probability": {"type":"formula","operator":"add","left":{"type":"parameter_ref","parameter":"q"},"right":{"type":"formula","operator":"divide","left":{"type":"parameter_ref","parameter":"m"},"right":5}},
+          "reward": {"type":"formula","operator":"subtract","left":4,"right":{"type":"formula","operator":"multiply","left":3,"right":{"type":"parameter_ref","parameter":"m"}}},
+          "elapsedTime": {"value":1,"unit":"hours"},
+          "rewardsByAxis": {"production_value":4,"maintenance_cost":{"type":"formula","operator":"multiply","left":3,"right":{"type":"parameter_ref","parameter":"m"}}}
+        },
+        {
+          "from": "W", "to": "W",
+          "probability": {"type":"formula","operator":"subtract","left":{"type":"formula","operator":"subtract","left":0.8,"right":{"type":"parameter_ref","parameter":"q"}},"right":{"type":"formula","operator":"divide","left":{"type":"parameter_ref","parameter":"m"},"right":5}},
+          "reward": {"type":"formula","operator":"subtract","left":4,"right":{"type":"formula","operator":"multiply","left":3,"right":{"type":"parameter_ref","parameter":"m"}}},
+          "elapsedTime": {"value":1,"unit":"hours"},
+          "rewardsByAxis": {"production_value":4,"maintenance_cost":{"type":"formula","operator":"multiply","left":3,"right":{"type":"parameter_ref","parameter":"m"}}}
+        },
+        {
+          "from": "W", "to": "T", "probability": 0.2,
+          "reward": {"type":"formula","operator":"subtract","left":4,"right":{"type":"formula","operator":"multiply","left":3,"right":{"type":"parameter_ref","parameter":"m"}}},
+          "elapsedTime": {"value":1,"unit":"hours"},
+          "rewardsByAxis": {"production_value":4,"maintenance_cost":{"type":"formula","operator":"multiply","left":3,"right":{"type":"parameter_ref","parameter":"m"}}}
+        }
+      ]
+    },
+    "parameterValues": {"m": 0}
+  },
+  "observationDataset": {
+    "schemaVersion": 1,
+    "observations": [
+      {"id":"G-departures","type":"state_count","state":"G","count":100},
+      {"id":"G-G","type":"transition_count","from":"G","to":"G","count":60},
+      {"id":"G-W","type":"transition_count","from":"G","to":"W","count":30},
+      {"id":"G-T","type":"transition_count","from":"G","to":"T","count":10},
+      {"id":"W-departures","type":"state_count","state":"W","count":100},
+      {"id":"W-G","type":"transition_count","from":"W","to":"G","count":40},
+      {"id":"W-W","type":"transition_count","from":"W","to":"W","count":40},
+      {"id":"W-T","type":"transition_count","from":"W","to":"T","count":20}
+    ]
+  },
+  "request": {
+    "parameters": [
+      {"parameterId":"p","candidates":[0.2,0.3,0.4]},
+      {"parameterId":"q","candidates":[0.3,0.4,0.5]}
+    ],
+    "maxCombinations": 9
+  }
+}
