@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "commitmentId": "COMMIT-EXTREP-v1",
+  "specificationId": "ORF-EXTERNAL-REPRODUCTION-QUALIFICATION-v1",
+  "expectedPacketId": "EXPECTED-EXTREP-v1",
+  "algorithm": "SHA-256",
+  "commitmentHash": "e8682a0df64081027dbb1288bd06645b5726af5096b75f2d84680dee930560e6",
+  "package": {
+    "name": "universal-calc-engine",
+    "version": "1.0.0"
+  },
+  "distributionSubjectId": "distribution-subject-public-bddff4fcc4f7",
+  "analyticalSubjectId": "subject-public-1df6235d58a5",
+  "taskSpecCommit": "d26f89639235b83cbe248c23ff7d87f82544c1f5",
+  "taskPath": "docs/reproduction/extrep-v1-task.md",
+  "fixtureIds": [
+    "FIX-EXTREP-FORWARD-BLIND-v1",
+    "FIX-EXTREP-CMP605-v1",
+    "FIX-EXTREP-MAINTENANCE-v1",
+    "VAR-EXTREP-MAINT-UNIQUE-v1",
+    "VAR-EXTREP-MAINT-AMBIG-v1"
+  ],
+  "commitmentTimestamp": "2026-08-12T22:25:14+09:00",
+  "protocol": "SEMI_BLIND_WITH_COMMITMENT",
+  "expectedOutputsPublished": false,
+  "noncePublished": false,
+  "principalIndependentReproducerAcceptedAtCommitment": false,
+  "blindnessNote": "The original ERQ-101 distribution-control numbers were already Public; blind scoring uses FIX-EXTREP-FORWARD-BLIND-v1 under the authorized no-answer-leak fixture-derivation rule."
+}
