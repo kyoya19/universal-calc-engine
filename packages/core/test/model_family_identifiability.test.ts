@@ -3,6 +3,7 @@ import { ExternalModelDocument } from '../src/external_input';
 import {
   FiniteModelFamilyIdentifiabilityResult,
   FiniteModelFamilyIdentifiabilitySuccess,
+  ModelFamilyObservationProbe,
   classifyFiniteModelFamilyIdentifiability,
   finiteModelFamilyIdentifiabilityResultToJson
 } from '../src/model_family_identifiability';
@@ -48,6 +49,34 @@ function splitDocument(probabilityToA: number): ExternalModelDocument {
   };
 }
 
+function recurrentDocument(stayProbability: number): ExternalModelDocument {
+  return {
+    schemaVersion: 1,
+    modelKind: 'base',
+    model: {
+      startState: 'start',
+      states: [{ id: 'start' }, { id: 'hit', terminal: true }],
+      parameters: [],
+      transitions: [
+        { from: 'start', to: 'start', probability: stayProbability },
+        { from: 'start', to: 'hit', probability: 1 - stayProbability }
+      ]
+    }
+  };
+}
+
+function permutedDocument(source: ExternalModelDocument): ExternalModelDocument {
+  if (source.modelKind !== 'base') throw new Error('test fixture expects base model');
+  return {
+    ...source,
+    model: {
+      ...source.model,
+      states: [...source.model.states].reverse(),
+      transitions: [...source.model.transitions].reverse()
+    }
+  };
+}
+
 function requireSuccess(
   result: FiniteModelFamilyIdentifiabilityResult
 ): FiniteModelFamilyIdentifiabilitySuccess {
@@ -70,6 +99,117 @@ const stateProbe = {
   horizon: 1,
   stateId: 'a'
 };
+
+type OracleSignature = {
+  candidateId: string;
+  coordinates: Array<{ probeId: string; value: number }>;
+};
+
+function scalarFixtureValue(value: unknown): number {
+  if (typeof value === 'number') return value;
+  if (
+    value !== null &&
+    typeof value === 'object' &&
+    'type' in value &&
+    value.type === 'constant' &&
+    'value' in value &&
+    typeof value.value === 'number'
+  ) {
+    return value.value;
+  }
+  throw new Error('independent oracle fixture only accepts constant scalar probabilities');
+}
+
+function denseMatrixOracleSignature(
+  candidateId: string,
+  source: ExternalModelDocument,
+  probes: ModelFamilyObservationProbe[]
+): OracleSignature {
+  if (source.modelKind !== 'base') throw new Error('oracle fixture expects base model');
+  const stateIds = source.model.states.map((state) => state.id).sort();
+  const index = new Map(stateIds.map((stateId, stateIndex) => [stateId, stateIndex]));
+  const matrix = stateIds.map(() => stateIds.map(() => 0));
+
+  for (const state of source.model.states) {
+    const from = index.get(state.id);
+    if (from === undefined) throw new Error('oracle source state missing');
+    if (state.terminal === true) {
+      matrix[from]![from] = 1;
+      continue;
+    }
+    for (const transition of source.model.transitions.filter((edge) => edge.from === state.id)) {
+      const to = index.get(transition.to);
+      if (to === undefined) throw new Error('oracle target state missing');
+      matrix[from]![to] = matrix[from]![to]! + scalarFixtureValue(transition.probability);
+    }
+  }
+
+  const coordinates = probes
+    .map((probe) => {
+      if (probe.type === 'transition_probability') {
+        const from = index.get(probe.from);
+        const to = index.get(probe.to);
+        if (from === undefined || to === undefined) throw new Error('oracle probe state missing');
+        return { probeId: probe.probeId, value: matrix[from]![to]! };
+      }
+
+      let vector = stateIds.map(
+        (stateId) =>
+          probe.initialDistribution.find((entry) => entry.stateId === stateId)?.probability ?? 0
+      );
+      for (let step = 0; step < probe.horizon; step += 1) {
+        const next = stateIds.map(() => 0);
+        for (let from = 0; from < stateIds.length; from += 1) {
+          for (let to = 0; to < stateIds.length; to += 1) {
+            next[to] = next[to]! + vector[from]! * matrix[from]![to]!;
+          }
+        }
+        vector = next;
+      }
+      const observed = index.get(probe.stateId);
+      if (observed === undefined) throw new Error('oracle observed state missing');
+      return { probeId: probe.probeId, value: vector[observed]! };
+    })
+    .sort((left, right) => left.probeId.localeCompare(right.probeId));
+
+  return { candidateId, coordinates };
+}
+
+function bruteForceOraclePairwise(
+  signatures: OracleSignature[],
+  tolerance: number
+): Array<{
+  leftCandidateId: string;
+  rightCandidateId: string;
+  distinguished: boolean;
+  maxAbsoluteDifference: number;
+  witnessProbeIds: string[];
+}> {
+  const ordered = [...signatures].sort((left, right) =>
+    left.candidateId.localeCompare(right.candidateId)
+  );
+  const result: ReturnType<typeof bruteForceOraclePairwise> = [];
+  for (let leftIndex = 0; leftIndex < ordered.length; leftIndex += 1) {
+    for (let rightIndex = leftIndex + 1; rightIndex < ordered.length; rightIndex += 1) {
+      const left = ordered[leftIndex]!;
+      const right = ordered[rightIndex]!;
+      const differences = left.coordinates.map((coordinate, coordinateIndex) => ({
+        probeId: coordinate.probeId,
+        difference: Math.abs(coordinate.value - right.coordinates[coordinateIndex]!.value)
+      }));
+      result.push({
+        leftCandidateId: left.candidateId,
+        rightCandidateId: right.candidateId,
+        distinguished: differences.some((entry) => entry.difference > tolerance),
+        maxAbsoluteDifference: Math.max(...differences.map((entry) => entry.difference)),
+        witnessProbeIds: differences
+          .filter((entry) => entry.difference > tolerance)
+          .map((entry) => entry.probeId)
+      });
+    }
+  }
+  return result;
+}
 
 describe('Candidate D finite model-family identifiability foundation', () => {
   it('classifies a fully distinguishable finite family from direct observable signatures', () => {
@@ -95,12 +235,16 @@ describe('Candidate D finite model-family identifiability foundation', () => {
       maxAbsoluteDifference: 0.5,
       witnessProbeIds: ['p-transition-a']
     });
-    expect(result.candidates.every((candidate) => candidate.classification === 'uniquely_distinguishable_within_family')).toBe(true);
+    expect(
+      result.candidates.every(
+        (candidate) => candidate.classification === 'uniquely_distinguishable_within_family'
+      )
+    ).toBe(true);
     expect(result.diagnostics.globalStructuralIdentifiabilityClaimed).toBe(false);
     expect(result.diagnostics.simulationUsed).toBe(false);
   });
 
-  it('uses Candidate A state-distribution propagation as an independent dynamic observation coordinate', () => {
+  it('uses Candidate A state-distribution propagation as a dynamic observation coordinate', () => {
     const result = requireSuccess(
       classifyFiniteModelFamilyIdentifiability({
         candidates: [
@@ -116,6 +260,40 @@ describe('Candidate D finite model-family identifiability foundation', () => {
       { candidateId: 'm2', coordinates: [{ probeId: 'p-state-a-h1', value: 0.8 }] }
     ]);
     expect(result.pairwise[0]?.distinguished).toBe(true);
+  });
+
+  it('matches an independently constructed dense transition-matrix and brute-force pair oracle', () => {
+    const probes: ModelFamilyObservationProbe[] = [
+      {
+        probeId: 'p-hit-one-step',
+        type: 'transition_probability',
+        from: 'start',
+        to: 'hit'
+      },
+      {
+        probeId: 'p-still-start-h2',
+        type: 'state_probability',
+        initialDistribution: [{ stateId: 'start', probability: 1 }],
+        horizon: 2,
+        stateId: 'start'
+      }
+    ];
+    const fixtures = [
+      { candidateId: 'slow', document: recurrentDocument(0.8) },
+      { candidateId: 'medium', document: recurrentDocument(0.5) },
+      { candidateId: 'fast', document: recurrentDocument(0.2) }
+    ];
+    const actual = requireSuccess(
+      classifyFiniteModelFamilyIdentifiability({ candidates: fixtures, probes, comparisonTolerance: 1e-12 })
+    );
+    const oracleSignatures = fixtures
+      .map((fixture) => denseMatrixOracleSignature(fixture.candidateId, fixture.document, probes))
+      .sort((left, right) => left.candidateId.localeCompare(right.candidateId));
+    const oraclePairwise = bruteForceOraclePairwise(oracleSignatures, 1e-12);
+
+    expect(actual.signatures).toEqual(oracleSignatures);
+    expect(actual.pairwise).toEqual(oraclePairwise);
+    expect(actual.familyClassification).toBe('fully_distinguishable');
   });
 
   it('preserves ambiguity when candidates have identical signatures under the declared probes', () => {
@@ -160,7 +338,11 @@ describe('Candidate D finite model-family identifiability foundation', () => {
 
     expect(result.familyClassification).toBe('partially_distinguishable');
     expect(result.pairwise.map((pair) => pair.distinguished)).toEqual([false, true, false]);
-    expect(result.candidates.every((candidate) => candidate.classification === 'ambiguous_under_observation_design')).toBe(true);
+    expect(
+      result.candidates.every(
+        (candidate) => candidate.classification === 'ambiguous_under_observation_design'
+      )
+    ).toBe(true);
     expect(result.diagnostics.approximateEqualityTransitivityAssumed).toBe(false);
   });
 
@@ -185,6 +367,59 @@ describe('Candidate D finite model-family identifiability foundation', () => {
     );
 
     expect(second).toEqual(first);
+  });
+
+  it('is invariant to state and transition definition order', () => {
+    const first = requireSuccess(
+      classifyFiniteModelFamilyIdentifiability({
+        candidates: [
+          { candidateId: 'a', document: document(0.3) },
+          { candidateId: 'z', document: document(0.7) }
+        ],
+        probes: [transitionProbe, stateProbe]
+      })
+    );
+    const second = requireSuccess(
+      classifyFiniteModelFamilyIdentifiability({
+        candidates: [
+          { candidateId: 'a', document: permutedDocument(document(0.3)) },
+          { candidateId: 'z', document: permutedDocument(document(0.7)) }
+        ],
+        probes: [transitionProbe, stateProbe]
+      })
+    );
+
+    expect(second).toEqual(first);
+  });
+
+  it('does not change classifications when a redundant probe with a distinct id is added', () => {
+    const baseline = requireSuccess(
+      classifyFiniteModelFamilyIdentifiability({
+        candidates: [
+          { candidateId: 'a', document: document(0.3) },
+          { candidateId: 'b', document: document(0.7) }
+        ],
+        probes: [transitionProbe]
+      })
+    );
+    const redundant = requireSuccess(
+      classifyFiniteModelFamilyIdentifiability({
+        candidates: [
+          { candidateId: 'a', document: document(0.3) },
+          { candidateId: 'b', document: document(0.7) }
+        ],
+        probes: [
+          transitionProbe,
+          { ...transitionProbe, probeId: 'p-transition-a-redundant' }
+        ]
+      })
+    );
+
+    expect(redundant.familyClassification).toBe(baseline.familyClassification);
+    expect(redundant.candidates).toEqual(baseline.candidates);
+    expect(redundant.pairwise.map((pair) => pair.distinguished)).toEqual(
+      baseline.pairwise.map((pair) => pair.distinguished)
+    );
   });
 
   it('treats split parallel transitions by their aggregate observable probability', () => {
