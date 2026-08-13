@@ -306,12 +306,13 @@ function buildTransitionMatrix(
 
   let maxRowDeviation = 0;
   for (let row = 0; row < matrix.length; row += 1) {
+    const stateId = stateIds[row]!;
     const total = matrix[row]!.reduce((sum, value) => sum + value, 0);
     if (!Number.isFinite(total)) {
       return failure(
         'non_finite_analytical_result',
-        `Transition row total became non-finite for state ${stateIds[row]}`,
-        { stateId: stateIds[row] }
+        `Transition row total became non-finite for state ${stateId}`,
+        { stateId }
       );
     }
     const deviation = Math.abs(total - 1);
@@ -319,8 +320,8 @@ function buildTransitionMatrix(
     if (deviation > probabilityTolerance) {
       return failure(
         'structural_inconsistency',
-        `Materialized transition row for ${stateIds[row]} sums to ${total}, outside tolerance ${probabilityTolerance}`,
-        { stateId: stateIds[row], actualTotal: total, tolerance: probabilityTolerance }
+        `Materialized transition row for ${stateId} sums to ${total}, outside tolerance ${probabilityTolerance}`,
+        { stateId, actualTotal: total, tolerance: probabilityTolerance }
       );
     }
   }
@@ -435,7 +436,7 @@ function componentPeriod(
   }
 
   for (const member of component) {
-    if (distance[member] < 0) {
+    if (distance[member]! < 0) {
       return failure(
         'structural_inconsistency',
         'Recurrent component was not internally reachable during period calculation'
