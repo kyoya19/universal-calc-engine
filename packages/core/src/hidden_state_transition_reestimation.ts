@@ -449,7 +449,7 @@ export function reestimateFiniteHiddenStateTransitionsOneStep(
   }
 
   const updatedModel = buildUpdatedModel(model, updatedRows, currentRows);
-  if ('ok' in updatedModel && updatedModel.ok === false) return updatedModel;
+  if ('failure' in updatedModel) return updatedModel;
 
   const updatedFiltering = filterFiniteHiddenStateObservationSequence(updatedModel, request, options);
   if (!updatedFiltering.ok) {
