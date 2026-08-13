@@ -20,6 +20,7 @@ export * from './hidden_observation_candidate_inference';
 export * from './independent_evidence_bundle_inference';
 export * from './same_trajectory_hidden_first_passage_joint_inference';
 export * from './observation_design';
+export * from './ambiguity_preserving_robust_decision';
 export * from './finite_decision_process';
 export * from './finite_decision_materialization';
 export * from './scenario_comparison';
