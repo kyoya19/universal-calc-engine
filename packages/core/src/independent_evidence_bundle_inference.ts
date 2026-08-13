@@ -21,10 +21,7 @@ export type FiniteEvidenceBundleCandidate = {
 export type HiddenObservationEvidenceCandidateBinding = {
   candidateId: string;
   model: DefinitionModel;
-  initialDistribution: Array<{
-    stateId: StateId;
-    probability: number;
-  }>;
+  initialDistribution: Array<{ stateId: StateId; probability: number }>;
   alphabet: string[];
   kernel: HiddenObservationKernelEntry[];
 };
@@ -32,10 +29,7 @@ export type HiddenObservationEvidenceCandidateBinding = {
 export type FirstPassageEvidenceCandidateBinding = {
   candidateId: string;
   model: DefinitionModel;
-  initialDistribution: Array<{
-    stateId: StateId;
-    probability: number;
-  }>;
+  initialDistribution: Array<{ stateId: StateId; probability: number }>;
   targetStates: StateId[];
 };
 
@@ -235,28 +229,24 @@ function resolveOptions(
       path: 'options.probabilityTolerance'
     });
   }
-
   const comparisonTolerance = options.comparisonTolerance ?? DEFAULT_COMPARISON_TOLERANCE;
   if (!Number.isFinite(comparisonTolerance) || comparisonTolerance < 0) {
     return failure('invalid_options', 'comparisonTolerance must be a finite non-negative number', {
       path: 'options.comparisonTolerance'
     });
   }
-
   const maxCandidates = options.maxCandidates ?? DEFAULT_MAX_CANDIDATES;
   if (!Number.isInteger(maxCandidates) || maxCandidates < 1) {
     return failure('invalid_options', 'maxCandidates must be a positive integer', {
       path: 'options.maxCandidates'
     });
   }
-
   const maxEvidenceBlocks = options.maxEvidenceBlocks ?? DEFAULT_MAX_EVIDENCE_BLOCKS;
   if (!Number.isInteger(maxEvidenceBlocks) || maxEvidenceBlocks < 1) {
     return failure('invalid_options', 'maxEvidenceBlocks must be a positive integer', {
       path: 'options.maxEvidenceBlocks'
     });
   }
-
   const maxObservationsPerBlock =
     options.maxObservationsPerBlock ?? DEFAULT_MAX_OBSERVATIONS_PER_BLOCK;
   if (!Number.isInteger(maxObservationsPerBlock) || maxObservationsPerBlock < 1) {
@@ -264,14 +254,12 @@ function resolveOptions(
       path: 'options.maxObservationsPerBlock'
     });
   }
-
   const maxHorizon = options.maxHorizon ?? DEFAULT_MAX_HORIZON;
   if (!Number.isInteger(maxHorizon) || maxHorizon < 0) {
     return failure('invalid_options', 'maxHorizon must be a non-negative integer', {
       path: 'options.maxHorizon'
     });
   }
-
   return {
     probabilityTolerance,
     comparisonTolerance,
@@ -325,7 +313,6 @@ function validateRequest(
       { path: 'request.independenceAssumption' }
     );
   }
-
   if (!Array.isArray(request.candidates) || request.candidates.length === 0) {
     return failure('invalid_candidate_family', 'candidates must be a non-empty array', {
       path: 'request.candidates'
@@ -389,9 +376,11 @@ function validateRequest(
       typeof block.blockId !== 'string' ||
       block.blockId.trim().length === 0
     ) {
-      return failure('invalid_evidence_bundle', `evidenceBlocks[${blockIndex}].blockId must be a non-empty string`, {
-        path: `request.evidenceBlocks[${blockIndex}].blockId`
-      });
+      return failure(
+        'invalid_evidence_bundle',
+        `evidenceBlocks[${blockIndex}].blockId must be a non-empty string`,
+        { path: `request.evidenceBlocks[${blockIndex}].blockId` }
+      );
     }
     if (blockIds.has(block.blockId)) {
       return failure('duplicate_block_id', `Duplicate blockId: ${block.blockId}`, {
@@ -406,12 +395,12 @@ function validateRequest(
       block.kind !== 'first_passage_exact_hit' &&
       block.kind !== 'first_passage_not_hit_by_horizon'
     ) {
-      return failure('invalid_evidence_bundle', `Unsupported evidence block kind: ${String((block as { kind?: unknown }).kind)}`, {
-        path: `request.evidenceBlocks[${blockIndex}].kind`,
-        blockId: block.blockId
-      });
+      return failure(
+        'invalid_evidence_bundle',
+        `Unsupported evidence block kind: ${String((block as { kind?: unknown }).kind)}`,
+        { path: `request.evidenceBlocks[${blockIndex}].kind`, blockId: block.blockId }
+      );
     }
-
     if (!Array.isArray(block.candidates)) {
       return failure('invalid_block_candidate_bindings', 'Block candidates must be an array', {
         path: `request.evidenceBlocks[${blockIndex}].candidates`,
@@ -430,24 +419,34 @@ function validateRequest(
         });
       }
       if (!candidateIds.has(candidateId)) {
-        return failure('invalid_block_candidate_bindings', `Unknown candidateId in block ${block.blockId}: ${candidateId}`, {
-          path: `request.evidenceBlocks[${blockIndex}].candidates[${bindingIndex}].candidateId`,
-          blockId: block.blockId,
-          candidateId
-        });
+        return failure(
+          'invalid_block_candidate_bindings',
+          `Unknown candidateId in block ${block.blockId}: ${candidateId}`,
+          {
+            path: `request.evidenceBlocks[${blockIndex}].candidates[${bindingIndex}].candidateId`,
+            blockId: block.blockId,
+            candidateId
+          }
+        );
       }
       if (bindingIds.has(candidateId)) {
-        return failure('invalid_block_candidate_bindings', `Duplicate candidateId in block ${block.blockId}: ${candidateId}`, {
-          path: `request.evidenceBlocks[${blockIndex}].candidates[${bindingIndex}].candidateId`,
-          blockId: block.blockId,
-          candidateId
-        });
+        return failure(
+          'invalid_block_candidate_bindings',
+          `Duplicate candidateId in block ${block.blockId}: ${candidateId}`,
+          {
+            path: `request.evidenceBlocks[${blockIndex}].candidates[${bindingIndex}].candidateId`,
+            blockId: block.blockId,
+            candidateId
+          }
+        );
       }
       bindingIds.add(candidateId);
     }
 
     if (bindingIds.size !== candidateIds.size) {
-      const missing = [...candidateIds].filter((candidateId) => !bindingIds.has(candidateId)).sort(compareStrings);
+      const missing = [...candidateIds]
+        .filter((candidateId) => !bindingIds.has(candidateId))
+        .sort(compareStrings);
       return failure(
         'invalid_block_candidate_bindings',
         `Block ${block.blockId} must bind every candidate exactly once; missing: ${missing.join(', ')}`,
@@ -455,7 +454,6 @@ function validateRequest(
       );
     }
   }
-
   return undefined;
 }
 
@@ -516,24 +514,26 @@ function evaluateBlock(
         `Evidence block ${block.blockId} failed hidden-observation evaluation: ${result.failure.message}`,
         {
           blockId: block.blockId,
-          candidateId: result.failure.candidateId,
+          ...(result.failure.candidateId !== undefined
+            ? { candidateId: result.failure.candidateId }
+            : {}),
           hiddenObservationFailure: result.failure
         }
       );
     }
-
-    const byCandidate = new Map<string, EvidenceBundleBlockLikelihood>();
-    for (const evaluation of result.evaluations) {
-      byCandidate.set(evaluation.candidateId, {
-        blockId: block.blockId,
-        kind: block.kind,
-        possible: evaluation.possible,
-        logLikelihood: evaluation.logLikelihood,
-        directProbability: evaluation.sequenceProbability,
-        directProbabilityUnderflowed: evaluation.sequenceProbabilityUnderflowed
-      });
-    }
-    return byCandidate;
+    return new Map(
+      result.evaluations.map((evaluation) => [
+        evaluation.candidateId,
+        {
+          blockId: block.blockId,
+          kind: block.kind,
+          possible: evaluation.possible,
+          logLikelihood: evaluation.logLikelihood,
+          directProbability: evaluation.sequenceProbability,
+          directProbabilityUnderflowed: evaluation.sequenceProbabilityUnderflowed
+        }
+      ])
+    );
   }
 
   const observation =
@@ -558,24 +558,26 @@ function evaluateBlock(
       `Evidence block ${block.blockId} failed first-passage evaluation: ${result.failure.message}`,
       {
         blockId: block.blockId,
-        candidateId: result.failure.candidateId,
+        ...(result.failure.candidateId !== undefined
+          ? { candidateId: result.failure.candidateId }
+          : {}),
         firstPassageFailure: result.failure
       }
     );
   }
-
-  const byCandidate = new Map<string, EvidenceBundleBlockLikelihood>();
-  for (const evaluation of result.evaluations) {
-    byCandidate.set(evaluation.candidateId, {
-      blockId: block.blockId,
-      kind: block.kind,
-      possible: evaluation.possible,
-      logLikelihood: evaluation.logLikelihood,
-      directProbability: evaluation.eventProbability,
-      directProbabilityUnderflowed: evaluation.eventProbabilityUnderflowed
-    });
-  }
-  return byCandidate;
+  return new Map(
+    result.evaluations.map((evaluation) => [
+      evaluation.candidateId,
+      {
+        blockId: block.blockId,
+        kind: block.kind,
+        possible: evaluation.possible,
+        logLikelihood: evaluation.logLikelihood,
+        directProbability: evaluation.eventProbability,
+        directProbabilityUnderflowed: evaluation.eventProbabilityUnderflowed
+      }
+    ])
+  );
 }
 
 function isBlockFailure(
@@ -605,9 +607,9 @@ export function inferFiniteIndependentEvidenceBundleCandidates(
   const blockEvaluations = new Map<string, Map<string, EvidenceBundleBlockLikelihood>>();
 
   for (const block of blocks) {
-    const evaluation = evaluateBlock(block, valuesByCandidateId, resolved);
-    if (isBlockFailure(evaluation)) return evaluation;
-    blockEvaluations.set(block.blockId, evaluation);
+    const evaluated = evaluateBlock(block, valuesByCandidateId, resolved);
+    if (isBlockFailure(evaluated)) return evaluated;
+    blockEvaluations.set(block.blockId, evaluated);
   }
 
   const preliminary: PreliminaryCandidateEvaluation[] = [];
@@ -671,60 +673,45 @@ export function inferFiniteIndependentEvidenceBundleCandidates(
   }
 
   const possible = preliminary.filter(
-    (evaluation): evaluation is PreliminaryCandidateEvaluation & { totalLogLikelihood: number } =>
-      evaluation.possible && evaluation.totalLogLikelihood !== null
+    (entry): entry is PreliminaryCandidateEvaluation & { totalLogLikelihood: number } =>
+      entry.possible && entry.totalLogLikelihood !== null
   );
-
   let bestLogLikelihood: number | null = null;
   if (possible.length > 0) {
-    bestLogLikelihood = Math.max(...possible.map((evaluation) => evaluation.totalLogLikelihood));
+    bestLogLikelihood = Math.max(...possible.map((entry) => entry.totalLogLikelihood));
     if (!Number.isFinite(bestLogLikelihood)) {
       return failure('non_finite_analytical_result', 'Best total log likelihood became non-finite');
     }
   }
 
-  const evaluations: EvidenceBundleCandidateLikelihood[] = preliminary.map((evaluation) => {
-    if (!evaluation.possible || evaluation.totalLogLikelihood === null || bestLogLikelihood === null) {
-      return {
-        ...evaluation,
-        logLikelihoodDeltaFromBest: null,
-        maximumLikelihood: false
-      };
+  const evaluations: EvidenceBundleCandidateLikelihood[] = [];
+  for (const entry of preliminary) {
+    if (!entry.possible || entry.totalLogLikelihood === null || bestLogLikelihood === null) {
+      evaluations.push({ ...entry, logLikelihoodDeltaFromBest: null, maximumLikelihood: false });
+      continue;
     }
-    const delta = evaluation.totalLogLikelihood - bestLogLikelihood;
+    const delta = entry.totalLogLikelihood - bestLogLikelihood;
     if (!Number.isFinite(delta)) {
-      return {
-        ...evaluation,
-        logLikelihoodDeltaFromBest: null,
-        maximumLikelihood: false
-      };
+      return failure(
+        'non_finite_analytical_result',
+        `Candidate log-likelihood delta became non-finite for ${entry.candidateId}`,
+        { candidateId: entry.candidateId }
+      );
     }
-    return {
-      ...evaluation,
+    evaluations.push({
+      ...entry,
       logLikelihoodDeltaFromBest: delta,
       maximumLikelihood: Math.abs(delta) <= resolved.comparisonTolerance
-    };
-  });
-
-  if (
-    evaluations.some(
-      (evaluation) =>
-        evaluation.possible &&
-        evaluation.totalLogLikelihood !== null &&
-        evaluation.logLikelihoodDeltaFromBest === null
-    )
-  ) {
-    return failure('non_finite_analytical_result', 'Candidate log-likelihood delta became non-finite');
+    });
   }
 
-  const selected = evaluations.filter((evaluation) => evaluation.maximumLikelihood);
+  const selected = evaluations.filter((entry) => entry.maximumLikelihood);
   const classification: EvidenceBundleInferenceClassification =
     possible.length === 0
       ? 'all_candidates_impossible'
       : selected.length === 1
         ? 'unique_maximum_likelihood'
         : 'tied_maximum_likelihood';
-
   const hiddenObservationBlockCount = blocks.filter(
     (block) => block.kind === 'hidden_observation_sequence'
   ).length;
@@ -736,10 +723,10 @@ export function inferFiniteIndependentEvidenceBundleCandidates(
     classification,
     evaluations,
     bestLogLikelihood,
-    selectedCandidateIds: selected.map((evaluation) => evaluation.candidateId),
-    selectedCandidates: selected.map((evaluation) => ({
-      candidateId: evaluation.candidateId,
-      ...(evaluation.value !== undefined ? { value: evaluation.value } : {})
+    selectedCandidateIds: selected.map((entry) => entry.candidateId),
+    selectedCandidates: selected.map((entry) => ({
+      candidateId: entry.candidateId,
+      ...(entry.value !== undefined ? { value: entry.value } : {})
     })),
     diagnostics: {
       method: 'finite_independent_evidence_bundle_log_likelihood_comparison',
@@ -772,10 +759,7 @@ export function inferFiniteIndependentEvidenceBundleCandidates(
   };
 }
 
-type NonFiniteNumberLocation = {
-  path: string;
-  value: number;
-};
+type NonFiniteNumberLocation = { path: string; value: number };
 
 function findNonFiniteNumber(value: unknown, path = '$'): NonFiniteNumberLocation | undefined {
   if (typeof value === 'number') {
