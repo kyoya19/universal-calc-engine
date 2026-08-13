@@ -1,30 +1,35 @@
 import { describe, expect, it } from 'vitest';
-import { DefinitionModel, StateId } from '../src/model';
+import { DefinitionModel } from '../src/model';
 import {
   FiniteHiddenStateTransitionReestimationRequest,
   reestimateFiniteHiddenStateTransitionsOneStep
 } from '../src/hidden_state_transition_reestimation';
 
-type Matrix = Record<string, Record<string, number>>;
+type HiddenState = 'a' | 'b';
+type ObservationSymbol = 'red' | 'blue';
+type Matrix = Record<HiddenState, Record<HiddenState, number>>;
+type CountMatrix = Record<HiddenState, Record<HiddenState, number>>;
+type EmissionMatrix = Record<HiddenState, Record<ObservationSymbol, number>>;
 
 type PathEnumeration = {
   likelihood: number;
-  expectedCounts: Record<string, Record<string, number>>;
+  expectedCounts: CountMatrix;
 };
 
-const STATES: StateId[] = ['a', 'b'];
+const STATES: HiddenState[] = ['a', 'b'];
+const OBSERVATIONS: ObservationSymbol[] = ['red', 'blue', 'red', 'blue'];
 
 const CURRENT: Matrix = {
   a: { a: 0.8, b: 0.2 },
   b: { a: 0.3, b: 0.7 }
 };
 
-const EMISSION: Record<string, Record<string, number>> = {
+const EMISSION: EmissionMatrix = {
   a: { red: 0.9, blue: 0.1 },
   b: { red: 0.2, blue: 0.8 }
 };
 
-const INITIAL: Record<string, number> = { a: 0.6, b: 0.4 };
+const INITIAL: Record<HiddenState, number> = { a: 0.6, b: 0.4 };
 
 function model(): DefinitionModel {
   return {
@@ -52,34 +57,35 @@ function request(): FiniteHiddenStateTransitionReestimationRequest {
       { stateId: 'b', symbol: 'red', probability: EMISSION.b.red },
       { stateId: 'b', symbol: 'blue', probability: EMISSION.b.blue }
     ],
-    observations: ['red', 'blue', 'red', 'blue']
+    observations: [...OBSERVATIONS]
   };
+}
+
+function emptyCountMatrix(): CountMatrix {
+  return { a: { a: 0, b: 0 }, b: { a: 0, b: 0 } };
 }
 
 function enumerate(
   transition: Matrix,
-  observations: string[],
+  observations: ObservationSymbol[],
   collectCounts: boolean
 ): PathEnumeration {
   let likelihood = 0;
-  const weightedCounts: Record<string, Record<string, number>> = {
-    a: { a: 0, b: 0 },
-    b: { a: 0, b: 0 }
-  };
+  const weightedCounts = emptyCountMatrix();
 
-  const visit = (path: StateId[]): void => {
+  const visit = (path: HiddenState[]): void => {
     if (path.length === observations.length) {
       const first = path[0];
       const firstObservation = observations[0];
       if (first === undefined || firstObservation === undefined) return;
-      let mass = (INITIAL[first] ?? 0) * (EMISSION[first]?.[firstObservation] ?? 0);
+      let mass = INITIAL[first] * EMISSION[first][firstObservation];
       for (let t = 1; t < path.length; t += 1) {
         const from = path[t - 1];
         const to = path[t];
         const observation = observations[t];
         if (from === undefined || to === undefined || observation === undefined) return;
-        mass *= transition[from]?.[to] ?? 0;
-        mass *= EMISSION[to]?.[observation] ?? 0;
+        mass *= transition[from][to];
+        mass *= EMISSION[to][observation];
       }
       likelihood += mass;
       if (collectCounts) {
@@ -87,8 +93,7 @@ function enumerate(
           const from = path[t];
           const to = path[t + 1];
           if (from === undefined || to === undefined) continue;
-          const row = weightedCounts[from];
-          if (row !== undefined) row[to] = (row[to] ?? 0) + mass;
+          weightedCounts[from][to] += mass;
         }
       }
       return;
@@ -99,27 +104,24 @@ function enumerate(
   visit([]);
   if (likelihood <= 0) throw new Error('Oracle fixture unexpectedly has zero likelihood');
 
-  const expectedCounts: Record<string, Record<string, number>> = {
-    a: { a: 0, b: 0 },
-    b: { a: 0, b: 0 }
-  };
+  const expectedCounts = emptyCountMatrix();
   if (collectCounts) {
     for (const from of STATES) {
       for (const to of STATES) {
-        expectedCounts[from]![to] = (weightedCounts[from]?.[to] ?? 0) / likelihood;
+        expectedCounts[from][to] = weightedCounts[from][to] / likelihood;
       }
     }
   }
   return { likelihood, expectedCounts };
 }
 
-function independentlyUpdatedMatrix(expectedCounts: Record<string, Record<string, number>>): Matrix {
+function independentlyUpdatedMatrix(expectedCounts: CountMatrix): Matrix {
   const updated: Matrix = { a: { a: 0, b: 0 }, b: { a: 0, b: 0 } };
   for (const from of STATES) {
-    const departure = STATES.reduce((sum, to) => sum + (expectedCounts[from]?.[to] ?? 0), 0);
+    const departure = STATES.reduce((sum, to) => sum + expectedCounts[from][to], 0);
     if (!(departure > 0)) throw new Error(`Oracle fixture has zero expected departure for ${from}`);
     for (const to of STATES) {
-      updated[from]![to] = (expectedCounts[from]?.[to] ?? 0) / departure;
+      updated[from][to] = expectedCounts[from][to] / departure;
     }
   }
   return updated;
@@ -128,9 +130,9 @@ function independentlyUpdatedMatrix(expectedCounts: Record<string, Record<string
 describe('Candidate S independent likelihood oracle', () => {
   it('independently verifies current and one-step-updated observation likelihood and non-decrease', () => {
     const req = request();
-    const currentOracle = enumerate(CURRENT, req.observations, true);
+    const currentOracle = enumerate(CURRENT, OBSERVATIONS, true);
     const independentlyUpdated = independentlyUpdatedMatrix(currentOracle.expectedCounts);
-    const updatedOracle = enumerate(independentlyUpdated, req.observations, false);
+    const updatedOracle = enumerate(independentlyUpdated, OBSERVATIONS, false);
 
     const result = reestimateFiniteHiddenStateTransitionsOneStep(model(), req);
     expect(result.ok).toBe(true);
