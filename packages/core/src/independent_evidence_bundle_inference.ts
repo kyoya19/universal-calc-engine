@@ -398,7 +398,10 @@ function validateRequest(
       return failure(
         'invalid_evidence_bundle',
         `Unsupported evidence block kind: ${String((block as { kind?: unknown }).kind)}`,
-        { path: `request.evidenceBlocks[${blockIndex}].kind`, blockId: block.blockId }
+        {
+          path: `request.evidenceBlocks[${blockIndex}].kind`,
+          blockId: (block as unknown as { blockId: string }).blockId
+        }
       );
     }
     if (!Array.isArray(block.candidates)) {
