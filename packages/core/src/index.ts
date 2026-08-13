@@ -13,6 +13,7 @@ export * from './forward_evaluation';
 export * from './forward_result_handoff';
 export * from './state_distribution';
 export * from './first_passage';
+export * from './first_passage_candidate_inference';
 export * from './model_family_identifiability';
 export * from './hidden_state_observation';
 export * from './hidden_observation_candidate_inference';
