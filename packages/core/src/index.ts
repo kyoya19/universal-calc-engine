@@ -12,6 +12,7 @@ export * from './observations';
 export * from './forward_evaluation';
 export * from './forward_result_handoff';
 export * from './state_distribution';
+export * from './finite_markov_long_run_behavior';
 export * from './first_passage';
 export * from './first_passage_candidate_inference';
 export * from './model_family_identifiability';
