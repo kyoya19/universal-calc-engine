@@ -321,7 +321,7 @@ export function smoothFiniteHiddenStateObservationSequence(
       step,
       filtering.diagnostics.probabilityTolerance
     );
-    if ('ok' in smoothed && smoothed.ok === false) return smoothed;
+    if (!Array.isArray(smoothed)) return smoothed;
     steps.push({
       step,
       observation: filteringStep.observation,
