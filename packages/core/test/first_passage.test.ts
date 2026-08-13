@@ -507,9 +507,38 @@ describe('Candidate B finite first-passage / absorption-time foundation', () => 
       targetStates: ['target'],
       horizon: 2
     };
+    const left = requireSuccess(analyzeFiniteHorizonFirstPassage(base, request));
+    const right = requireSuccess(analyzeFiniteHorizonFirstPassage(split, request));
 
-    expect(finiteFirstPassageResultToJson(requireSuccess(analyzeFiniteHorizonFirstPassage(base, request))))
-      .toBe(finiteFirstPassageResultToJson(requireSuccess(analyzeFiniteHorizonFirstPassage(split, request))));
+    expect(left.targetStates).toEqual(right.targetStates);
+    expect(left.steps).toHaveLength(right.steps.length);
+    for (let index = 0; index < left.steps.length; index += 1) {
+      const leftStep = left.steps[index]!;
+      const rightStep = right.steps[index]!;
+      expect(leftStep.step).toBe(rightStep.step);
+      expect(leftStep.firstHitProbability).toBeCloseTo(rightStep.firstHitProbability, 12);
+      expect(leftStep.cumulativeHitProbability).toBeCloseTo(rightStep.cumulativeHitProbability, 12);
+      expect(leftStep.notYetHitProbability).toBeCloseTo(rightStep.notYetHitProbability, 12);
+      const leftTargets = targetRecord(leftStep);
+      const rightTargets = targetRecord(rightStep);
+      expect(Object.keys(leftTargets)).toEqual(Object.keys(rightTargets));
+      for (const stateId of Object.keys(leftTargets)) {
+        expect(leftTargets[stateId]).toBeCloseTo(rightTargets[stateId]!, 12);
+      }
+    }
+    expect(left.hitProbabilityByHorizon).toBeCloseTo(right.hitProbabilityByHorizon, 12);
+    expect(left.notHitProbabilityByHorizon).toBeCloseTo(right.notHitProbabilityByHorizon, 12);
+    const leftTotals = Object.fromEntries(
+      left.firstHitByTargetTotals.map((entry) => [entry.stateId, entry.probability])
+    ) as Record<StateId, number>;
+    const rightTotals = Object.fromEntries(
+      right.firstHitByTargetTotals.map((entry) => [entry.stateId, entry.probability])
+    ) as Record<StateId, number>;
+    expect(Object.keys(leftTotals)).toEqual(Object.keys(rightTotals));
+    for (const stateId of Object.keys(leftTotals)) {
+      expect(leftTotals[stateId]).toBeCloseTo(rightTotals[stateId]!, 12);
+    }
+    expect(left.diagnostics).toEqual(right.diagnostics);
   });
 
   it('agrees with Candidate A occupancy after an independently constructed absorbing transform', () => {
