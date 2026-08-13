@@ -285,7 +285,9 @@ describe('Candidate J finite Markov long-run behavior foundation', () => {
       })
     );
     // 0.4 * [0.25,0.75] + 0.6 * [1,0] = [0.7,0.3].
-    expect(mixed.recurrentClasses.map((entry) => entry.entryProbability)).toEqual([0.7, 0.3]);
+    const entryProbabilities = mixed.recurrentClasses.map((entry) => entry.entryProbability);
+    expect(entryProbabilities[0]).toBeCloseTo(0.7, 12);
+    expect(entryProbabilities[1]).toBeCloseTo(0.3, 12);
     expectDistributionClose(record(mixed.cesaroLongRunOccupancy), { a: 0.7, b: 0.3, s: 0 });
   });
 
