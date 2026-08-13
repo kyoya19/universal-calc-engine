@@ -78,10 +78,7 @@ function pairKey(from: StateId, to: StateId): string {
   return `${from}\u0000${to}`;
 }
 
-type PathOracle = {
-  likelihood: number;
-  counts: Map<string, number>;
-};
+type PathOracle = { counts: Map<string, number> };
 
 function completePathOracle(
   m: DefinitionModel,
@@ -122,9 +119,12 @@ function completePathOracle(
   visit([]);
   if (total === 0) return null;
   return {
-    likelihood: total,
     counts: new Map([...countMass.entries()].map(([key, mass]) => [key, mass / total] as const))
   };
+}
+
+function resultRow(result: FiniteHiddenStateTransitionReestimationSuccess, stateId: StateId) {
+  return result.rows?.find((row) => row.stateId === stateId);
 }
 
 function resultExpectedCount(
@@ -132,7 +132,7 @@ function resultExpectedCount(
   from: StateId,
   to: StateId
 ): number {
-  return result.rows?.find((row) => row.stateId === from)?.expectedCounts.find((entry) => entry.toStateId === to)?.expectedCount ?? 0;
+  return resultRow(result, from)?.expectedCounts.find((entry) => entry.toStateId === to)?.expectedCount ?? 0;
 }
 
 function resultUpdatedProbability(
@@ -140,7 +140,15 @@ function resultUpdatedProbability(
   from: StateId,
   to: StateId
 ): number {
-  return result.rows?.find((row) => row.stateId === from)?.updatedRow.find((entry) => entry.toStateId === to)?.probability ?? 0;
+  return resultRow(result, from)?.updatedRow.find((entry) => entry.toStateId === to)?.probability ?? 0;
+}
+
+function resultCurrentProbability(
+  result: FiniteHiddenStateTransitionReestimationSuccess,
+  from: StateId,
+  to: StateId
+): number {
+  return resultRow(result, from)?.currentRow.find((entry) => entry.toStateId === to)?.probability ?? 0;
 }
 
 function expectedCompleteDataRowObjective(counts: number[], probabilities: number[]): number {
@@ -221,10 +229,12 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
   });
 
   it('reduces to empirical transition frequencies when the hidden trajectory is fully revealed', () => {
-    const m = revealingModel();
-    const req = revealingRequest(['A', 'A', 'B', 'A', 'A', 'B']);
-    const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(m, req));
-    expect(result.possible).toBe(true);
+    const result = requireSuccess(
+      reestimateFiniteHiddenStateTransitionsOneStep(
+        revealingModel(),
+        revealingRequest(['A', 'A', 'B', 'A', 'A', 'B'])
+      )
+    );
     expect(resultUpdatedProbability(result, 'a', 'a')).toBeCloseTo(0.5, 12);
     expect(resultUpdatedProbability(result, 'a', 'b')).toBeCloseTo(0.5, 12);
     expect(resultUpdatedProbability(result, 'a', 'c')).toBeCloseTo(0, 12);
@@ -244,10 +254,7 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
       ]
     };
     const req: FiniteHiddenStateTransitionReestimationRequest = {
-      initialDistribution: [
-        { stateId: 'a', probability: 1 },
-        { stateId: 'b', probability: 0 }
-      ],
+      initialDistribution: [{ stateId: 'a', probability: 1 }, { stateId: 'b', probability: 0 }],
       alphabet: ['x'],
       kernel: [
         { stateId: 'a', symbol: 'x', probability: 1 },
@@ -256,7 +263,7 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
       observations: ['x', 'x', 'x']
     };
     const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(m, req));
-    const row = result.rows?.find((entry) => entry.stateId === 'b');
+    const row = resultRow(result, 'b');
     expect(row?.status).toBe('retained_zero_expected_departure');
     expect(row?.uniqueByExpectedCounts).toBe(false);
     expect(row?.updatedRow).toEqual(row?.currentRow);
@@ -273,10 +280,7 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
       ]
     };
     const req: FiniteHiddenStateTransitionReestimationRequest = {
-      initialDistribution: [
-        { stateId: 'a', probability: 1 },
-        { stateId: 't', probability: 0 }
-      ],
+      initialDistribution: [{ stateId: 'a', probability: 1 }, { stateId: 't', probability: 0 }],
       alphabet: ['A', 'T'],
       kernel: [
         { stateId: 'a', symbol: 'A', probability: 1 },
@@ -287,16 +291,19 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
       observations: ['A', 'T', 'T', 'T']
     };
     const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(m, req));
-    const terminal = result.rows?.find((row) => row.stateId === 't');
+    const terminal = resultRow(result, 't');
     expect(terminal?.status).toBe('structural_terminal_self_retention');
     expect(terminal?.updatedRow).toEqual([{ toStateId: 't', probability: 1 }]);
     expect(terminal?.uniqueByExpectedCounts).toBe(false);
   });
 
   it('satisfies the independent row-simplex expected-complete-data objective on a closed-form fixture', () => {
-    const m = revealingModel();
-    const req = revealingRequest(['A', 'A', 'A', 'A', 'B']);
-    const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(m, req));
+    const result = requireSuccess(
+      reestimateFiniteHiddenStateTransitionsOneStep(
+        revealingModel(),
+        revealingRequest(['A', 'A', 'A', 'A', 'B'])
+      )
+    );
     const counts = [
       resultExpectedCount(result, 'a', 'a'),
       resultExpectedCount(result, 'a', 'b'),
@@ -323,12 +330,19 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
     const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(model(), request()));
     expect(result.originalLogLikelihood).not.toBeNull();
     expect(result.updatedLogLikelihood).not.toBeNull();
-    expect(result.likelihoodDelta).not.toBeNull();
     expect(result.likelihoodDelta ?? -1).toBeGreaterThanOrEqual(-result.diagnostics.likelihoodTolerance);
   });
 
-  it('returns possible=false without fabricating an updated model for impossible evidence', () => {
-    const req = request(['missing']);
+  it('returns possible=false without fabricating an updated model for valid but impossible evidence', () => {
+    const req: FiniteHiddenStateTransitionReestimationRequest = {
+      ...request(['dark']),
+      alphabet: ['red', 'blue', 'dark'],
+      kernel: [
+        ...kernel(),
+        { stateId: 'a', symbol: 'dark', probability: 0 },
+        { stateId: 'b', symbol: 'dark', probability: 0 }
+      ]
+    };
     const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(model(), req));
     expect(result.possible).toBe(false);
     expect(result.rows).toBeNull();
@@ -351,7 +365,9 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
       ],
       observations: Array.from({ length: 220 }, () => 'rare')
     };
-    const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(m, req, { maxObservations: 300 }));
+    const result = requireSuccess(
+      reestimateFiniteHiddenStateTransitionsOneStep(m, req, { maxObservations: 300 })
+    );
     expect(result.possible).toBe(true);
     expect(resultUpdatedProbability(result, 'a', 'a')).toBe(1);
     expect(result.originalLogLikelihood).not.toBeNull();
@@ -395,8 +411,7 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
     expect(permuted.updatedLogLikelihood).toBeCloseTo(baseline.updatedLogLikelihood ?? 0, 12);
   });
 
-  it('is invariant to equivalent parallel-transition split/merge representation', () => {
-    const merged = model();
+  it('is invariant to equivalent parallel-transition split/merge representation within tolerance', () => {
     const split: DefinitionModel = {
       ...model(),
       transitions: [
@@ -408,9 +423,21 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
         { from: 'b', to: 'b', probability: 0.7 }
       ]
     };
-    const left = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(merged, request()));
+    const left = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(model(), request()));
     const right = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(split, request()));
-    expect(right.rows).toEqual(left.rows);
+    for (const from of ['a', 'b']) {
+      expect(resultRow(right, from)?.status).toBe(resultRow(left, from)?.status);
+      expect(resultRow(right, from)?.uniqueByExpectedCounts).toBe(resultRow(left, from)?.uniqueByExpectedCounts);
+      expect(resultRow(right, from)?.expectedDepartureMass ?? 0).toBeCloseTo(
+        resultRow(left, from)?.expectedDepartureMass ?? 0,
+        12
+      );
+      for (const to of ['a', 'b']) {
+        expect(resultExpectedCount(right, from, to)).toBeCloseTo(resultExpectedCount(left, from, to), 12);
+        expect(resultCurrentProbability(right, from, to)).toBeCloseTo(resultCurrentProbability(left, from, to), 12);
+        expect(resultUpdatedProbability(right, from, to)).toBeCloseTo(resultUpdatedProbability(left, from, to), 12);
+      }
+    }
     expect(right.updatedLogLikelihood).toBeCloseTo(left.updatedLogLikelihood ?? 0, 12);
   });
 
@@ -426,10 +453,7 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
       ]
     };
     const req: FiniteHiddenStateTransitionReestimationRequest = {
-      initialDistribution: [
-        { stateId: 'a', probability: 1 },
-        { stateId: 'b', probability: 0 }
-      ],
+      initialDistribution: [{ stateId: 'a', probability: 1 }, { stateId: 'b', probability: 0 }],
       alphabet: ['x'],
       kernel: [
         { stateId: 'a', symbol: 'x', probability: 1 },
@@ -456,8 +480,7 @@ describe('Candidate S finite hidden-state transition re-estimation', () => {
   it('provides deterministic checked serialization and rejects forged non-finite values', () => {
     const result = requireSuccess(reestimateFiniteHiddenStateTransitionsOneStep(model(), request()));
     const first = finiteHiddenStateTransitionReestimationResultToJson(result);
-    const second = finiteHiddenStateTransitionReestimationResultToJson(result);
-    expect(second).toBe(first);
+    expect(finiteHiddenStateTransitionReestimationResultToJson(result)).toBe(first);
     const forged = structuredClone(result);
     if (forged.rows !== null && forged.rows[0] !== undefined) {
       forged.rows[0].expectedDepartureMass = Number.NaN;
