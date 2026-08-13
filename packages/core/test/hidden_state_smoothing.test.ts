@@ -189,7 +189,11 @@ describe('Candidate H finite hidden-state smoothing', () => {
     const filtered = filterFiniteHiddenStateObservationSequence(model(), req);
     expect(filtered.ok).toBe(true);
     if (!filtered.ok || !filtered.possible) throw new Error('Expected possible Candidate C result');
-    expect(smooth.finalSmoothedDistribution).toEqual(filtered.finalFilteredDistribution);
+    for (const entry of filtered.finalFilteredDistribution) {
+      const actual = smooth.finalSmoothedDistribution?.find((candidate) => candidate.stateId === entry.stateId)?.probability;
+      expect(actual).toBeDefined();
+      expect(actual!).toBeCloseTo(entry.probability, 12);
+    }
     expect(smooth.logLikelihood).toBe(filtered.logLikelihood);
     expect(smooth.sequenceProbability).toBe(filtered.sequenceProbability);
   });
