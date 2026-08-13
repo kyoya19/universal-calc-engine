@@ -22,6 +22,7 @@ export * from './hidden_state_pairwise_smoothing';
 export * from './hidden_state_transition_reestimation';
 export * from './hidden_state_observation_kernel_reestimation';
 export * from './hidden_state_initial_distribution_reestimation';
+export * from './hidden_state_joint_parameter_reestimation';
 export * from './hidden_observation_candidate_inference';
 export * from './independent_evidence_bundle_inference';
 export * from './same_trajectory_hidden_first_passage_joint_inference';
