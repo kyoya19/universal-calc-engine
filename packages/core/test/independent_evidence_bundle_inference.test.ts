@@ -2,9 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { DefinitionModel, StateId, evaluateProbabilitySpec, isTerminalState } from '../src/model';
 import {
   EvidenceBundleCandidateLikelihood,
+  FiniteIndependentEvidenceBundleInferenceRequest,
   FiniteIndependentEvidenceBundleInferenceResult,
   FirstPassageEvidenceCandidateBinding,
+  HiddenObservationEvidenceBlock,
   HiddenObservationEvidenceCandidateBinding,
+  FirstPassageExactHitEvidenceBlock,
   finiteIndependentEvidenceBundleInferenceResultToJson,
   inferFiniteIndependentEvidenceBundleCandidates
 } from '../src/independent_evidence_bundle_inference';
@@ -151,7 +154,9 @@ function geometricBinding(
 
 function firstPassagePathProbability(
   binding: FirstPassageEvidenceCandidateBinding,
-  observation: { kind: 'exact_hit_at_step'; step: number } | { kind: 'not_hit_by_horizon'; horizon: number }
+  observation:
+    | { kind: 'exact_hit_at_step'; step: number }
+    | { kind: 'not_hit_by_horizon'; horizon: number }
 ): number {
   const targets = new Set(binding.targetStates);
   const terminal = new Set(
@@ -191,7 +196,9 @@ function firstPassagePathProbability(
 
 function firstPassageDenseKilledProbability(
   binding: FirstPassageEvidenceCandidateBinding,
-  observation: { kind: 'exact_hit_at_step'; step: number } | { kind: 'not_hit_by_horizon'; horizon: number }
+  observation:
+    | { kind: 'exact_hit_at_step'; step: number }
+    | { kind: 'not_hit_by_horizon'; horizon: number }
 ): number {
   const states = binding.model.states.map((state) => state.id).sort();
   const targets = new Set(binding.targetStates);
@@ -225,7 +232,10 @@ function firstPassageDenseKilledProbability(
       for (const edge of binding.model.transitions.filter((item) => item.from === fromId)) {
         const contribution = mass[from]! * evaluateProbabilitySpec(edge.probability);
         if (targets.has(edge.to)) hit += contribution;
-        else next[states.indexOf(edge.to)] = next[states.indexOf(edge.to)]! + contribution;
+        else {
+          const to = states.indexOf(edge.to);
+          next[to] = next[to]! + contribution;
+        }
       }
     }
     mass = next;
@@ -250,11 +260,7 @@ function oneStateHiddenBinding(
   };
 }
 
-function mixedRequest() {
-  const hiddenA = hiddenBinding('a', 0.9, 0.2);
-  const hiddenB = hiddenBinding('b', 0.5, 0.6);
-  const passageA = geometricBinding('a', 0.7);
-  const passageB = geometricBinding('b', 0.4);
+function mixedRequest(): FiniteIndependentEvidenceBundleInferenceRequest {
   return {
     candidates: [
       { candidateId: 'b', value: 400 },
@@ -263,50 +269,61 @@ function mixedRequest() {
     evidenceBlocks: [
       {
         blockId: 'hidden-episode',
-        kind: 'hidden_observation_sequence' as const,
+        kind: 'hidden_observation_sequence',
         observations: ['red', 'blue', 'red'],
-        candidates: [hiddenB, hiddenA]
+        candidates: [hiddenBinding('b', 0.5, 0.6), hiddenBinding('a', 0.9, 0.2)]
       },
       {
         blockId: 'passage-episode',
-        kind: 'first_passage_exact_hit' as const,
+        kind: 'first_passage_exact_hit',
         step: 3,
-        candidates: [passageB, passageA]
+        candidates: [geometricBinding('b', 0.4), geometricBinding('a', 0.7)]
       }
     ],
     independenceAssumption: INDEPENDENCE
   };
 }
 
+function requireMixedBlocks(request: FiniteIndependentEvidenceBundleInferenceRequest): {
+  hidden: HiddenObservationEvidenceBlock;
+  passage: FirstPassageExactHitEvidenceBlock;
+} {
+  const hidden = request.evidenceBlocks.find(
+    (block): block is HiddenObservationEvidenceBlock => block.kind === 'hidden_observation_sequence'
+  );
+  const passage = request.evidenceBlocks.find(
+    (block): block is FirstPassageExactHitEvidenceBlock => block.kind === 'first_passage_exact_hit'
+  );
+  if (hidden === undefined || passage === undefined) throw new Error('mixed request blocks missing');
+  return { hidden, passage };
+}
+
 describe('Candidate K finite independent evidence-bundle candidate inference', () => {
   it('matches independent path-enumeration and dense oracles for a mixed F/G evidence bundle', () => {
     const request = mixedRequest();
+    const { hidden, passage } = requireMixedBlocks(request);
     const result = requireSuccess(inferFiniteIndependentEvidenceBundleCandidates(request));
 
+    const oracleJoint = new Map<string, number>();
     for (const candidateId of ['a', 'b']) {
-      const hidden = request.evidenceBlocks[0]!.candidates.find((item) => item.candidateId === candidateId)!;
-      const passage = request.evidenceBlocks[1]!.candidates.find((item) => item.candidateId === candidateId)!;
-      const observations = request.evidenceBlocks[0]!.observations;
-      const passageObservation = { kind: 'exact_hit_at_step', step: request.evidenceBlocks[1]!.step } as const;
-      const hiddenPath = hiddenPathEnumerationProbability(hidden, observations);
-      const hiddenDense = hiddenDenseForwardProbability(hidden, observations);
-      const passagePath = firstPassagePathProbability(passage, passageObservation);
-      const passageDense = firstPassageDenseKilledProbability(passage, passageObservation);
+      const hiddenBindingValue = hidden.candidates.find((item) => item.candidateId === candidateId)!;
+      const passageBindingValue = passage.candidates.find((item) => item.candidateId === candidateId)!;
+      const hiddenPath = hiddenPathEnumerationProbability(hiddenBindingValue, hidden.observations);
+      const hiddenDense = hiddenDenseForwardProbability(hiddenBindingValue, hidden.observations);
+      const passageObservation = { kind: 'exact_hit_at_step', step: passage.step } as const;
+      const passagePath = firstPassagePathProbability(passageBindingValue, passageObservation);
+      const passageDense = firstPassageDenseKilledProbability(passageBindingValue, passageObservation);
       expect(hiddenPath).toBeCloseTo(hiddenDense, 14);
       expect(passagePath).toBeCloseTo(passageDense, 14);
-      const expectedJoint = hiddenPath * passagePath;
+      const joint = hiddenPath * passagePath;
+      oracleJoint.set(candidateId, joint);
       const actual = evaluation(result, candidateId);
-      expect(actual.jointProbability).toBeCloseTo(expectedJoint, 14);
+      expect(actual.jointProbability).toBeCloseTo(joint, 14);
       expect(actual.totalLogLikelihood).toBeCloseTo(Math.log(hiddenPath) + Math.log(passagePath), 14);
     }
-
-    const oracleA =
-      hiddenPathEnumerationProbability(request.evidenceBlocks[0]!.candidates[1]!, request.evidenceBlocks[0]!.observations) *
-      firstPassagePathProbability(request.evidenceBlocks[1]!.candidates[1]!, { kind: 'exact_hit_at_step', step: 3 });
-    const oracleB =
-      hiddenPathEnumerationProbability(request.evidenceBlocks[0]!.candidates[0]!, request.evidenceBlocks[0]!.observations) *
-      firstPassagePathProbability(request.evidenceBlocks[1]!.candidates[0]!, { kind: 'exact_hit_at_step', step: 3 });
-    expect(result.selectedCandidateIds).toEqual([oracleA > oracleB ? 'a' : 'b']);
+    expect(result.selectedCandidateIds).toEqual([
+      oracleJoint.get('a')! > oracleJoint.get('b')! ? 'a' : 'b'
+    ]);
     expect(result.diagnostics.independenceEmpiricallyVerified).toBe(false);
     expect(result.diagnostics.posteriorNormalizationApplied).toBe(false);
   });
@@ -314,32 +331,40 @@ describe('Candidate K finite independent evidence-bundle candidate inference', (
   it('is invariant to evidence-block, candidate-family, and block-binding order while preserving values', () => {
     const request = mixedRequest();
     const baseline = requireSuccess(inferFiniteIndependentEvidenceBundleCandidates(request));
+    const reorderedBlocks = [...request.evidenceBlocks].reverse().map((block) => {
+      if (block.kind === 'hidden_observation_sequence') {
+        return { ...block, candidates: [...block.candidates].reverse() };
+      }
+      if (block.kind === 'first_passage_exact_hit') {
+        return { ...block, candidates: [...block.candidates].reverse() };
+      }
+      return { ...block, candidates: [...block.candidates].reverse() };
+    });
     const reordered = requireSuccess(
       inferFiniteIndependentEvidenceBundleCandidates({
         ...request,
         candidates: [...request.candidates].reverse(),
-        evidenceBlocks: [...request.evidenceBlocks]
-          .reverse()
-          .map((block) => ({ ...block, candidates: [...block.candidates].reverse() }))
+        evidenceBlocks: reorderedBlocks
       })
     );
     expect(reordered).toEqual(baseline);
-    expect(reordered.selectedCandidates[0]?.value).toBeDefined();
   });
 
   it('treats a likelihood-one evidence block as neutral', () => {
     const request = mixedRequest();
     const baseline = requireSuccess(inferFiniteIndependentEvidenceBundleCandidates(request));
-    const neutral = {
-      blockId: 'neutral',
-      kind: 'hidden_observation_sequence' as const,
-      observations: ['rare'],
-      candidates: [oneStateHiddenBinding('a', 1), oneStateHiddenBinding('b', 1)]
-    };
     const extended = requireSuccess(
       inferFiniteIndependentEvidenceBundleCandidates({
         ...request,
-        evidenceBlocks: [...request.evidenceBlocks, neutral]
+        evidenceBlocks: [
+          ...request.evidenceBlocks,
+          {
+            blockId: 'neutral',
+            kind: 'hidden_observation_sequence',
+            observations: ['rare'],
+            candidates: [oneStateHiddenBinding('a', 1), oneStateHiddenBinding('b', 1)]
+          }
+        ]
       })
     );
     expect(extended.selectedCandidateIds).toEqual(baseline.selectedCandidateIds);
@@ -354,16 +379,18 @@ describe('Candidate K finite independent evidence-bundle candidate inference', (
   it('preserves selection when every candidate receives the same finite likelihood factor', () => {
     const request = mixedRequest();
     const baseline = requireSuccess(inferFiniteIndependentEvidenceBundleCandidates(request));
-    const common = {
-      blockId: 'common-factor',
-      kind: 'hidden_observation_sequence' as const,
-      observations: ['rare'],
-      candidates: [oneStateHiddenBinding('a', 0.5), oneStateHiddenBinding('b', 0.5)]
-    };
     const extended = requireSuccess(
       inferFiniteIndependentEvidenceBundleCandidates({
         ...request,
-        evidenceBlocks: [...request.evidenceBlocks, common]
+        evidenceBlocks: [
+          ...request.evidenceBlocks,
+          {
+            blockId: 'common-factor',
+            kind: 'hidden_observation_sequence',
+            observations: ['rare'],
+            candidates: [oneStateHiddenBinding('a', 0.5), oneStateHiddenBinding('b', 0.5)]
+          }
+        ]
       })
     );
     expect(extended.selectedCandidateIds).toEqual(baseline.selectedCandidateIds);
@@ -498,29 +525,29 @@ describe('Candidate K finite independent evidence-bundle candidate inference', (
 
   it('rejects missing, unknown, and duplicate candidate bindings in evidence blocks', () => {
     const base = mixedRequest();
+    const { hidden } = requireMixedBlocks(base);
     const missing = inferFiniteIndependentEvidenceBundleCandidates({
       ...base,
-      evidenceBlocks: [{ ...base.evidenceBlocks[0]!, candidates: [base.evidenceBlocks[0]!.candidates[0]!] }]
+      evidenceBlocks: [{ ...hidden, candidates: [hidden.candidates[0]!] }]
     });
     expect(missing.ok).toBe(false);
     if (!missing.ok) expect(missing.failure.code).toBe('invalid_block_candidate_bindings');
 
     const unknown = inferFiniteIndependentEvidenceBundleCandidates({
       ...base,
-      evidenceBlocks: [{
-        ...base.evidenceBlocks[0]!,
-        candidates: [base.evidenceBlocks[0]!.candidates[0]!, { ...base.evidenceBlocks[0]!.candidates[1]!, candidateId: 'x' }]
-      }]
+      evidenceBlocks: [
+        {
+          ...hidden,
+          candidates: [hidden.candidates[0]!, { ...hidden.candidates[1]!, candidateId: 'x' }]
+        }
+      ]
     });
     expect(unknown.ok).toBe(false);
     if (!unknown.ok) expect(unknown.failure.code).toBe('invalid_block_candidate_bindings');
 
     const duplicate = inferFiniteIndependentEvidenceBundleCandidates({
       ...base,
-      evidenceBlocks: [{
-        ...base.evidenceBlocks[0]!,
-        candidates: [base.evidenceBlocks[0]!.candidates[0]!, base.evidenceBlocks[0]!.candidates[0]!]
-      }]
+      evidenceBlocks: [{ ...hidden, candidates: [hidden.candidates[0]!, hidden.candidates[0]!] }]
     });
     expect(duplicate.ok).toBe(false);
     if (!duplicate.ok) expect(duplicate.failure.code).toBe('invalid_block_candidate_bindings');
@@ -531,12 +558,14 @@ describe('Candidate K finite independent evidence-bundle candidate inference', (
     invalid.model = { ...invalid.model, transitions: [] };
     const result = inferFiniteIndependentEvidenceBundleCandidates({
       candidates: [{ candidateId: 'a' }],
-      evidenceBlocks: [{
-        blockId: 'bad-hidden',
-        kind: 'hidden_observation_sequence',
-        observations: ['red'],
-        candidates: [invalid]
-      }],
+      evidenceBlocks: [
+        {
+          blockId: 'bad-hidden',
+          kind: 'hidden_observation_sequence',
+          observations: ['red'],
+          candidates: [invalid]
+        }
+      ],
       independenceAssumption: INDEPENDENCE
     });
     expect(result.ok).toBe(false);
@@ -548,14 +577,20 @@ describe('Candidate K finite independent evidence-bundle candidate inference', (
 
   it('enforces candidate/block resource limits and finite candidate scalar values', () => {
     const request = mixedRequest();
-    const tooManyCandidates = inferFiniteIndependentEvidenceBundleCandidates(request, { maxCandidates: 1 });
+    const tooManyCandidates = inferFiniteIndependentEvidenceBundleCandidates(request, {
+      maxCandidates: 1
+    });
     expect(tooManyCandidates.ok).toBe(false);
-    if (!tooManyCandidates.ok) expect(tooManyCandidates.failure.code).toBe('candidate_count_exceeds_limit');
-
-    const tooManyBlocks = inferFiniteIndependentEvidenceBundleCandidates(request, { maxEvidenceBlocks: 1 });
+    if (!tooManyCandidates.ok) {
+      expect(tooManyCandidates.failure.code).toBe('candidate_count_exceeds_limit');
+    }
+    const tooManyBlocks = inferFiniteIndependentEvidenceBundleCandidates(request, {
+      maxEvidenceBlocks: 1
+    });
     expect(tooManyBlocks.ok).toBe(false);
-    if (!tooManyBlocks.ok) expect(tooManyBlocks.failure.code).toBe('evidence_block_count_exceeds_limit');
-
+    if (!tooManyBlocks.ok) {
+      expect(tooManyBlocks.failure.code).toBe('evidence_block_count_exceeds_limit');
+    }
     const nonFiniteValue = inferFiniteIndependentEvidenceBundleCandidates({
       ...request,
       candidates: [{ candidateId: 'a', value: Number.POSITIVE_INFINITY }, { candidateId: 'b' }]
