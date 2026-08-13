@@ -102,9 +102,9 @@ type JointFailure = {
     message: string;
     stateId?: StateId;
     toStateId?: StateId;
-    symbol?: string;
+    symbol?: string | undefined;
     step?: number;
-    actual?: number;
+    actual?: number | undefined;
     expected?: number;
     tolerance?: number;
   };
