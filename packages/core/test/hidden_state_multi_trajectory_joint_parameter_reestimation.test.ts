@@ -276,8 +276,8 @@ describe('Candidate W finite hidden-state multi-trajectory joint parameter re-es
 
   it('distinguishes common-current batch update from sequential Candidate V chaining', () => {
     const req = batchRequest([
-      ['red', 'red', 'red', 'red'],
-      ['blue', 'blue', 'blue', 'blue']
+      ['red', 'red', 'red', 'blue', 'red'],
+      ['blue', 'blue', 'blue', 'red', 'blue']
     ]);
     const batch = requireBatchSuccess(reestimateFiniteHiddenStateParametersJointMultipleTrajectoriesOneStep(model(), req));
     let sequentialModel = model();
