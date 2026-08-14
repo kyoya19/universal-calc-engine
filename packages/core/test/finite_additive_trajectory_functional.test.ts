@@ -444,13 +444,14 @@ describe('Candidate AA finite additive trajectory-functional qualification', () 
       ],
       transitionValueByStep: Array.from({ length: horizon }, () => row.map((entry) => ({ ...entry })))
     };
+    const expectedLog = 100 * Math.log(p) + Math.log(1 + 100 * (1 - p));
     const forward = requireForward(
       analyzeFiniteAdditiveTrajectoryFunctionalDistribution(model, request, { maxSupportSize: 1_000_000 })
     );
     const atom = forward.finalAggregateDistribution.find((entry) => entry.valueTicks === 100)!;
     expect(atom.probability).toBeNull();
     expect(atom.probabilityUnderflowed).toBe(true);
-    expect(atom.logProbability).toBeCloseTo(100 * Math.log(p), 10);
+    expect(atom.logProbability).toBeCloseTo(expectedLog, 10);
 
     const conditioned = requireCondition(
       conditionFiniteAdditiveTrajectoryFunctionalOnExactValue(
@@ -462,7 +463,7 @@ describe('Candidate AA finite additive trajectory-functional qualification', () 
     expect(conditioned.possible).toBe(true);
     expect(conditioned.eventProbability).toBeNull();
     expect(conditioned.diagnostics.eventProbabilityUnderflowed).toBe(true);
-    expect(conditioned.logEventProbability).toBeCloseTo(100 * Math.log(p), 10);
+    expect(conditioned.logEventProbability).toBeCloseTo(expectedLog, 10);
     expect(stateProbability(conditioned.smoothingSteps![0]!.smoothedDistribution, 'a')).toBeCloseTo(1, 14);
   });
 
