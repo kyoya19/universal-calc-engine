@@ -129,7 +129,7 @@ function denseOracle(
             beta[t + 1]![j]!) /
           total;
         pairwise[t]![i]![j] = joint;
-        expectedCounts[i]![j] += joint;
+        expectedCounts[i]![j] = expectedCounts[i]![j]! + joint;
       }
     }
   }
