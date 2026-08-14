@@ -23,6 +23,10 @@ export {
   conditionFiniteHiddenStateObservationSequenceWithStateEvidenceMasks,
   finiteHiddenStateEvidenceMaskConditioningResultToJson
 } from './hidden_state_evidence_mask_conditioning';
+export {
+  conditionFiniteHiddenStateOnCoarsenedObservationEvidence,
+  finiteHiddenStateCoarsenedObservationConditioningResultToJson
+} from './hidden_state_coarsened_observation_conditioning';
 export * from './hidden_state_transition_reestimation';
 export * from './hidden_state_observation_kernel_reestimation';
 export * from './hidden_state_initial_distribution_reestimation';
