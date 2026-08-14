@@ -65,7 +65,7 @@ export type HiddenStateCoarsenedObservationExpectedTransitionCount = {
 };
 
 export type FiniteHiddenStateCoarsenedObservationConditioningDiagnostics = {
-  method: 'log_domain_forward_backward_hard_set_valued_observation_conditioning';
+  method: 'scaled_forward_backward_hard_set_valued_observation_conditioning';
   numericRepresentation: 'javascript_number_float64';
   simulationUsed: false;
   inputNormalizationApplied: false;
@@ -114,7 +114,7 @@ export type CoarsenedObservationConditioningFailureCode =
   | 'coarsened_pairwise_mass_conservation_violation'
   | 'coarsened_pairwise_marginal_consistency_violation'
   | 'coarsened_expected_transition_count_conservation_violation'
-  | 'internal_coarsened_observation_structural_inconsistency'
+  | 'internal_coarsened_observation_conditioning_structural_inconsistency'
   | 'non_finite_coarsened_observation_conditioning_result';
 
 export type CoarsenedObservationConditioningFailure = {
@@ -216,14 +216,14 @@ function makeValidationRequest(
   };
 }
 
-function resolveCandidateYOptions(
+function resolveOptions(
   options: FiniteHiddenStateCoarsenedObservationConditioningOptions,
-  baseProbabilityTolerance: number,
-  baseMaxObservations: number,
+  probabilityTolerance: number,
+  maxObservations: number,
   transitionCount: number
 ): ResolvedCandidateYOptions | FiniteHiddenStateCoarsenedObservationConditioningFailure {
   const pairwiseConsistencyTolerance =
-    options.pairwiseConsistencyTolerance ?? baseProbabilityTolerance * 20;
+    options.pairwiseConsistencyTolerance ?? probabilityTolerance * 20;
   if (!Number.isFinite(pairwiseConsistencyTolerance) || pairwiseConsistencyTolerance <= 0) {
     return failure(
       'invalid_candidate_y_tolerance',
@@ -231,7 +231,6 @@ function resolveCandidateYOptions(
       { path: 'options.pairwiseConsistencyTolerance' }
     );
   }
-
   const expectedCountTolerance =
     options.expectedCountTolerance ?? pairwiseConsistencyTolerance * Math.max(1, transitionCount);
   if (!Number.isFinite(expectedCountTolerance) || expectedCountTolerance <= 0) {
@@ -241,23 +240,22 @@ function resolveCandidateYOptions(
       { path: 'options.expectedCountTolerance' }
     );
   }
-
   return {
-    probabilityTolerance: baseProbabilityTolerance,
+    probabilityTolerance,
     pairwiseConsistencyTolerance,
     expectedCountTolerance,
-    maxObservations: baseMaxObservations
+    maxObservations
   };
 }
 
-function validateAndCanonicalizeEvidenceSets(
+function canonicalizeEvidenceSets(
   request: FiniteHiddenStateCoarsenedObservationConditioningRequest
 ): string[][] | FiniteHiddenStateCoarsenedObservationConditioningFailure {
   const knownSymbols = new Set(request.alphabet);
   const canonical: string[][] = [];
   for (let step = 0; step < request.observationEvidenceSets.length; step += 1) {
-    const evidenceSet = request.observationEvidenceSets[step];
-    if (!Array.isArray(evidenceSet)) {
+    const entry = request.observationEvidenceSets[step];
+    if (!Array.isArray(entry)) {
       return failure(
         'invalid_observation_evidence_set_entry',
         `observationEvidenceSets[${step}] must be an array`,
@@ -265,9 +263,9 @@ function validateAndCanonicalizeEvidenceSets(
       );
     }
     const seen = new Set<string>();
-    const current: string[] = [];
-    for (let index = 0; index < evidenceSet.length; index += 1) {
-      const symbol = evidenceSet[index];
+    const symbols: string[] = [];
+    for (let index = 0; index < entry.length; index += 1) {
+      const symbol = entry[index];
       if (typeof symbol !== 'string') {
         return failure(
           'invalid_observation_evidence_set_entry',
@@ -290,21 +288,19 @@ function validateAndCanonicalizeEvidenceSets(
         );
       }
       seen.add(symbol);
-      current.push(symbol);
+      symbols.push(symbol);
     }
-    current.sort(compareStrings);
-    canonical.push(current);
+    symbols.sort(compareStrings);
+    canonical.push(symbols);
   }
   return canonical;
 }
 
-function buildTransitionRows(
+function buildTransitions(
   model: DefinitionModel,
   stateIds: StateId[]
 ): Map<StateId, TransitionEdge[]> {
   const rows = new Map<StateId, TransitionEdge[]>();
-  for (const stateId of stateIds) rows.set(stateId, []);
-
   for (const stateId of stateIds) {
     const state = model.states.find((candidate) => candidate.id === stateId);
     if (state !== undefined && isTerminalState(state)) {
@@ -339,7 +335,7 @@ function buildKernel(
   return kernel;
 }
 
-function buildInitialDistribution(
+function buildInitial(
   request: FiniteHiddenStateCoarsenedObservationConditioningRequest,
   stateIds: StateId[]
 ): Map<StateId, number> {
@@ -359,69 +355,57 @@ function evidenceFactor(
   return total;
 }
 
-function logAdd(left: number, right: number): number {
-  if (left === Number.NEGATIVE_INFINITY) return right;
-  if (right === Number.NEGATIVE_INFINITY) return left;
-  const high = Math.max(left, right);
-  const low = Math.min(left, right);
-  return high + Math.log1p(Math.exp(low - high));
+function denseDistribution(
+  stateIds: StateId[],
+  values: Map<StateId, number>
+): HiddenStateCoarsenedObservationDistribution {
+  return stateIds.map((stateId) => ({ stateId, probability: values.get(stateId) ?? 0 }));
 }
 
-function logProbability(probability: number): number {
-  return probability === 0 ? Number.NEGATIVE_INFINITY : Math.log(probability);
+function distributionMap(
+  distribution: HiddenStateCoarsenedObservationDistribution
+): Map<StateId, number> {
+  return new Map(distribution.map((entry) => [entry.stateId, entry.probability] as const));
 }
 
-function logTotal(stateIds: StateId[], logMass: Map<StateId, number>): number {
-  let total = Number.NEGATIVE_INFINITY;
-  for (const stateId of stateIds) {
-    total = logAdd(total, logMass.get(stateId) ?? Number.NEGATIVE_INFINITY);
-  }
+function totalDistribution(
+  stateIds: StateId[],
+  values: Map<StateId, number>
+): number {
+  let total = 0;
+  for (const stateId of stateIds) total += values.get(stateId) ?? 0;
   return total;
 }
 
-function denseDistribution(
+function normalize(
   stateIds: StateId[],
-  massByState: Map<StateId, number>
-): HiddenStateCoarsenedObservationDistribution {
-  return stateIds.map((stateId) => ({
-    stateId,
-    probability: massByState.get(stateId) ?? 0
-  }));
-}
-
-function normalizeLogDistribution(
-  stateIds: StateId[],
-  logMass: Map<StateId, number>,
-  totalLogMass: number,
+  values: Map<StateId, number>,
   step: number,
   tolerance: number,
   kind: 'filtering' | 'smoothing'
-):
-  | HiddenStateCoarsenedObservationDistribution
-  | FiniteHiddenStateCoarsenedObservationConditioningFailure {
-  if (!Number.isFinite(totalLogMass)) {
+): HiddenStateCoarsenedObservationDistribution | FiniteHiddenStateCoarsenedObservationConditioningFailure {
+  const total = totalDistribution(stateIds, values);
+  if (!Number.isFinite(total) || total <= 0) {
     return failure(
       kind === 'filtering'
         ? 'coarsened_filtering_mass_conservation_violation'
         : 'coarsened_smoothing_mass_conservation_violation',
-      `Coarsened ${kind} mass is zero for evidence treated as possible`,
-      { step, tolerance }
+      `Coarsened ${kind} mass must be finite and positive for possible evidence`,
+      { step, actual: total, tolerance }
     );
   }
-
-  const raw: HiddenStateCoarsenedObservationDistribution = [];
-  let total = 0;
+  const normalized: HiddenStateCoarsenedObservationDistribution = [];
+  let normalizedTotal = 0;
   for (const stateId of stateIds) {
-    const value = logMass.get(stateId) ?? Number.NEGATIVE_INFINITY;
-    if (Number.isNaN(value) || value === Number.POSITIVE_INFINITY) {
+    const value = values.get(stateId) ?? 0;
+    if (!Number.isFinite(value) || value < 0) {
       return failure(
         'non_finite_coarsened_observation_conditioning_result',
-        `Coarsened ${kind} log mass became invalid`,
-        { step, stateId }
+        `Coarsened ${kind} mass became invalid`,
+        { step, stateId, actual: value }
       );
     }
-    const probability =
-      value === Number.NEGATIVE_INFINITY ? 0 : Math.exp(value - totalLogMass);
+    const probability = value / total;
     if (!Number.isFinite(probability) || probability < 0) {
       return failure(
         'non_finite_coarsened_observation_conditioning_result',
@@ -429,63 +413,37 @@ function normalizeLogDistribution(
         { step, stateId, actual: probability }
       );
     }
-    raw.push({ stateId, probability });
-    total += probability;
+    normalized.push({ stateId, probability });
+    normalizedTotal += probability;
   }
-
-  if (!Number.isFinite(total) || total <= 0 || Math.abs(total - 1) > tolerance) {
+  if (Math.abs(normalizedTotal - 1) > tolerance) {
     return failure(
       kind === 'filtering'
         ? 'coarsened_filtering_mass_conservation_violation'
         : 'coarsened_smoothing_mass_conservation_violation',
       `Coarsened ${kind} probabilities do not sum to one`,
-      { step, actual: total, expected: 1, tolerance }
+      { step, actual: normalizedTotal, expected: 1, tolerance }
     );
   }
-
-  return raw.map((entry) => ({
-    stateId: entry.stateId,
-    probability: entry.probability / total
-  }));
+  return normalized;
 }
 
-function predictiveFromFiltered(
+function checkDistribution(
   stateIds: StateId[],
-  filtered: HiddenStateCoarsenedObservationDistribution,
-  transitions: Map<StateId, TransitionEdge[]>
-): Map<StateId, number> {
-  const predictive = new Map<StateId, number>();
-  for (const stateId of stateIds) predictive.set(stateId, 0);
-  const filteredByState = new Map(
-    filtered.map((entry) => [entry.stateId, entry.probability] as const)
-  );
-  for (const fromStateId of stateIds) {
-    const source = filteredByState.get(fromStateId) ?? 0;
-    if (source === 0) continue;
-    for (const edge of transitions.get(fromStateId) ?? []) {
-      predictive.set(edge.to, (predictive.get(edge.to) ?? 0) + source * edge.probability);
-    }
-  }
-  return predictive;
-}
-
-function checkPredictive(
-  stateIds: StateId[],
-  predictive: Map<StateId, number>,
+  values: Map<StateId, number>,
   step: number,
   tolerance: number
 ): FiniteHiddenStateCoarsenedObservationConditioningFailure | undefined {
-  let total = 0;
+  const total = totalDistribution(stateIds, values);
   for (const stateId of stateIds) {
-    const probability = predictive.get(stateId) ?? 0;
-    if (!Number.isFinite(probability) || probability < 0) {
+    const value = values.get(stateId) ?? 0;
+    if (!Number.isFinite(value) || value < 0) {
       return failure(
         'non_finite_coarsened_observation_conditioning_result',
         'Coarsened predictive probability became invalid',
-        { step, stateId, actual: probability }
+        { step, stateId, actual: value }
       );
     }
-    total += probability;
   }
   if (!Number.isFinite(total) || Math.abs(total - 1) > tolerance) {
     return failure(
@@ -497,32 +455,60 @@ function checkPredictive(
   return undefined;
 }
 
-function directProbabilityFromLog(logValue: number, tolerance: number): number | null {
-  const probability = Math.exp(logValue);
-  if (probability === 0 && Number.isFinite(logValue)) return null;
-  if (probability > 1 && probability <= 1 + tolerance) return 1;
-  return probability;
+function propagate(
+  stateIds: StateId[],
+  filtered: HiddenStateCoarsenedObservationDistribution,
+  transitions: Map<StateId, TransitionEdge[]>
+): Map<StateId, number> {
+  const result = new Map<StateId, number>();
+  for (const stateId of stateIds) result.set(stateId, 0);
+  const source = distributionMap(filtered);
+  for (const fromStateId of stateIds) {
+    const sourceProbability = source.get(fromStateId) ?? 0;
+    for (const edge of transitions.get(fromStateId) ?? []) {
+      result.set(edge.to, (result.get(edge.to) ?? 0) + sourceProbability * edge.probability);
+    }
+  }
+  return result;
 }
 
-function makeDiagnostics(
-  resolved: ResolvedCandidateYOptions,
+function zeroExpectedCounts(
+  stateIds: StateId[]
+): HiddenStateCoarsenedObservationExpectedTransitionCount[] {
+  const result: HiddenStateCoarsenedObservationExpectedTransitionCount[] = [];
+  for (const fromStateId of stateIds) {
+    for (const toStateId of stateIds) {
+      result.push({ fromStateId, toStateId, expectedCount: 0 });
+    }
+  }
+  return result;
+}
+
+function directProbabilityFromLog(logLikelihood: number): number | null {
+  const direct = Math.exp(logLikelihood);
+  if (direct === 0 && Number.isFinite(logLikelihood)) return null;
+  return direct;
+}
+
+function diagnostics(
+  options: ResolvedCandidateYOptions,
   requested: number,
   processed: number,
   underflowed: boolean,
   impossibleAtStep: number | null
 ): FiniteHiddenStateCoarsenedObservationConditioningDiagnostics {
   return {
-    method: 'log_domain_forward_backward_hard_set_valued_observation_conditioning',
+    method: 'scaled_forward_backward_hard_set_valued_observation_conditioning',
     numericRepresentation: 'javascript_number_float64',
     simulationUsed: false,
     inputNormalizationApplied: false,
     posteriorNormalizationApplied: true,
     timeConvention: 'emit_at_step_0_then_transition_and_emit',
     terminalSemantics: 'implicit_self_retention',
-    probabilityTolerance: resolved.probabilityTolerance,
-    pairwiseConsistencyTolerance: resolved.pairwiseConsistencyTolerance,
-    expectedCountTolerance: resolved.expectedCountTolerance,
-    maxObservations: resolved.maxObservations,
+    probabilityTolerance: options.probabilityTolerance,
+    pairwiseConsistencyTolerance: options.pairwiseConsistencyTolerance,
+    expectedCountTolerance: options.expectedCountTolerance,
+    maxObservations: options.maxObservations,
     observationsRequested: requested,
     observationsProcessed: processed,
     combinedEvidenceProbabilityUnderflowed: underflowed,
@@ -550,71 +536,51 @@ function makeDiagnostics(
   };
 }
 
-function buildBackwardMessages(
-  canonicalEvidenceSets: string[][],
+function buildScaledBackward(
+  evidenceSets: string[][],
   stateIds: StateId[],
   transitions: Map<StateId, TransitionEdge[]>,
-  kernel: Map<StateId, Map<string, number>>
-):
-  | Array<Map<StateId, number>>
-  | FiniteHiddenStateCoarsenedObservationConditioningFailure {
-  const finalStep = canonicalEvidenceSets.length - 1;
-  const messages: Array<Map<StateId, number>> = new Array(canonicalEvidenceSets.length);
+  kernel: Map<StateId, Map<string, number>>,
+  scales: number[]
+): Array<Map<StateId, number>> | FiniteHiddenStateCoarsenedObservationConditioningFailure {
+  const messages: Array<Map<StateId, number>> = new Array(evidenceSets.length);
   const final = new Map<StateId, number>();
-  for (const stateId of stateIds) final.set(stateId, 0);
-  messages[finalStep] = final;
+  for (const stateId of stateIds) final.set(stateId, 1);
+  messages[evidenceSets.length - 1] = final;
 
-  for (let step = finalStep - 1; step >= 0; step -= 1) {
-    const nextSet = canonicalEvidenceSets[step + 1];
+  for (let step = evidenceSets.length - 2; step >= 0; step -= 1) {
+    const nextSet = evidenceSets[step + 1];
     const nextMessage = messages[step + 1];
-    if (nextSet === undefined || nextMessage === undefined) {
+    const nextScale = scales[step + 1];
+    if (nextSet === undefined || nextMessage === undefined || nextScale === undefined || nextScale <= 0) {
       return failure(
-        'internal_coarsened_observation_structural_inconsistency',
-        'Missing future evidence set or backward message',
+        'internal_coarsened_observation_conditioning_structural_inconsistency',
+        'Missing future evidence, scale, or backward message',
         { step: step + 1 }
       );
     }
     const current = new Map<StateId, number>();
     for (const fromStateId of stateIds) {
-      let value = Number.NEGATIVE_INFINITY;
+      let value = 0;
       for (const edge of transitions.get(fromStateId) ?? []) {
-        if (edge.probability === 0) continue;
-        const factor = evidenceFactor(edge.to, nextSet, kernel);
-        const future = nextMessage.get(edge.to) ?? Number.NEGATIVE_INFINITY;
-        if (factor === 0 || future === Number.NEGATIVE_INFINITY) continue;
-        const term = logProbability(edge.probability) + logProbability(factor) + future;
-        if (Number.isNaN(term) || term === Number.POSITIVE_INFINITY) {
-          return failure(
-            'non_finite_coarsened_observation_conditioning_result',
-            'Backward coarsened-observation log message became invalid',
-            { step, fromStateId, toStateId: edge.to }
-          );
-        }
-        value = logAdd(value, term);
+        value +=
+          edge.probability *
+          evidenceFactor(edge.to, nextSet, kernel) *
+          (nextMessage.get(edge.to) ?? 0);
+      }
+      value /= nextScale;
+      if (!Number.isFinite(value) || value < 0) {
+        return failure(
+          'non_finite_coarsened_observation_conditioning_result',
+          'Scaled backward message became invalid',
+          { step, stateId: fromStateId, actual: value }
+        );
       }
       current.set(fromStateId, value);
     }
     messages[step] = current;
   }
   return messages;
-}
-
-function zeroExpectedCounts(
-  stateIds: StateId[]
-): HiddenStateCoarsenedObservationExpectedTransitionCount[] {
-  const counts: HiddenStateCoarsenedObservationExpectedTransitionCount[] = [];
-  for (const fromStateId of stateIds) {
-    for (const toStateId of stateIds) {
-      counts.push({ fromStateId, toStateId, expectedCount: 0 });
-    }
-  }
-  return counts;
-}
-
-function distributionMap(
-  distribution: HiddenStateCoarsenedObservationDistribution
-): Map<StateId, number> {
-  return new Map(distribution.map((entry) => [entry.stateId, entry.probability] as const));
 }
 
 export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
@@ -625,19 +591,18 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
   const containerFailure = validateEvidenceContainer(request);
   if (containerFailure !== undefined) return containerFailure;
 
-  const validationRequest = makeValidationRequest(request);
   const baseValidation = filterFiniteHiddenStateObservationSequence(
     model,
-    validationRequest,
+    makeValidationRequest(request),
     options
   );
   if (!baseValidation.ok) return baseValidation;
 
-  const canonicalEvidenceSets = validateAndCanonicalizeEvidenceSets(request);
-  if (!Array.isArray(canonicalEvidenceSets)) return canonicalEvidenceSets;
+  const evidenceSets = canonicalizeEvidenceSets(request);
+  if (!Array.isArray(evidenceSets)) return evidenceSets;
 
-  const transitionCount = Math.max(0, canonicalEvidenceSets.length - 1);
-  const resolved = resolveCandidateYOptions(
+  const transitionCount = Math.max(0, evidenceSets.length - 1);
+  const resolved = resolveOptions(
     options,
     baseValidation.diagnostics.probabilityTolerance,
     baseValidation.diagnostics.maxObservations,
@@ -646,31 +611,30 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
   if ('ok' in resolved) return resolved;
 
   const stateIds = model.states.map((state) => state.id).sort(compareStrings);
-  const transitions = buildTransitionRows(model, stateIds);
+  const transitions = buildTransitions(model, stateIds);
   const kernel = buildKernel(request, stateIds);
-  const initial = buildInitialDistribution(request, stateIds);
-  const forwardMessages: Array<Map<StateId, number>> = [];
+  const initial = buildInitial(request, stateIds);
   const filteringSteps: HiddenStateCoarsenedObservationFilteringStep[] = [];
+  const scales: number[] = [];
   let previousFiltered: HiddenStateCoarsenedObservationDistribution | undefined;
-  let previousLogEvidence = 0;
+  let logLikelihood = 0;
 
-  for (let step = 0; step < canonicalEvidenceSets.length; step += 1) {
-    const evidenceSet = canonicalEvidenceSets[step];
+  for (let step = 0; step < evidenceSets.length; step += 1) {
+    const evidenceSet = evidenceSets[step];
     if (evidenceSet === undefined) {
       return failure(
-        'internal_coarsened_observation_structural_inconsistency',
-        'Missing observation evidence set after validation',
+        'internal_coarsened_observation_conditioning_structural_inconsistency',
+        'Missing canonical evidence set',
         { step }
       );
     }
-
     const predictive =
       step === 0
         ? new Map(initial)
         : previousFiltered === undefined
           ? new Map<StateId, number>()
-          : predictiveFromFiltered(stateIds, previousFiltered, transitions);
-    const predictiveFailure = checkPredictive(
+          : propagate(stateIds, previousFiltered, transitions);
+    const predictiveFailure = checkDistribution(
       stateIds,
       predictive,
       step,
@@ -678,7 +642,8 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
     );
     if (predictiveFailure !== undefined) return predictiveFailure;
 
-    const current = new Map<StateId, number>();
+    const weighted = new Map<StateId, number>();
+    let scale = 0;
     for (const stateId of stateIds) {
       const factor = evidenceFactor(stateId, evidenceSet, kernel);
       if (!Number.isFinite(factor) || factor < 0 || factor > 1 + resolved.probabilityTolerance) {
@@ -688,49 +653,19 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
           { step, stateId, actual: factor }
         );
       }
-      if (factor === 0) {
-        current.set(stateId, Number.NEGATIVE_INFINITY);
-        continue;
-      }
-
-      if (step === 0) {
-        const initialProbability = initial.get(stateId) ?? 0;
-        current.set(
-          stateId,
-          initialProbability === 0
-            ? Number.NEGATIVE_INFINITY
-            : logProbability(initialProbability) + logProbability(factor)
-        );
-        continue;
-      }
-
-      const previous = forwardMessages[step - 1];
-      if (previous === undefined) {
+      const value = (predictive.get(stateId) ?? 0) * factor;
+      if (!Number.isFinite(value) || value < 0) {
         return failure(
-          'internal_coarsened_observation_structural_inconsistency',
-          'Missing previous forward message',
-          { step }
+          'non_finite_coarsened_observation_conditioning_result',
+          'Coarsened filtering weighted mass became invalid',
+          { step, stateId, actual: value }
         );
       }
-      let incoming = Number.NEGATIVE_INFINITY;
-      for (const fromStateId of stateIds) {
-        const previousMass = previous.get(fromStateId) ?? Number.NEGATIVE_INFINITY;
-        if (previousMass === Number.NEGATIVE_INFINITY) continue;
-        const transition =
-          transitions.get(fromStateId)?.find((edge) => edge.to === stateId)?.probability ?? 0;
-        if (transition === 0) continue;
-        incoming = logAdd(incoming, previousMass + logProbability(transition));
-      }
-      current.set(
-        stateId,
-        incoming === Number.NEGATIVE_INFINITY
-          ? Number.NEGATIVE_INFINITY
-          : incoming + logProbability(factor)
-      );
+      weighted.set(stateId, value);
+      scale += value;
     }
 
-    const currentLogEvidence = logTotal(stateIds, current);
-    if (currentLogEvidence === Number.NEGATIVE_INFINITY) {
+    if (scale === 0) {
       filteringSteps.push({
         step,
         allowedObservationSymbols: [...evidenceSet],
@@ -742,126 +677,88 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
       return {
         ok: true,
         possible: false,
-        observationEvidenceSets: canonicalEvidenceSets.map((entry) => [...entry]),
+        observationEvidenceSets: evidenceSets.map((entry) => [...entry]),
         filteringSteps,
         smoothingSteps: null,
         pairwiseSteps: null,
         expectedTransitionCounts: null,
         logLikelihood: null,
         combinedEvidenceProbability: 0,
-        diagnostics: makeDiagnostics(
-          resolved,
-          canonicalEvidenceSets.length,
-          step + 1,
-          false,
-          step
-        )
+        diagnostics: diagnostics(resolved, evidenceSets.length, step + 1, false, step)
       };
     }
-    if (!Number.isFinite(currentLogEvidence)) {
+    if (!Number.isFinite(scale) || scale < 0 || scale > 1 + resolved.probabilityTolerance * 10) {
       return failure(
-        'non_finite_coarsened_observation_conditioning_result',
-        'Coarsened prefix log likelihood became invalid',
-        { step, actual: currentLogEvidence }
+        'coarsened_filtering_mass_conservation_violation',
+        'Coarsened evidence scale became invalid',
+        { step, actual: scale, tolerance: resolved.probabilityTolerance * 10 }
       );
     }
 
-    const filtered = normalizeLogDistribution(
+    const filtered = normalize(
       stateIds,
-      current,
-      currentLogEvidence,
+      weighted,
       step,
       resolved.probabilityTolerance * 10,
       'filtering'
     );
     if (!Array.isArray(filtered)) return filtered;
-
-    const incrementalLogEvidence = currentLogEvidence - previousLogEvidence;
-    const evidenceProbability = directProbabilityFromLog(
-      incrementalLogEvidence,
-      resolved.probabilityTolerance
-    );
-    if (
-      evidenceProbability !== null &&
-      (!Number.isFinite(evidenceProbability) ||
-        evidenceProbability < 0 ||
-        evidenceProbability > 1 + resolved.probabilityTolerance * 10)
-    ) {
+    logLikelihood += Math.log(scale);
+    if (!Number.isFinite(logLikelihood)) {
       return failure(
-        'coarsened_filtering_mass_conservation_violation',
-        'Coarsened step evidence probability became invalid',
-        { step, actual: evidenceProbability, tolerance: resolved.probabilityTolerance * 10 }
+        'non_finite_coarsened_observation_conditioning_result',
+        'Coarsened evidence log likelihood became invalid',
+        { step, actual: logLikelihood }
       );
     }
-
+    scales.push(scale);
     filteringSteps.push({
       step,
       allowedObservationSymbols: [...evidenceSet],
       predictiveDistribution: denseDistribution(stateIds, predictive),
-      evidenceProbability:
-        evidenceProbability === null ? null : Math.min(1, evidenceProbability),
-      prefixLogLikelihood: currentLogEvidence,
+      evidenceProbability: scale,
+      prefixLogLikelihood: logLikelihood,
       filteredDistribution: filtered
     });
-    forwardMessages.push(current);
     previousFiltered = filtered;
-    previousLogEvidence = currentLogEvidence;
   }
 
-  const completeLogEvidence = previousLogEvidence;
-  const directCombinedProbability = directProbabilityFromLog(
-    completeLogEvidence,
-    resolved.probabilityTolerance
-  );
+  const directProbability = directProbabilityFromLog(logLikelihood);
   if (
-    directCombinedProbability !== null &&
-    (!Number.isFinite(directCombinedProbability) ||
-      directCombinedProbability < 0 ||
-      directCombinedProbability > 1 + resolved.probabilityTolerance * 10)
+    directProbability !== null &&
+    (!Number.isFinite(directProbability) || directProbability < 0 || directProbability > 1 + resolved.probabilityTolerance * 10)
   ) {
     return failure(
       'coarsened_filtering_mass_conservation_violation',
       'Combined coarsened observation evidence probability became invalid',
-      { actual: directCombinedProbability, tolerance: resolved.probabilityTolerance * 10 }
+      { actual: directProbability, tolerance: resolved.probabilityTolerance * 10 }
     );
   }
-  const underflowed = directCombinedProbability === null;
+  const underflowed = directProbability === null;
 
-  const backwardMessages = buildBackwardMessages(
-    canonicalEvidenceSets,
-    stateIds,
-    transitions,
-    kernel
-  );
-  if (!Array.isArray(backwardMessages)) return backwardMessages;
+  const backward = buildScaledBackward(evidenceSets, stateIds, transitions, kernel, scales);
+  if (!Array.isArray(backward)) return backward;
 
   const smoothingSteps: HiddenStateCoarsenedObservationSmoothingStep[] = [];
-  for (let step = 0; step < canonicalEvidenceSets.length; step += 1) {
-    const forward = forwardMessages[step];
-    const backward = backwardMessages[step];
-    const evidenceSet = canonicalEvidenceSets[step];
-    if (forward === undefined || backward === undefined || evidenceSet === undefined) {
+  for (let step = 0; step < evidenceSets.length; step += 1) {
+    const filtered = filteringSteps[step]?.filteredDistribution;
+    const beta = backward[step];
+    const evidenceSet = evidenceSets[step];
+    if (filtered === null || filtered === undefined || beta === undefined || evidenceSet === undefined) {
       return failure(
-        'internal_coarsened_observation_structural_inconsistency',
-        'Missing state for coarsened smoothing',
+        'internal_coarsened_observation_conditioning_structural_inconsistency',
+        'Missing filtering or backward state for smoothing',
         { step }
       );
     }
-    const logWeights = new Map<StateId, number>();
+    const filteredMap = distributionMap(filtered);
+    const weights = new Map<StateId, number>();
     for (const stateId of stateIds) {
-      const left = forward.get(stateId) ?? Number.NEGATIVE_INFINITY;
-      const right = backward.get(stateId) ?? Number.NEGATIVE_INFINITY;
-      logWeights.set(
-        stateId,
-        left === Number.NEGATIVE_INFINITY || right === Number.NEGATIVE_INFINITY
-          ? Number.NEGATIVE_INFINITY
-          : left + right
-      );
+      weights.set(stateId, (filteredMap.get(stateId) ?? 0) * (beta.get(stateId) ?? 0));
     }
-    const smoothed = normalizeLogDistribution(
+    const smoothed = normalize(
       stateIds,
-      logWeights,
-      completeLogEvidence,
+      weights,
       step,
       resolved.probabilityTolerance * 20,
       'smoothing'
@@ -876,83 +773,67 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
 
   const pairwiseSteps: HiddenStateCoarsenedObservationPairwiseStep[] = [];
   const expectedTransitionCounts = zeroExpectedCounts(stateIds);
-  const countByPair = new Map<string, number>();
+  const counts = new Map<string, number>();
   for (const entry of expectedTransitionCounts) {
-    countByPair.set(`${entry.fromStateId}\u0000${entry.toStateId}`, 0);
+    counts.set(`${entry.fromStateId}\u0000${entry.toStateId}`, 0);
   }
 
   for (let step = 0; step < transitionCount; step += 1) {
-    const forward = forwardMessages[step];
-    const backwardNext = backwardMessages[step + 1];
-    const currentSet = canonicalEvidenceSets[step];
-    const nextSet = canonicalEvidenceSets[step + 1];
+    const filtered = filteringSteps[step]?.filteredDistribution;
+    const betaNext = backward[step + 1];
+    const nextSet = evidenceSets[step + 1];
+    const currentSet = evidenceSets[step];
+    const nextScale = scales[step + 1];
     const fromSmoothing = smoothingSteps[step]?.smoothedDistribution;
     const toSmoothing = smoothingSteps[step + 1]?.smoothedDistribution;
     if (
-      forward === undefined ||
-      backwardNext === undefined ||
-      currentSet === undefined ||
+      filtered === null ||
+      filtered === undefined ||
+      betaNext === undefined ||
       nextSet === undefined ||
+      currentSet === undefined ||
+      nextScale === undefined ||
+      nextScale <= 0 ||
       fromSmoothing === undefined ||
       toSmoothing === undefined
     ) {
       return failure(
-        'internal_coarsened_observation_structural_inconsistency',
-        'Missing state for coarsened pairwise smoothing',
+        'internal_coarsened_observation_conditioning_structural_inconsistency',
+        'Missing state for pairwise conditioning',
         { step }
       );
     }
-
+    const filteredMap = distributionMap(filtered);
     const raw: HiddenStateCoarsenedObservationPairwiseEntry[] = [];
-    let pairwiseTotal = 0;
+    let rawTotal = 0;
     for (const fromStateId of stateIds) {
-      const prefix = forward.get(fromStateId) ?? Number.NEGATIVE_INFINITY;
       for (const toStateId of stateIds) {
-        const transition =
-          transitions.get(fromStateId)?.find((edge) => edge.to === toStateId)?.probability ?? 0;
-        const factor = evidenceFactor(toStateId, nextSet, kernel);
-        const future = backwardNext.get(toStateId) ?? Number.NEGATIVE_INFINITY;
-        const logWeight =
-          prefix === Number.NEGATIVE_INFINITY ||
-          transition === 0 ||
-          factor === 0 ||
-          future === Number.NEGATIVE_INFINITY
-            ? Number.NEGATIVE_INFINITY
-            : prefix + logProbability(transition) + logProbability(factor) + future;
-        if (Number.isNaN(logWeight) || logWeight === Number.POSITIVE_INFINITY) {
+        const edge =
+          transitions.get(fromStateId)?.find((candidate) => candidate.to === toStateId)?.probability ?? 0;
+        const value =
+          (filteredMap.get(fromStateId) ?? 0) *
+          edge *
+          evidenceFactor(toStateId, nextSet, kernel) *
+          (betaNext.get(toStateId) ?? 0) /
+          nextScale;
+        if (!Number.isFinite(value) || value < 0) {
           return failure(
             'non_finite_coarsened_observation_conditioning_result',
-            'Coarsened pairwise log weight became invalid',
-            { step, fromStateId, toStateId }
+            'Coarsened pairwise posterior mass became invalid',
+            { step, fromStateId, toStateId, actual: value }
           );
         }
-        const probability =
-          logWeight === Number.NEGATIVE_INFINITY
-            ? 0
-            : Math.exp(logWeight - completeLogEvidence);
-        if (!Number.isFinite(probability) || probability < 0) {
-          return failure(
-            'non_finite_coarsened_observation_conditioning_result',
-            'Coarsened pairwise posterior probability became invalid',
-            { step, fromStateId, toStateId, actual: probability }
-          );
-        }
-        raw.push({ fromStateId, toStateId, probability });
-        pairwiseTotal += probability;
+        raw.push({ fromStateId, toStateId, probability: value });
+        rawTotal += value;
       }
     }
-
-    if (
-      !Number.isFinite(pairwiseTotal) ||
-      pairwiseTotal <= 0 ||
-      Math.abs(pairwiseTotal - 1) > resolved.pairwiseConsistencyTolerance
-    ) {
+    if (!Number.isFinite(rawTotal) || rawTotal <= 0 || Math.abs(rawTotal - 1) > resolved.pairwiseConsistencyTolerance) {
       return failure(
         'coarsened_pairwise_mass_conservation_violation',
         'Coarsened pairwise posterior probabilities do not sum to one',
         {
           step,
-          actual: pairwiseTotal,
+          actual: rawTotal,
           expected: 1,
           tolerance: resolved.pairwiseConsistencyTolerance
         }
@@ -961,7 +842,7 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
     const pairwise = raw.map((entry) => ({
       fromStateId: entry.fromStateId,
       toStateId: entry.toStateId,
-      probability: entry.probability / pairwiseTotal
+      probability: entry.probability / rawTotal
     }));
 
     const row = new Map<StateId, number>();
@@ -973,6 +854,8 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
     for (const entry of pairwise) {
       row.set(entry.fromStateId, (row.get(entry.fromStateId) ?? 0) + entry.probability);
       column.set(entry.toStateId, (column.get(entry.toStateId) ?? 0) + entry.probability);
+      const key = `${entry.fromStateId}\u0000${entry.toStateId}`;
+      counts.set(key, (counts.get(key) ?? 0) + entry.probability);
     }
     const expectedFrom = distributionMap(fromSmoothing);
     const expectedTo = distributionMap(toSmoothing);
@@ -1008,11 +891,6 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
         );
       }
     }
-
-    for (const entry of pairwise) {
-      const key = `${entry.fromStateId}\u0000${entry.toStateId}`;
-      countByPair.set(key, (countByPair.get(key) ?? 0) + entry.probability);
-    }
     pairwiseSteps.push({
       step,
       fromAllowedObservationSymbols: [...currentSet],
@@ -1022,7 +900,7 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
   }
 
   for (const entry of expectedTransitionCounts) {
-    entry.expectedCount = countByPair.get(`${entry.fromStateId}\u0000${entry.toStateId}`) ?? 0;
+    entry.expectedCount = counts.get(`${entry.fromStateId}\u0000${entry.toStateId}`) ?? 0;
     if (!Number.isFinite(entry.expectedCount) || entry.expectedCount < 0) {
       return failure(
         'non_finite_coarsened_observation_conditioning_result',
@@ -1035,16 +913,13 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
       );
     }
   }
-  const expectedCountTotal = expectedTransitionCounts.reduce(
-    (sum, entry) => sum + entry.expectedCount,
-    0
-  );
-  if (Math.abs(expectedCountTotal - transitionCount) > resolved.expectedCountTolerance) {
+  const countTotal = expectedTransitionCounts.reduce((sum, entry) => sum + entry.expectedCount, 0);
+  if (Math.abs(countTotal - transitionCount) > resolved.expectedCountTolerance) {
     return failure(
       'coarsened_expected_transition_count_conservation_violation',
       'Coarsened expected transition counts do not sum to the number of transition indices',
       {
-        actual: expectedCountTotal,
+        actual: countTotal,
         expected: transitionCount,
         tolerance: resolved.expectedCountTolerance
       }
@@ -1054,21 +929,14 @@ export function conditionFiniteHiddenStateOnCoarsenedObservationEvidence(
   return {
     ok: true,
     possible: true,
-    observationEvidenceSets: canonicalEvidenceSets.map((entry) => [...entry]),
+    observationEvidenceSets: evidenceSets.map((entry) => [...entry]),
     filteringSteps,
     smoothingSteps,
     pairwiseSteps,
     expectedTransitionCounts,
-    logLikelihood: completeLogEvidence,
-    combinedEvidenceProbability:
-      directCombinedProbability === null ? null : Math.min(1, directCombinedProbability),
-    diagnostics: makeDiagnostics(
-      resolved,
-      canonicalEvidenceSets.length,
-      canonicalEvidenceSets.length,
-      underflowed,
-      null
-    )
+    logLikelihood,
+    combinedEvidenceProbability: directProbability === null ? null : Math.min(1, directProbability),
+    diagnostics: diagnostics(resolved, evidenceSets.length, evidenceSets.length, underflowed, null)
   };
 }
 
