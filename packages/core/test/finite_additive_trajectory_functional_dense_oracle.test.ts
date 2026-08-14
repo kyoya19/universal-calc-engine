@@ -115,7 +115,9 @@ function denseOracle(m: DefinitionModel, req: FiniteAdditiveTrajectoryFunctional
   );
   for (const entry of req.initialDistribution) {
     const value = req.initialValueByState.find((item) => item.stateId === entry.stateId)!.valueTicks;
-    forward[0]![index.get(entry.stateId)!]![offset(value)] += entry.probability;
+    const bucket = forward[0]![index.get(entry.stateId)!]!;
+    const tickIndex = offset(value);
+    bucket[tickIndex] = bucket[tickIndex]! + entry.probability;
   }
   for (let step = 1; step <= req.horizon; step += 1) {
     for (const from of ids) {
@@ -127,7 +129,9 @@ function denseOracle(m: DefinitionModel, req: FiniteAdditiveTrajectoryFunctional
         for (const edge of edges(m, from)) {
           const nextValue = value + increment(req, step, edge.from, edge.to);
           if (nextValue < min || nextValue > max) continue;
-          forward[step]![index.get(edge.to)!]![offset(nextValue)] += mass * edge.probability;
+          const bucket = forward[step]![index.get(edge.to)!]!;
+          const nextIndex = offset(nextValue);
+          bucket[nextIndex] = bucket[nextIndex]! + mass * edge.probability;
         }
       }
     }
@@ -185,8 +189,11 @@ function denseOracle(m: DefinitionModel, req: FiniteAdditiveTrajectoryFunctional
           for (const edge of edges(m, from)) {
             const nextValue = value + increment(req, step + 1, edge.from, edge.to);
             if (nextValue < min || nextValue > max) continue;
-            pairwise[step]![i]![index.get(edge.to)!] +=
-              alpha * edge.probability * backward[step + 1]![index.get(edge.to)!]![offset(nextValue)]! / eventProbability;
+            const row = pairwise[step]![i]!;
+            const toIndex = index.get(edge.to)!;
+            const incrementValue =
+              alpha * edge.probability * backward[step + 1]![toIndex]![offset(nextValue)]! / eventProbability;
+            row[toIndex] = row[toIndex]! + incrementValue;
           }
         }
       }
