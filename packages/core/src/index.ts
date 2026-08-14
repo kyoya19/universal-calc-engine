@@ -31,6 +31,12 @@ export {
   conditionFiniteHiddenStateOnCalibratedEvidenceLikelihoods,
   finiteHiddenStateCalibratedEvidenceLikelihoodConditioningResultToJson
 } from './hidden_state_calibrated_evidence_likelihood_conditioning';
+export {
+  analyzeFiniteAdditiveTrajectoryFunctionalDistribution,
+  conditionFiniteAdditiveTrajectoryFunctionalOnExactValue,
+  finiteAdditiveTrajectoryFunctionalDistributionResultToJson,
+  finiteAdditiveTrajectoryFunctionalConditioningResultToJson
+} from './finite_additive_trajectory_functional';
 export * from './hidden_state_transition_reestimation';
 export * from './hidden_state_observation_kernel_reestimation';
 export * from './hidden_state_initial_distribution_reestimation';
