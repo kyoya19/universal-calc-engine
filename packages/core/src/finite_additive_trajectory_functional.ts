@@ -226,21 +226,27 @@ type PreparedFunctional = {
   resolved: ResolvedOptions;
 };
 
+type FailureResult = FiniteAdditiveTrajectoryFunctionalFailure | FiniteHorizonStateDistributionFailure;
+type PreparedResult = { ok: true; prepared: PreparedFunctional } | FailureResult;
+type ResolvedResult = { ok: true; resolved: ResolvedOptions } | FiniteAdditiveTrajectoryFunctionalFailure;
+type InitialValuesResult = {
+  ok: true;
+  entries: AdditiveInitialValueEntry[];
+  byState: Map<StateId, number>;
+} | FiniteAdditiveTrajectoryFunctionalFailure;
+type TransitionRowsResult = {
+  ok: true;
+  rows: AdditiveTransitionValueEntry[][];
+  maps: Array<Map<string, number>>;
+} | FiniteAdditiveTrajectoryFunctionalFailure;
+type SafeAddResult = { ok: true; value: number } | FiniteAdditiveTrajectoryFunctionalFailure;
+
 function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
 }
 
 function pairKey(fromStateId: StateId, toStateId: StateId): string {
   return `${fromStateId}\u0000${toStateId}`;
-}
-
-function comparePairs(
-  left: Pick<AdditiveTransitionValueEntry, 'fromStateId' | 'toStateId'>,
-  right: Pick<AdditiveTransitionValueEntry, 'fromStateId' | 'toStateId'>
-): number {
-  const fromOrder = compareStrings(left.fromStateId, right.fromStateId);
-  if (fromOrder !== 0) return fromOrder;
-  return compareStrings(left.toStateId, right.toStateId);
 }
 
 function failure(
@@ -251,16 +257,10 @@ function failure(
   return { ok: false, failure: { code, message, ...details } };
 }
 
-function isOwnFailure(
-  value: ResolvedOptions | FiniteAdditiveTrajectoryFunctionalFailure
-): value is FiniteAdditiveTrajectoryFunctionalFailure {
-  return 'ok' in value && value.ok === false;
-}
-
 function resolveOptions(
   options: FiniteAdditiveTrajectoryFunctionalOptions,
   horizon: number
-): ResolvedOptions | FiniteAdditiveTrajectoryFunctionalFailure {
+): ResolvedResult {
   const probabilityTolerance = options.probabilityTolerance ?? DEFAULT_PROBABILITY_TOLERANCE;
   if (!Number.isFinite(probabilityTolerance) || probabilityTolerance <= 0) {
     return failure('invalid_candidate_aa_tolerance', 'probabilityTolerance must be a finite positive number', {
@@ -293,11 +293,14 @@ function resolveOptions(
     });
   }
   return {
-    probabilityTolerance,
-    pairwiseConsistencyTolerance,
-    expectedCountTolerance,
-    maxHorizon,
-    maxSupportSize
+    ok: true,
+    resolved: {
+      probabilityTolerance,
+      pairwiseConsistencyTolerance,
+      expectedCountTolerance,
+      maxHorizon,
+      maxSupportSize
+    }
   };
 }
 
@@ -329,9 +332,9 @@ function checkedSafeAdd(
   left: number,
   right: number,
   step: number,
-  fromStateId?: StateId,
-  toStateId?: StateId
-): number | FiniteAdditiveTrajectoryFunctionalFailure {
+  fromStateId: StateId,
+  toStateId: StateId
+): SafeAddResult {
   const value = left + right;
   if (!Number.isSafeInteger(value)) {
     return failure(
@@ -340,7 +343,7 @@ function checkedSafeAdd(
       { step, fromStateId, toStateId, valueTicks: value }
     );
   }
-  return value;
+  return { ok: true, value };
 }
 
 function buildEffectiveEdges(model: DefinitionModel): {
@@ -354,7 +357,7 @@ function buildEffectiveEdges(model: DefinitionModel): {
 
   for (const stateId of stateIds) {
     if (terminal.has(stateId)) {
-      const edge = { from: stateId, to: stateId, probability: 1 };
+      const edge: EffectiveEdge = { from: stateId, to: stateId, probability: 1 };
       byState.set(stateId, [edge]);
       pairProbability.set(pairKey(stateId, stateId), edge);
       continue;
@@ -366,21 +369,24 @@ function buildEffectiveEdges(model: DefinitionModel): {
       if (probability <= 0) continue;
       aggregate.set(transition.to, (aggregate.get(transition.to) ?? 0) + probability);
     }
-    const edges = [...aggregate.entries()]
+    const edges: EffectiveEdge[] = [...aggregate.entries()]
       .map(([to, probability]) => ({ from: stateId, to, probability }))
       .sort((left, right) => compareStrings(left.to, right.to));
     byState.set(stateId, edges);
     for (const edge of edges) pairProbability.set(pairKey(edge.from, edge.to), edge);
   }
 
-  const pairs = [...pairProbability.values()].sort(comparePairs);
+  const pairs = [...pairProbability.values()].sort((left, right) => {
+    const fromOrder = compareStrings(left.from, right.from);
+    return fromOrder !== 0 ? fromOrder : compareStrings(left.to, right.to);
+  });
   return { byState, pairs };
 }
 
 function canonicalizeInitialValues(
   request: FiniteAdditiveTrajectoryFunctionalRequest,
   stateIds: StateId[]
-): { entries: AdditiveInitialValueEntry[]; byState: Map<StateId, number> } | FiniteAdditiveTrajectoryFunctionalFailure {
+): InitialValuesResult {
   if (!Array.isArray(request.initialValueByState)) {
     return failure('invalid_additive_initial_value_by_state', 'initialValueByState must be an array', {
       path: 'request.initialValueByState'
@@ -421,14 +427,17 @@ function canonicalizeInitialValues(
       });
     }
   }
-  const entries = stateIds.map((stateId) => ({ stateId, valueTicks: byState.get(stateId)! }));
-  return { entries, byState };
+  return {
+    ok: true,
+    entries: stateIds.map((stateId) => ({ stateId, valueTicks: byState.get(stateId)! })),
+    byState
+  };
 }
 
 function canonicalizeTransitionRows(
   request: FiniteAdditiveTrajectoryFunctionalRequest,
   effectivePairs: EffectiveEdge[]
-): { rows: AdditiveTransitionValueEntry[][]; maps: Array<Map<string, number>> } | FiniteAdditiveTrajectoryFunctionalFailure {
+): TransitionRowsResult {
   if (!Array.isArray(request.transitionValueByStep) || request.transitionValueByStep.length !== request.horizon) {
     return failure(
       'invalid_additive_transition_value_by_step',
@@ -488,22 +497,21 @@ function canonicalizeTransitionRows(
         });
       }
     }
-    const canonical = effectivePairs.map((edge) => ({
+    rows.push(effectivePairs.map((edge) => ({
       fromStateId: edge.from,
       toStateId: edge.to,
       valueTicks: values.get(pairKey(edge.from, edge.to))!
-    }));
-    rows.push(canonical);
+    })));
     maps.push(values);
   }
-  return { rows, maps };
+  return { ok: true, rows, maps };
 }
 
 function prepareFunctional(
   model: DefinitionModel,
   request: FiniteAdditiveTrajectoryFunctionalRequest,
   options: FiniteAdditiveTrajectoryFunctionalOptions
-): PreparedFunctional | FiniteAdditiveTrajectoryFunctionalFailure | FiniteHorizonStateDistributionFailure {
+): PreparedResult {
   if (request === null || typeof request !== 'object') {
     return failure('invalid_additive_trajectory_functional_request', 'request must be an object', { path: 'request' });
   }
@@ -512,8 +520,9 @@ function prepareFunctional(
       path: 'request.horizon'
     });
   }
-  const resolved = resolveOptions(options, request.horizon);
-  if (isOwnFailure(resolved)) return resolved;
+  const resolvedResult = resolveOptions(options, request.horizon);
+  if (!resolvedResult.ok) return resolvedResult;
+  const resolved = resolvedResult.resolved;
   if (request.horizon > resolved.maxHorizon) {
     return failure('invalid_additive_trajectory_horizon', `horizon ${request.horizon} exceeds maxHorizon ${resolved.maxHorizon}`, {
       path: 'request.horizon'
@@ -529,20 +538,23 @@ function prepareFunctional(
 
   const stateIds = model.states.map((state) => state.id).sort(compareStrings);
   const initial = canonicalizeInitialValues(request, stateIds);
-  if ('ok' in initial && initial.ok === false) return initial;
+  if (!initial.ok) return initial;
   const effective = buildEffectiveEdges(model);
   const transitions = canonicalizeTransitionRows(request, effective.pairs);
-  if ('ok' in transitions && transitions.ok === false) return transitions;
+  if (!transitions.ok) return transitions;
 
   return {
-    stateIds,
-    effectiveEdgesByState: effective.byState,
-    effectivePairs: effective.pairs,
-    initialValues: initial.entries,
-    initialValueByState: initial.byState,
-    transitionRows: transitions.rows,
-    transitionValuesByStep: transitions.maps,
-    resolved
+    ok: true,
+    prepared: {
+      stateIds,
+      effectiveEdgesByState: effective.byState,
+      effectivePairs: effective.pairs,
+      initialValues: initial.entries,
+      initialValueByState: initial.byState,
+      transitionRows: transitions.rows,
+      transitionValuesByStep: transitions.maps,
+      resolved
+    }
   };
 }
 
@@ -598,11 +610,12 @@ type ForwardInternal = {
   massChecks: number;
   maxLogMassDeviation: number;
 };
+type ForwardRunResult = { ok: true; forward: ForwardInternal } | FiniteAdditiveTrajectoryFunctionalFailure;
 
 function runForward(
   request: FiniteAdditiveTrajectoryFunctionalRequest,
   prepared: PreparedFunctional
-): ForwardInternal | FiniteAdditiveTrajectoryFunctionalFailure {
+): ForwardRunResult {
   const alphas: LogStateSupport[] = [];
   const trajectory: AdditiveTrajectoryDistributionStep[] = [];
   let supportAtomUnderflowCount = 0;
@@ -621,9 +634,10 @@ function runForward(
 
   for (let step = 0; step <= request.horizon; step += 1) {
     const current = alphas[step]!;
-    if (supportSize(prepared.stateIds, current) > prepared.resolved.maxSupportSize) {
+    const currentSupportSize = supportSize(prepared.stateIds, current);
+    if (currentSupportSize > prepared.resolved.maxSupportSize) {
       return failure('additive_support_limit_exceeded', `Joint state-value support exceeds maxSupportSize at step ${step}`, {
-        step, actual: supportSize(prepared.stateIds, current), expected: prepared.resolved.maxSupportSize
+        step, actual: currentSupportSize, expected: prepared.resolved.maxSupportSize
       });
     }
     const logTotal = totalLogMass(prepared.stateIds, current);
@@ -652,16 +666,19 @@ function runForward(
       for (const [valueTicks, logMass] of source) {
         for (const edge of prepared.effectiveEdgesByState.get(fromStateId) ?? []) {
           const increment = transitionValues.get(pairKey(edge.from, edge.to))!;
-          const nextValue = checkedSafeAdd(valueTicks, increment, step + 1, edge.from, edge.to);
-          if (typeof nextValue !== 'number') return nextValue;
-          addLogMass(next.get(edge.to)!, nextValue, logMass + Math.log(edge.probability));
+          const nextValueResult = checkedSafeAdd(valueTicks, increment, step + 1, edge.from, edge.to);
+          if (!nextValueResult.ok) return nextValueResult;
+          addLogMass(next.get(edge.to)!, nextValueResult.value, logMass + Math.log(edge.probability));
         }
       }
     }
     alphas.push(next);
   }
 
-  return { alphas, trajectory, supportAtomUnderflowCount, massChecks, maxLogMassDeviation };
+  return {
+    ok: true,
+    forward: { alphas, trajectory, supportAtomUnderflowCount, massChecks, maxLogMassDeviation }
+  };
 }
 
 function makeDiagnostics(
@@ -697,10 +714,12 @@ export function analyzeFiniteAdditiveTrajectoryFunctionalDistribution(
   request: FiniteAdditiveTrajectoryFunctionalRequest,
   options: FiniteAdditiveTrajectoryFunctionalOptions = {}
 ): FiniteAdditiveTrajectoryFunctionalDistributionResult {
-  const prepared = prepareFunctional(model, request, options);
-  if ('ok' in prepared && prepared.ok === false) return prepared;
-  const forward = runForward(request, prepared);
-  if ('ok' in forward && forward.ok === false) return forward;
+  const preparedResult = prepareFunctional(model, request, options);
+  if (!preparedResult.ok) return preparedResult;
+  const prepared = preparedResult.prepared;
+  const forwardResult = runForward(request, prepared);
+  if (!forwardResult.ok) return forwardResult;
+  const forward = forwardResult.forward;
   return {
     ok: true,
     possible: true,
@@ -721,11 +740,13 @@ function findTargetLogMass(finalSupport: LogStateSupport, stateIds: StateId[], t
   return result;
 }
 
+type BackwardRunResult = { ok: true; betas: LogStateSupport[] } | FiniteAdditiveTrajectoryFunctionalFailure;
+
 function runBackward(
   request: FiniteAdditiveTrajectoryFunctionalConditioningRequest,
   prepared: PreparedFunctional,
   alphas: LogStateSupport[]
-): LogStateSupport[] | FiniteAdditiveTrajectoryFunctionalFailure {
+): BackwardRunResult {
   const betas: LogStateSupport[] = Array.from({ length: request.horizon + 1 }, () => new Map<StateId, LogSupport>());
   const final = new Map<StateId, LogSupport>();
   for (const stateId of prepared.stateIds) {
@@ -746,9 +767,9 @@ function runBackward(
         let logProbability = Number.NEGATIVE_INFINITY;
         for (const edge of prepared.effectiveEdgesByState.get(stateId) ?? []) {
           const increment = transitionValues.get(pairKey(edge.from, edge.to))!;
-          const nextValue = checkedSafeAdd(valueTicks, increment, step + 1, edge.from, edge.to);
-          if (typeof nextValue !== 'number') return nextValue;
-          const nextLog = betas[step + 1]!.get(edge.to)?.get(nextValue);
+          const nextValueResult = checkedSafeAdd(valueTicks, increment, step + 1, edge.from, edge.to);
+          if (!nextValueResult.ok) return nextValueResult;
+          const nextLog = betas[step + 1]!.get(edge.to)?.get(nextValueResult.value);
           if (nextLog === undefined) continue;
           logProbability = logAddExp(logProbability, Math.log(edge.probability) + nextLog);
         }
@@ -758,7 +779,7 @@ function runBackward(
     }
     betas[step] = currentBeta;
   }
-  return betas;
+  return { ok: true, betas };
 }
 
 function checkedDistributionMass(
@@ -785,10 +806,12 @@ export function conditionFiniteAdditiveTrajectoryFunctionalOnExactValue(
       path: 'request.targetValueTicks', valueTicks: request.targetValueTicks
     });
   }
-  const prepared = prepareFunctional(model, request, options);
-  if ('ok' in prepared && prepared.ok === false) return prepared;
-  const forward = runForward(request, prepared);
-  if ('ok' in forward && forward.ok === false) return forward;
+  const preparedResult = prepareFunctional(model, request, options);
+  if (!preparedResult.ok) return preparedResult;
+  const prepared = preparedResult.prepared;
+  const forwardResult = runForward(request, prepared);
+  if (!forwardResult.ok) return forwardResult;
+  const forward = forwardResult.forward;
   const eventLog = findTargetLogMass(forward.alphas[request.horizon]!, prepared.stateIds, request.targetValueTicks);
   const baseDiagnostics = makeDiagnostics(prepared, forward);
 
@@ -813,14 +836,15 @@ export function conditionFiniteAdditiveTrajectoryFunctionalOnExactValue(
     };
   }
 
-  const betas = runBackward(request, prepared, forward.alphas);
-  if ('ok' in betas && betas.ok === false) return betas;
+  const backwardResult = runBackward(request, prepared, forward.alphas);
+  if (!backwardResult.ok) return backwardResult;
+  const betas = backwardResult.betas;
   const directEventProbability = Math.exp(eventLog);
   const eventProbabilityUnderflowed = directEventProbability === 0;
 
   const smoothingSteps: AdditiveConditionedSmoothingStep[] = [];
   for (let step = 0; step <= request.horizon; step += 1) {
-    const distribution = prepared.stateIds.map((stateId) => {
+    const distribution: AdditiveConditionedStateDistribution = prepared.stateIds.map((stateId) => {
       let numerator = Number.NEGATIVE_INFINITY;
       for (const [valueTicks, alphaLog] of forward.alphas[step]!.get(stateId)?.entries() ?? []) {
         const betaLog = betas[step]!.get(stateId)?.get(valueTicks);
@@ -854,23 +878,24 @@ export function conditionFiniteAdditiveTrajectoryFunctionalOnExactValue(
       for (const [valueTicks, alphaLog] of forward.alphas[step]!.get(fromStateId)?.entries() ?? []) {
         for (const edge of prepared.effectiveEdgesByState.get(fromStateId) ?? []) {
           const increment = transitionValues.get(pairKey(edge.from, edge.to))!;
-          const nextValue = checkedSafeAdd(valueTicks, increment, step + 1, edge.from, edge.to);
-          if (typeof nextValue !== 'number') return nextValue;
-          const betaLog = betas[step + 1]!.get(edge.to)?.get(nextValue);
+          const nextValueResult = checkedSafeAdd(valueTicks, increment, step + 1, edge.from, edge.to);
+          if (!nextValueResult.ok) return nextValueResult;
+          const betaLog = betas[step + 1]!.get(edge.to)?.get(nextValueResult.value);
           if (betaLog === undefined) continue;
           const key = pairKey(edge.from, edge.to);
-          numeratorByPair.set(
-            key,
-            logAddExp(numeratorByPair.get(key) ?? Number.NEGATIVE_INFINITY, alphaLog + Math.log(edge.probability) + betaLog)
-          );
+          const term = alphaLog + Math.log(edge.probability) + betaLog;
+          numeratorByPair.set(key, logAddExp(numeratorByPair.get(key) ?? Number.NEGATIVE_INFINITY, term));
         }
       }
     }
 
-    const pairwiseDistribution = prepared.effectivePairs.map((edge) => {
+    const pairwiseDistribution: AdditiveConditionedPairwiseEntry[] = prepared.effectivePairs.map((edge) => {
       const logNumerator = numeratorByPair.get(pairKey(edge.from, edge.to)) ?? Number.NEGATIVE_INFINITY;
-      const probability = logNumerator === Number.NEGATIVE_INFINITY ? 0 : Math.exp(logNumerator - eventLog);
-      return { fromStateId: edge.from, toStateId: edge.to, probability };
+      return {
+        fromStateId: edge.from,
+        toStateId: edge.to,
+        probability: logNumerator === Number.NEGATIVE_INFINITY ? 0 : Math.exp(logNumerator - eventLog)
+      };
     });
     const pairMassFailure = checkedDistributionMass(
       pairwiseDistribution.map((entry) => entry.probability),
@@ -890,8 +915,10 @@ export function conditionFiniteAdditiveTrajectoryFunctionalOnExactValue(
         .reduce((sum, entry) => sum + entry.probability, 0);
       const expectedFrom = smoothingSteps[step]!.smoothedDistribution.find((entry) => entry.stateId === stateId)!.probability;
       const expectedTo = smoothingSteps[step + 1]!.smoothedDistribution.find((entry) => entry.stateId === stateId)!.probability;
-      if (Math.abs(fromMarginal - expectedFrom) > prepared.resolved.pairwiseConsistencyTolerance ||
-          Math.abs(toMarginal - expectedTo) > prepared.resolved.pairwiseConsistencyTolerance) {
+      if (
+        Math.abs(fromMarginal - expectedFrom) > prepared.resolved.pairwiseConsistencyTolerance ||
+        Math.abs(toMarginal - expectedTo) > prepared.resolved.pairwiseConsistencyTolerance
+      ) {
         return failure(
           'additive_conditioning_pairwise_marginal_consistency_violation',
           `Conditioned pairwise marginal mismatch for state ${stateId} at step ${step}`,
@@ -907,7 +934,7 @@ export function conditionFiniteAdditiveTrajectoryFunctionalOnExactValue(
     pairwiseSteps.push({ step, pairwiseDistribution });
   }
 
-  const expectedTransitionCounts = prepared.effectivePairs.map((edge) => ({
+  const expectedTransitionCounts: AdditiveConditionedExpectedTransitionCount[] = prepared.effectivePairs.map((edge) => ({
     fromStateId: edge.from,
     toStateId: edge.to,
     expectedCount: expectedCounts.get(pairKey(edge.from, edge.to)) ?? 0
