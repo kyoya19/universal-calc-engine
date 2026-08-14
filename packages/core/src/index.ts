@@ -19,7 +19,10 @@ export * from './model_family_identifiability';
 export * from './hidden_state_observation';
 export * from './hidden_state_smoothing';
 export * from './hidden_state_pairwise_smoothing';
-export * from './hidden_state_evidence_mask_conditioning';
+export {
+  conditionFiniteHiddenStateObservationSequenceWithStateEvidenceMasks,
+  finiteHiddenStateEvidenceMaskConditioningResultToJson
+} from './hidden_state_evidence_mask_conditioning';
 export * from './hidden_state_transition_reestimation';
 export * from './hidden_state_observation_kernel_reestimation';
 export * from './hidden_state_initial_distribution_reestimation';
