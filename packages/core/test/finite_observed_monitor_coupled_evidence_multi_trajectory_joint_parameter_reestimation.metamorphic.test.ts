@@ -8,6 +8,7 @@ import {
 import {
   initialDistribution,
   oneStateMonitorRecord,
+  pairKey,
   parallelModel,
   resultInitialProbability,
   resultKernelProbability,
