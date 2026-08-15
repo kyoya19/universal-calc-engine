@@ -24,8 +24,8 @@ const prospectiveIdentity = {
 
 await mkdir(outputDir, { recursive: true });
 
-function runView(spec) {
-  return spawnSync(npmCommand, ['view', spec, '--json'], { cwd: rootDir, encoding: 'utf8' });
+function runField(spec, field) {
+  return spawnSync(npmCommand, ['view', spec, field, '--json'], { cwd: rootDir, encoding: 'utf8' });
 }
 
 function isNotFound(result) {
@@ -33,12 +33,18 @@ function isNotFound(result) {
   return result.status !== 0 && (/E404/.test(text) || /404 Not Found/.test(text) || /No match found for version/.test(text) || /is not in this registry/.test(text));
 }
 
-function parse(result) {
+function parse(result, label) {
   try {
     return JSON.parse(result.stdout || 'null');
   } catch {
-    return null;
+    throw new Error(`distribution_identity_mismatch: invalid JSON for ${label}`);
   }
+}
+
+function requireField(spec, field) {
+  const result = runField(spec, field);
+  if (result.status !== 0) throw new Error(`distribution_identity_mismatch: npm view ${spec} ${field} failed`);
+  return parse(result, `${spec} ${field}`);
 }
 
 function normalizeRepository(repository) {
@@ -75,29 +81,32 @@ assert(packageJson.orfs?.distributionContract === 'ORF-DISTRIBUTION-CONTRACT-v1'
 assert(packageJson.orfs?.analyticalSubject === prospectiveIdentity.analyticalSubject, 'local analytical subject');
 assert(packageJson.orfs?.analyticalCommit === prospectiveIdentity.analyticalCommit, 'local analytical commit');
 
-const packageResult = runView(prospectiveIdentity.name);
-assert(packageResult.status === 0, 'package-level registry lookup failed');
-const packageMetadata = parse(packageResult);
-assert(packageMetadata?.name === prospectiveIdentity.name, 'registry package name');
-assert(normalizeRepository(packageMetadata?.repository) === expectedRepository, 'registry package repository');
+const packageName = requireField(prospectiveIdentity.name, 'name');
+const versions = requireField(prospectiveIdentity.name, 'versions');
+const distTags = requireField(prospectiveIdentity.name, 'dist-tags');
+const repository = requireField(prospectiveIdentity.name, 'repository');
+assert(packageName === prospectiveIdentity.name, 'registry package name');
+assert(Array.isArray(versions), 'registry versions must be an array');
+assert(normalizeRepository(repository) === expectedRepository, 'registry package repository');
 
-const historicalResult = runView(`${historicalIdentity.name}@${historicalIdentity.version}`);
-assert(historicalResult.status === 0, 'historical 1.0.0 registry lookup failed');
-const historicalMetadata = parse(historicalResult);
-assert(historicalMetadata?.name === historicalIdentity.name, 'historical package name');
-assert(historicalMetadata?.version === historicalIdentity.version, 'historical package version');
-assert(normalizeRepository(historicalMetadata?.repository) === expectedRepository, 'historical repository');
-assert(historicalMetadata?.dist?.integrity === historicalIdentity.integrity, 'historical dist.integrity');
-assert(historicalMetadata?.dist?.shasum === historicalIdentity.shasum, 'historical dist.shasum');
+const historicalSpec = `${historicalIdentity.name}@${historicalIdentity.version}`;
+const historicalName = requireField(historicalSpec, 'name');
+const historicalVersion = requireField(historicalSpec, 'version');
+const historicalRepository = requireField(historicalSpec, 'repository');
+const historicalDist = requireField(historicalSpec, 'dist');
+assert(historicalName === historicalIdentity.name, 'historical package name');
+assert(historicalVersion === historicalIdentity.version, 'historical package version');
+assert(normalizeRepository(historicalRepository) === expectedRepository, 'historical repository');
+assert(historicalDist?.integrity === historicalIdentity.integrity, 'historical dist.integrity');
+assert(historicalDist?.shasum === historicalIdentity.shasum, 'historical dist.shasum');
 
-const prospectiveResult = runView(`${prospectiveIdentity.name}@${prospectiveIdentity.version}`);
+const prospectiveVersionResult = runField(`${prospectiveIdentity.name}@${prospectiveIdentity.version}`, 'version');
 
 if (lifecycle === 'current_generation_prepublication') {
-  assert(isNotFound(prospectiveResult), '1.1.0 must remain absent before publication');
-  const versions = Array.isArray(packageMetadata?.versions) ? packageMetadata.versions : [packageMetadata?.versions].filter(Boolean);
+  assert(isNotFound(prospectiveVersionResult), '1.1.0 must remain absent before publication');
   assert(versions.includes('1.0.0'), 'package versions must include historical 1.0.0');
   assert(!versions.includes('1.1.0'), 'package versions unexpectedly include 1.1.0');
-  assert(packageMetadata?.['dist-tags']?.latest === '1.0.0', 'prepublication latest must remain 1.0.0');
+  assert(distTags?.latest === '1.0.0', 'prepublication latest must remain 1.0.0');
   await finish({
     schemaVersion: 1,
     testId: 'CURRENT-DIST-IDENTITY',
@@ -107,24 +116,28 @@ if (lifecycle === 'current_generation_prepublication') {
     prospectiveVersion: prospectiveIdentity.version,
     prospectiveVersionState: 'ABSENT_VERIFIED',
     registryVersions: versions,
-    registryDistTags: packageMetadata['dist-tags'],
+    registryDistTags: distTags,
     repository: expectedRepository,
     historicalIdentity: {
       version: historicalIdentity.version,
-      integrity: historicalMetadata.dist.integrity,
-      shasum: historicalMetadata.dist.shasum,
+      integrity: historicalDist.integrity,
+      shasum: historicalDist.shasum,
       status: 'UNCHANGED_PASS'
     }
   });
 } else {
-  assert(prospectiveResult.status === 0, 'published 1.1.0 registry lookup failed');
-  const prospectiveMetadata = parse(prospectiveResult);
-  assert(prospectiveMetadata?.name === prospectiveIdentity.name, 'published package name');
-  assert(prospectiveMetadata?.version === prospectiveIdentity.version, 'published package version');
-  assert(normalizeRepository(prospectiveMetadata?.repository) === expectedRepository, 'published repository');
-  assert(typeof prospectiveMetadata?.dist?.integrity === 'string', 'published dist.integrity missing');
-  assert(typeof prospectiveMetadata?.dist?.shasum === 'string', 'published dist.shasum missing');
-  assert(packageMetadata?.['dist-tags']?.latest === '1.1.0', 'postpublication latest must be 1.1.0');
+  assert(prospectiveVersionResult.status === 0, 'published 1.1.0 registry lookup failed');
+  const observedProspectiveVersion = parse(prospectiveVersionResult, 'published 1.1.0 version');
+  assert(observedProspectiveVersion === prospectiveIdentity.version, 'published package version');
+  const prospectiveSpec = `${prospectiveIdentity.name}@${prospectiveIdentity.version}`;
+  const prospectiveName = requireField(prospectiveSpec, 'name');
+  const prospectiveRepository = requireField(prospectiveSpec, 'repository');
+  const prospectiveDist = requireField(prospectiveSpec, 'dist');
+  assert(prospectiveName === prospectiveIdentity.name, 'published package name');
+  assert(normalizeRepository(prospectiveRepository) === expectedRepository, 'published repository');
+  assert(typeof prospectiveDist?.integrity === 'string', 'published dist.integrity missing');
+  assert(typeof prospectiveDist?.shasum === 'string', 'published dist.shasum missing');
+  assert(distTags?.latest === '1.1.0', 'postpublication latest must be 1.1.0');
   await finish({
     schemaVersion: 1,
     testId: 'CURRENT-DIST-IDENTITY',
@@ -132,16 +145,16 @@ if (lifecycle === 'current_generation_prepublication') {
     status: 'PASS',
     packageName: prospectiveIdentity.name,
     prospectiveVersion: prospectiveIdentity.version,
-    registryDistTags: packageMetadata['dist-tags'],
+    registryDistTags: distTags,
     prospectiveRegistry: {
-      integrity: prospectiveMetadata.dist.integrity,
-      shasum: prospectiveMetadata.dist.shasum,
-      attestations: prospectiveMetadata.dist.attestations ?? null
+      integrity: prospectiveDist.integrity,
+      shasum: prospectiveDist.shasum,
+      attestations: prospectiveDist.attestations ?? null
     },
     historicalIdentity: {
       version: historicalIdentity.version,
-      integrity: historicalMetadata.dist.integrity,
-      shasum: historicalMetadata.dist.shasum,
+      integrity: historicalDist.integrity,
+      shasum: historicalDist.shasum,
       status: 'UNCHANGED_PASS'
     }
   });
