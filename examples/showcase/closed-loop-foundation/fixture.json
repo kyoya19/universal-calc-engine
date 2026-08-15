@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "fixtureId": "ORF-CLOSED-LOOP-FOUNDATION-FIXTURE-v1",
+  "analyticalBaseline": {
+    "subject": "subject-public-8b341032516a",
+    "commit": "8b341032516a2f5108170743c4dafd8fde31a229"
+  },
+  "primary": {
+    "initialModel": {
+      "startState": "a",
+      "states": [
+        { "id": "a" },
+        { "id": "b" }
+      ],
+      "transitions": [
+        { "from": "a", "to": "a", "probability": 0.7 },
+        { "from": "a", "to": "b", "probability": 0.3 },
+        { "from": "b", "to": "a", "probability": 0.2 },
+        { "from": "b", "to": "b", "probability": 0.8 }
+      ]
+    },
+    "ajRequest": {
+      "initialDistribution": [
+        { "stateId": "a", "probability": 0.6 },
+        { "stateId": "b", "probability": 0.4 }
+      ],
+      "alphabet": ["0", "1"],
+      "kernel": [
+        { "stateId": "a", "symbol": "0", "probability": 0.8 },
+        { "stateId": "a", "symbol": "1", "probability": 0.2 },
+        { "stateId": "b", "symbol": "0", "probability": 0.3 },
+        { "stateId": "b", "symbol": "1", "probability": 0.7 }
+      ],
+      "evidenceRecords": [
+        {
+          "recordId": "primary-observed-calibrated",
+          "horizon": 3,
+          "observations": ["0", "1", "1", "0"],
+          "monitorStates": ["q"],
+          "initialMonitorStateByHiddenState": [
+            { "stateId": "a", "monitorStateId": "q" },
+            { "stateId": "b", "monitorStateId": "q" }
+          ],
+          "monitorTransitionByStep": [
+            [
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "nextMonitorStateId": "q" }
+            ],
+            [
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "nextMonitorStateId": "q" }
+            ],
+            [
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "nextMonitorStateId": "q" },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "nextMonitorStateId": "q" }
+            ]
+          ],
+          "initialEvidenceLikelihoods": [
+            { "stateId": "a", "likelihood": 0.9 },
+            { "stateId": "b", "likelihood": 0.4 }
+          ],
+          "monitorCoupledTransitionEvidenceLikelihoodsByStep": [
+            [
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "likelihood": 0.8 },
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "likelihood": 0.5 },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "likelihood": 0.6 },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "likelihood": 0.9 }
+            ],
+            [
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "likelihood": 0.7 },
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "likelihood": 0.9 },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "likelihood": 0.4 },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "likelihood": 0.8 }
+            ],
+            [
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "likelihood": 0.9 },
+              { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "likelihood": 0.6 },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "likelihood": 0.7 },
+              { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "likelihood": 0.5 }
+            ]
+          ]
+        }
+      ],
+      "maxIterations": 2,
+      "parameterConvergenceTolerance": 0.05,
+      "logLikelihoodConvergenceTolerance": 1e-12,
+      "likelihoodNonDecreaseTolerance": 1e-10
+    },
+    "downstream": {
+      "horizon": 3,
+      "firstPassageTargetStates": ["b"],
+      "additiveInitialValueByState": [
+        { "stateId": "a", "valueTicks": 0 },
+        { "stateId": "b", "valueTicks": 0 }
+      ],
+      "additiveTransitionValueByStep": [
+        [
+          { "fromStateId": "a", "toStateId": "a", "valueTicks": 0 },
+          { "fromStateId": "a", "toStateId": "b", "valueTicks": 1 },
+          { "fromStateId": "b", "toStateId": "a", "valueTicks": 0 },
+          { "fromStateId": "b", "toStateId": "b", "valueTicks": 1 }
+        ],
+        [
+          { "fromStateId": "a", "toStateId": "a", "valueTicks": 0 },
+          { "fromStateId": "a", "toStateId": "b", "valueTicks": 1 },
+          { "fromStateId": "b", "toStateId": "a", "valueTicks": 0 },
+          { "fromStateId": "b", "toStateId": "b", "valueTicks": 1 }
+        ],
+        [
+          { "fromStateId": "a", "toStateId": "a", "valueTicks": 0 },
+          { "fromStateId": "a", "toStateId": "b", "valueTicks": 1 },
+          { "fromStateId": "b", "toStateId": "a", "valueTicks": 0 },
+          { "fromStateId": "b", "toStateId": "b", "valueTicks": 1 }
+        ]
+      ],
+      "calibratedEvidenceLikelihoods": [
+        [
+          { "stateId": "a", "likelihood": 0.9 },
+          { "stateId": "b", "likelihood": 0.4 }
+        ],
+        [
+          { "stateId": "a", "likelihood": 0.5 },
+          { "stateId": "b", "likelihood": 0.8 }
+        ],
+        [
+          { "stateId": "a", "likelihood": 0.6 },
+          { "stateId": "b", "likelihood": 0.7 }
+        ],
+        [
+          { "stateId": "a", "likelihood": 0.8 },
+          { "stateId": "b", "likelihood": 0.3 }
+        ]
+      ],
+      "targetValueTicks": 2
+    }
+  },
+  "secondary": {
+    "observations": ["x", "x"],
+    "alphabet": ["x"],
+    "kernel": [
+      { "stateId": "s0", "symbol": "x", "probability": 1 },
+      { "stateId": "s1", "symbol": "x", "probability": 1 }
+    ],
+    "initialDistribution": [
+      { "stateId": "s0", "probability": 1 },
+      { "stateId": "s1", "probability": 0 }
+    ],
+    "candidates": [
+      {
+        "candidateId": "candidate-low",
+        "model": {
+          "startState": "s0",
+          "states": [{ "id": "s0" }, { "id": "s1" }],
+          "parameters": [],
+          "transitions": [
+            { "from": "s0", "to": "s0", "probability": 0.8 },
+            { "from": "s0", "to": "s1", "probability": 0.2 },
+            { "from": "s1", "to": "s0", "probability": 0.5 },
+            { "from": "s1", "to": "s1", "probability": 0.5 }
+          ]
+        }
+      },
+      {
+        "candidateId": "candidate-high",
+        "model": {
+          "startState": "s0",
+          "states": [{ "id": "s0" }, { "id": "s1" }],
+          "parameters": [],
+          "transitions": [
+            { "from": "s0", "to": "s0", "probability": 0.2 },
+            { "from": "s0", "to": "s1", "probability": 0.8 },
+            { "from": "s1", "to": "s0", "probability": 0.5 },
+            { "from": "s1", "to": "s1", "probability": 0.5 }
+          ]
+        }
+      }
+    ],
+    "identifiabilityProbes": [
+      {
+        "probeId": "shared-s1-self-loop",
+        "type": "transition_probability",
+        "from": "s1",
+        "to": "s1"
+      }
+    ],
+    "predictionHorizon": 1,
+    "actions": [
+      {
+        "actionId": "state-linked",
+        "stateRewards": { "s0": 0, "s1": 10 }
+      },
+      {
+        "actionId": "safe",
+        "stateRewards": { "s0": 4, "s1": 4 }
+      }
+    ]
+  }
+}

@@ -1,0 +1,234 @@
+{
+  "schemaVersion": 1,
+  "showcaseId": "ORF-CLOSED-LOOP-FOUNDATION-SHOWCASE-v1",
+  "fixtureId": "ORF-CLOSED-LOOP-FOUNDATION-FIXTURE-v1",
+  "analyticalBaseline": {
+    "subject": "subject-public-8b341032516a",
+    "commit": "8b341032516a2f5108170743c4dafd8fde31a229"
+  },
+  "primary": {
+    "input": {
+      "recordId": "primary-observed-calibrated",
+      "observations": ["0", "1", "1", "0"],
+      "initialCalibratedEvidence": [
+        { "stateId": "a", "likelihood": 0.9 },
+        { "stateId": "b", "likelihood": 0.4 }
+      ],
+      "monitorCoupledTransitionCalibratedEvidence": [
+        [
+          { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "likelihood": 0.8 },
+          { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "likelihood": 0.5 },
+          { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "likelihood": 0.6 },
+          { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "likelihood": 0.9 }
+        ],
+        [
+          { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "likelihood": 0.7 },
+          { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "likelihood": 0.9 },
+          { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "likelihood": 0.4 },
+          { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "likelihood": 0.8 }
+        ],
+        [
+          { "monitorStateId": "q", "fromStateId": "a", "toStateId": "a", "likelihood": 0.9 },
+          { "monitorStateId": "q", "fromStateId": "a", "toStateId": "b", "likelihood": 0.6 },
+          { "monitorStateId": "q", "fromStateId": "b", "toStateId": "a", "likelihood": 0.7 },
+          { "monitorStateId": "q", "fromStateId": "b", "toStateId": "b", "likelihood": 0.5 }
+        ]
+      ],
+      "downstreamCalibratedEvidence": [
+        [
+          { "stateId": "a", "likelihood": 0.9 },
+          { "stateId": "b", "likelihood": 0.4 }
+        ],
+        [
+          { "stateId": "a", "likelihood": 0.5 },
+          { "stateId": "b", "likelihood": 0.8 }
+        ],
+        [
+          { "stateId": "a", "likelihood": 0.6 },
+          { "stateId": "b", "likelihood": 0.7 }
+        ],
+        [
+          { "stateId": "a", "likelihood": 0.8 },
+          { "stateId": "b", "likelihood": 0.3 }
+        ]
+      ]
+    },
+    "seikatan": {
+      "possible": true,
+      "converged": false,
+      "stopReason": "MAX_ITERATIONS_REACHED",
+      "acceptedIterations": 2,
+      "likelihoodTrace": [
+        {
+          "iteration": 1,
+          "currentTotalLogLikelihood": -4.3637311755264045,
+          "updatedTotalLogLikelihood": -4.03756223718723,
+          "logLikelihoodDelta": 0.32616893833917437,
+          "maxParameterDelta": 0.17661143204621466
+        },
+        {
+          "iteration": 2,
+          "currentTotalLogLikelihood": -4.03756223718723,
+          "updatedTotalLogLikelihood": -3.8868675787022307,
+          "logLikelihoodDelta": 0.15069465848499952,
+          "maxParameterDelta": 0.13208160003601366
+        }
+      ],
+      "finalTheta": {
+        "initialDistribution": [
+          { "stateId": "a", "probability": 0.9086930320822282 },
+          { "stateId": "b", "probability": 0.09130696791777171 }
+        ],
+        "transitionRows": [
+          {
+            "stateId": "a",
+            "terminal": false,
+            "row": [
+              { "toStateId": "a", "probability": 0.5605783641785598 },
+              { "toStateId": "b", "probability": 0.4394216358214403 }
+            ]
+          },
+          {
+            "stateId": "b",
+            "terminal": false,
+            "row": [
+              { "toStateId": "a", "probability": 0.3356693388163035 },
+              { "toStateId": "b", "probability": 0.6643306611836965 }
+            ]
+          }
+        ],
+        "observationKernel": [
+          { "stateId": "a", "symbol": "0", "probability": 0.6592758722830465 },
+          { "stateId": "a", "symbol": "1", "probability": 0.3407241277169534 },
+          { "stateId": "b", "symbol": "0", "probability": 0.2853838038678949 },
+          { "stateId": "b", "symbol": "1", "probability": 0.714616196132105 }
+        ]
+      }
+    },
+    "kiyotan": {
+      "stateDistribution": {
+        "horizon": 3,
+        "finalDistribution": [
+          { "stateId": "a", "probability": 0.43848195531964684 },
+          { "stateId": "b", "probability": 0.5615180446803533 }
+        ]
+      },
+      "firstPassage": {
+        "targetStates": ["b"],
+        "horizon": 3,
+        "hitProbabilityByHorizon": 0.8399240110315705,
+        "notHitProbabilityByHorizon": 0.16007598896842945,
+        "steps": [
+          { "step": 0, "firstHitProbability": 0.09130696791777171, "cumulativeHitProbability": 0.09130696791777171, "notYetHitProbability": 0.9086930320822282 },
+          { "step": 1, "firstHitProbability": 0.39929937861711723, "cumulativeHitProbability": 0.49060634653488894, "notYetHitProbability": 0.509393653465111 },
+          { "step": 2, "firstHitProbability": 0.22383859248269897, "cumulativeHitProbability": 0.7144449390175879, "notYetHitProbability": 0.28555506098241207 },
+          { "step": 3, "firstHitProbability": 0.12547907201398265, "cumulativeHitProbability": 0.8399240110315705, "notYetHitProbability": 0.16007598896842945 }
+        ]
+      },
+      "longRun": {
+        "uniqueGlobalStationary": true,
+        "globalStationaryDistribution": [
+          { "stateId": "a", "probability": 0.4330708907727717 },
+          { "stateId": "b", "probability": 0.5669291092272283 }
+        ],
+        "cesaroLongRunOccupancy": [
+          { "stateId": "a", "probability": 0.4330708907727717 },
+          { "stateId": "b", "probability": 0.5669291092272283 }
+        ]
+      },
+      "additiveOutcome": {
+        "horizon": 3,
+        "finalAggregateDistribution": [
+          { "valueTicks": 0, "probability": 0.16970736320470187 },
+          { "valueTicks": 1, "probability": 0.299235028627573 },
+          { "valueTicks": 2, "probability": 0.3280622057803773 },
+          { "valueTicks": 3, "probability": 0.20299540238734803 }
+        ]
+      },
+      "evidenceConditionedAdditiveOutcome": {
+        "evidenceProbability": 0.18244365921788455,
+        "finalAggregateDistributionGivenEvidence": [
+          { "valueTicks": 0, "probability": 0.19458623936864577 },
+          { "valueTicks": 1, "probability": 0.3156932274348614 },
+          { "valueTicks": 2, "probability": 0.33381387546306523 },
+          { "valueTicks": 3, "probability": 0.15590665773342754 }
+        ],
+        "targetValueTicks": 2,
+        "targetConditionalProbabilityGivenEvidence": 0.33381387546306523
+      }
+    },
+    "closedLoop": {
+      "downstreamThetaSource": "candidate_aj.finalTheta",
+      "hiddenTruthSubstitutionUsed": false,
+      "status": "BOUNDED_NON_CONVERGED_ESTIMATE_USED_WITH_EXPLICIT_STATUS"
+    }
+  },
+  "secondary": {
+    "finiteCandidateInference": {
+      "classification": "tied_maximum_likelihood",
+      "selectedCandidateIds": ["candidate-high", "candidate-low"],
+      "evaluations": [
+        { "candidateId": "candidate-high", "possible": true, "logLikelihood": 0, "maximumLikelihood": true },
+        { "candidateId": "candidate-low", "possible": true, "logLikelihood": 0, "maximumLikelihood": true }
+      ]
+    },
+    "ambiguityClassification": {
+      "familyClassification": "fully_unresolved_within_tolerance",
+      "candidates": [
+        { "candidateId": "candidate-high", "classification": "ambiguous_under_observation_design", "unresolvedPeerCandidateIds": ["candidate-low"] },
+        { "candidateId": "candidate-low", "classification": "ambiguous_under_observation_design", "unresolvedPeerCandidateIds": ["candidate-high"] }
+      ]
+    },
+    "unresolvedCandidateIds": ["candidate-high", "candidate-low"],
+    "perCandidateKiyotanValues": [
+      {
+        "candidateId": "candidate-high",
+        "finalDistribution": [
+          { "stateId": "s0", "probability": 0.2 },
+          { "stateId": "s1", "probability": 0.8 }
+        ],
+        "actionExpectedRewards": [
+          { "actionId": "safe", "expectedReward": 4 },
+          { "actionId": "state-linked", "expectedReward": 8 }
+        ]
+      },
+      {
+        "candidateId": "candidate-low",
+        "finalDistribution": [
+          { "stateId": "s0", "probability": 0.8 },
+          { "stateId": "s1", "probability": 0.2 }
+        ],
+        "actionExpectedRewards": [
+          { "actionId": "safe", "expectedReward": 4 },
+          { "actionId": "state-linked", "expectedReward": 2 }
+        ]
+      }
+    ],
+    "robustDecision": {
+      "classification": "unique_maximin_action",
+      "selectedActionIds": ["safe"],
+      "bestRobustExpectedReward": 4,
+      "evaluations": [
+        { "actionId": "safe", "robustExpectedReward": 4, "worstCaseCandidateIds": ["candidate-high", "candidate-low"], "maximinOptimal": true },
+        { "actionId": "state-linked", "robustExpectedReward": 2, "worstCaseCandidateIds": ["candidate-low"], "maximinOptimal": false }
+      ]
+    },
+    "claimSeparation": {
+      "parameterRecovery": "unresolved",
+      "predictiveRecovery": "candidate_dependent",
+      "ambiguityPreservation": "preserved",
+      "decisionRobustness": "unique_maximin_over_supplied_pure_actions"
+    },
+    "candidateAveragingUsed": false,
+    "inventedTruthUsed": false
+  },
+  "claimBoundary": {
+    "scope": "exact within declared finite explicit probabilistic models and qualified contracts",
+    "bayesianInferenceUsed": false,
+    "causalInferenceUsed": false,
+    "globalOptimumClaimed": false,
+    "guaranteedTruthRecoveryClaimed": false,
+    "guaranteedConvergenceClaimed": false,
+    "literalUniversalityClaimed": false
+  }
+}
