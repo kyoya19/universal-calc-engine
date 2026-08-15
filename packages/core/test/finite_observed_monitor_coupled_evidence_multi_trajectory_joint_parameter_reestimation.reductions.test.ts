@@ -128,7 +128,7 @@ describe('Candidate AI reductions to qualified A-through-AH semantics', () => {
     const ai = requireAi(reestimateFiniteHiddenStateParametersJointOneStepFromObservedAndMonitorCoupledEvidenceTrajectories(model, request));
     const b = (stateId: string, symbol: string) => request.kernel.find((entry) => entry.stateId === stateId && entry.symbol === symbol)!.probability;
     const foldedRecords = request.evidenceRecords.map((record) => ({
-      recordId: record.recordId,
+      ...(record.recordId === undefined ? {} : { recordId: record.recordId }),
       horizon: record.horizon,
       monitorStates: record.monitorStates,
       initialMonitorStateByHiddenState: record.initialMonitorStateByHiddenState,
