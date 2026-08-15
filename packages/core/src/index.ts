@@ -100,3 +100,4 @@ export * from './finite_monitor_coupled_evidence_ambiguity_preserving_map_hidden
 export * from './finite_monitor_coupled_evidence_ambiguity_preserving_ranked_k_best_hidden_trajectory_decoding';
 export * from './finite_monitor_coupled_evidence_multi_trajectory_initial_transition_reestimation';
 export * from './finite_observed_monitor_coupled_evidence_multi_trajectory_joint_parameter_reestimation';
+export * from './finite_observed_monitor_coupled_evidence_iterative_joint_parameter_reestimation';
