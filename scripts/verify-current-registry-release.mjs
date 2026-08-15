@@ -44,6 +44,15 @@ function run(command, args, cwd, capture = false) {
   return result;
 }
 
+function runViewField(spec, field, cwd) {
+  const result = run(npmCommand, ['view', spec, field, '--json'], cwd, true);
+  try {
+    return JSON.parse(result.stdout || 'null');
+  } catch {
+    fail(`invalid JSON from npm view ${spec} ${field}`);
+  }
+}
+
 function sha256(bytes) {
   return createHash('sha256').update(bytes).digest('hex');
 }
@@ -51,7 +60,15 @@ function sha256(bytes) {
 function normalizeRepository(repository) {
   const value = typeof repository === 'string' ? repository : repository?.url;
   if (typeof value !== 'string') return null;
-  return value.trim().replace(/^git\+/, '').replace(/^git:\/\/github\.com\//, 'https://github.com/').replace(/\.git$/, '').replace(/\/$/, '');
+  return value
+    .trim()
+    .replace(/^git\+/, '')
+    .replace(/^git:\/\/github\.com\//, 'https://github.com/')
+    .replace(/^ssh:\/\/git@github\.com\//, 'https://github.com/')
+    .replace(/^git@github\.com:/, 'https://github.com/')
+    .replace(/^github:/, 'https://github.com/')
+    .replace(/\.git$/, '')
+    .replace(/\/$/, '');
 }
 
 async function listFiles(directory, prefix = '') {
@@ -114,18 +131,23 @@ try {
   const expectedFiles = prepublication.files.map(({ path, size, sha256 }) => ({ path, size, sha256 }));
   if (JSON.stringify(installedFiles) !== JSON.stringify(expectedFiles)) fail('registry-installed package content differs from prepublication normalized manifest');
 
-  const registry = JSON.parse(run(npmCommand, ['view', `${packageName}@${packageVersion}`, '--json'], tempDir, true).stdout);
-  if (registry.name !== packageName || registry.version !== packageVersion) fail('registry metadata mismatch');
-  if (normalizeRepository(registry.repository) !== expectedRepository) fail('registry repository mismatch');
-  if (typeof registry.dist?.integrity !== 'string') fail('registry dist.integrity missing');
-  if (typeof registry.dist?.shasum !== 'string') fail('registry dist.shasum missing');
-  if (registry['dist-tags']?.latest !== packageVersion) fail('latest dist-tag mismatch');
-  if (!registry.dist?.attestations) fail('registry provenance/attestation metadata missing');
+  const exactSpec = `${packageName}@${packageVersion}`;
+  const registryName = runViewField(exactSpec, 'name', tempDir);
+  const registryVersion = runViewField(exactSpec, 'version', tempDir);
+  const registryRepository = runViewField(exactSpec, 'repository', tempDir);
+  const registryDist = runViewField(exactSpec, 'dist', tempDir);
+  const registryDistTags = runViewField(packageName, 'dist-tags', tempDir);
+  if (registryName !== packageName || registryVersion !== packageVersion) fail('registry metadata mismatch');
+  if (normalizeRepository(registryRepository) !== expectedRepository) fail('registry repository mismatch');
+  if (typeof registryDist?.integrity !== 'string') fail('registry dist.integrity missing');
+  if (typeof registryDist?.shasum !== 'string') fail('registry dist.shasum missing');
+  if (registryDistTags?.latest !== packageVersion) fail('latest dist-tag mismatch');
+  if (!registryDist?.attestations) fail('registry provenance/attestation metadata missing');
 
-  const historical = JSON.parse(run(npmCommand, ['view', `${packageName}@1.0.0`, '--json'], tempDir, true).stdout);
-  if (historical.dist?.integrity !== historicalIntegrity || historical.dist?.shasum !== historicalShasum) fail('historical 1.0.0 identity changed');
+  const historicalDist = runViewField(`${packageName}@1.0.0`, 'dist', tempDir);
+  if (historicalDist?.integrity !== historicalIntegrity || historicalDist?.shasum !== historicalShasum) fail('historical 1.0.0 identity changed');
 
-  const packResult = JSON.parse(run(npmCommand, ['pack', `${packageName}@${packageVersion}`, '--json'], tempDir, true).stdout);
+  const packResult = JSON.parse(run(npmCommand, ['pack', exactSpec, '--json'], tempDir, true).stdout);
   if (!Array.isArray(packResult) || packResult.length !== 1) fail('registry npm pack result invalid');
   const registryTarballPath = join(tempDir, packResult[0].filename);
   const registryTarballSha256 = sha256(await readFile(registryTarballPath));
@@ -139,11 +161,11 @@ try {
     packageVersion,
     nodeVersion: process.version,
     registry: {
-      repository: normalizeRepository(registry.repository),
-      integrity: registry.dist.integrity,
-      shasum: registry.dist.shasum,
-      attestations: registry.dist.attestations,
-      latest: registry['dist-tags'].latest
+      repository: normalizeRepository(registryRepository),
+      integrity: registryDist.integrity,
+      shasum: registryDist.shasum,
+      attestations: registryDist.attestations,
+      latest: registryDistTags.latest
     },
     tarballSha256: registryTarballSha256,
     qualifiedTarballEquivalence: 'PASS_EXACT_SHA256',
