@@ -141,7 +141,7 @@ export type FiniteMapHiddenTrajectoryConditionedDecodingResult =
   | FiniteMapHiddenTrajectoryDecodingFailure;
 
 type EffectiveEdge = { from: StateId; to: StateId; probability: number };
-type Predecessor = { stateId: StateId; monitorStateId: string };
+type Predecessor = { stateId: StateId; monitorStateId: string; score: number };
 type MaxCell = { score: number; predecessors: Predecessor[] };
 type MaxLayer = Map<StateId, Map<string, MaxCell>>;
 
@@ -388,7 +388,11 @@ function runMaxProduct(
           }
           const destination = next.get(edge.to)!;
           const existing = destination.get(nextMonitorStateId);
-          const predecessor = { stateId: fromStateId, monitorStateId };
+          const predecessor = {
+            stateId: fromStateId,
+            monitorStateId,
+            score: candidateScore
+          };
           if (
             existing === undefined ||
             candidateScore > existing.score + resolved.mapScoreTolerance
@@ -400,11 +404,22 @@ function runMaxProduct(
             });
             backpointersUsed += 1;
           } else if (
-            Math.abs(candidateScore - existing.score) <= resolved.mapScoreTolerance &&
-            !existing.predecessors.some((entry) => samePredecessor(entry, predecessor))
+            Math.abs(candidateScore - existing.score) <= resolved.mapScoreTolerance
           ) {
-            existing.predecessors.push(predecessor);
-            backpointersUsed += 1;
+            const previousCount = existing.predecessors.length;
+            const newBest = Math.max(existing.score, candidateScore);
+            const retained = existing.predecessors.filter(
+              (entry) => newBest - entry.score <= resolved.mapScoreTolerance
+            );
+            if (
+              newBest - candidateScore <= resolved.mapScoreTolerance &&
+              !retained.some((entry) => samePredecessor(entry, predecessor))
+            ) {
+              retained.push(predecessor);
+            }
+            existing.score = newBest;
+            existing.predecessors = retained;
+            backpointersUsed += retained.length - previousCount;
           }
           if (backpointersUsed > resolved.maxDecodingBackpointers) {
             return fail(
@@ -424,7 +439,7 @@ function runMaxProduct(
   }
 
   let bestScore = Number.NEGATIVE_INFINITY;
-  const finalCells: Array<{ stateId: StateId; monitorStateId: string }> = [];
+  const finalCells: Array<{ stateId: StateId; monitorStateId: string; score: number }> = [];
   const final = layers[request.horizon]!;
   for (const stateId of prepared.stateIds) {
     for (const [monitorStateId, cell] of final.get(stateId)?.entries() ?? []) {
@@ -432,9 +447,19 @@ function runMaxProduct(
       if (cell.score > bestScore + resolved.mapScoreTolerance) {
         bestScore = cell.score;
         finalCells.length = 0;
-        finalCells.push({ stateId, monitorStateId });
+        finalCells.push({ stateId, monitorStateId, score: cell.score });
       } else if (Math.abs(cell.score - bestScore) <= resolved.mapScoreTolerance) {
-        finalCells.push({ stateId, monitorStateId });
+        if (cell.score > bestScore) {
+          bestScore = cell.score;
+          const retained = finalCells.filter(
+            (entry) => bestScore - entry.score <= resolved.mapScoreTolerance
+          );
+          finalCells.length = 0;
+          finalCells.push(...retained);
+        }
+        if (bestScore - cell.score <= resolved.mapScoreTolerance) {
+          finalCells.push({ stateId, monitorStateId, score: cell.score });
+        }
       }
     }
   }
@@ -451,7 +476,8 @@ function runMaxProduct(
     stateId: StateId,
     monitorStateId: string,
     hiddenReverse: StateId[],
-    monitorReverse: string[]
+    monitorReverse: string[],
+    pathScore: number
   ): FiniteMapHiddenTrajectoryDecodingFailure | undefined => {
     const cell = layers[step]!.get(stateId)?.get(monitorStateId);
     if (cell === undefined) {
@@ -464,7 +490,7 @@ function runMaxProduct(
     if (step === 0) {
       const hiddenStateIds = [...hiddenReverse].reverse();
       const monitorStateIds = [...monitorReverse].reverse();
-      paths.push({ hiddenStateIds, monitorStateIds, score: cell.score });
+      paths.push({ hiddenStateIds, monitorStateIds, score: pathScore });
       if (paths.length > resolved.maxReturnedMapTrajectories) {
         return fail(
           'map_tie_set_limit_exceeded',
@@ -490,7 +516,8 @@ function runMaxProduct(
         predecessor.stateId,
         predecessor.monitorStateId,
         [...hiddenReverse, predecessor.stateId],
-        [...monitorReverse, predecessor.monitorStateId]
+        [...monitorReverse, predecessor.monitorStateId],
+        pathScore
       );
       if (problem !== undefined) return problem;
     }
@@ -503,7 +530,8 @@ function runMaxProduct(
       terminal.stateId,
       terminal.monitorStateId,
       [terminal.stateId],
-      [terminal.monitorStateId]
+      [terminal.monitorStateId],
+      terminal.score
     );
     if (problem !== undefined) return problem;
   }
