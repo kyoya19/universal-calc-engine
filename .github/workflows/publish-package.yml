@@ -113,7 +113,7 @@ jobs:
         run: npm run distribution:identity
 
       - name: Publish exact qualified tarball with npm Trusted Publishing and provenance
-        run: npm publish qualification-output/universal-calc-engine-1.1.0.tgz --provenance
+        run: npm publish ./qualification-output/universal-calc-engine-1.1.0.tgz --provenance
 
       - name: Verify latest resolves to 1.1.0
         run: test "$(npm view universal-calc-engine@latest version)" = "1.1.0"
