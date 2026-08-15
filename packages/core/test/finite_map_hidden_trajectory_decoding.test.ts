@@ -102,7 +102,7 @@ describe('Candidate AF ambiguity-preserving MAP hidden-trajectory decoding', () 
   });
 
   it('does not promote a strict near-tie outside mapScoreTolerance', () => {
-    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a' }, { id: 'b' }], transitions: [] };
+    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a', terminal: true }, { id: 'b', terminal: true }], transitions: [] };
     const request = oneMonitorRequest(model, [{ stateId: 'a', probability: 0.500001 }, { stateId: 'b', probability: 0.499999 }], 0);
     request.mapScoreTolerance = 1e-8;
     const decoded = requireMap(decodeFiniteMapHiddenTrajectoriesUnderMonitorCoupledCalibratedEvidence(model, request));
@@ -111,7 +111,7 @@ describe('Candidate AF ambiguity-preserving MAP hidden-trajectory decoding', () 
   });
 
   it('supports terminal-monitor restriction and all-target neutrality', () => {
-    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a' }, { id: 'b' }], transitions: [] };
+    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a', terminal: true }, { id: 'b', terminal: true }], transitions: [] };
     const request: FiniteMapHiddenTrajectoryDecodingRequest = {
       ...oneMonitorRequest(model, [{ stateId: 'a', probability: 0.6 }, { stateId: 'b', probability: 0.4 }], 0),
       monitorStates: ['qa', 'qb'],
@@ -125,7 +125,7 @@ describe('Candidate AF ambiguity-preserving MAP hidden-trajectory decoding', () 
   });
 
   it('separates evidence, monitor-event and joint-event impossibility without fabricating a MAP path', () => {
-    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a' }, { id: 'b' }], transitions: [] };
+    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a', terminal: true }, { id: 'b', terminal: true }], transitions: [] };
     const evidence = oneMonitorRequest(model, [{ stateId: 'a', probability: 0.5 }, { stateId: 'b', probability: 0.5 }], 0);
     evidence.initialEvidenceLikelihoods = [{ stateId: 'a', likelihood: 0 }, { stateId: 'b', likelihood: 0 }];
     const impossibleE = requireMap(decodeFiniteMapHiddenTrajectoriesUnderMonitorCoupledCalibratedEvidence(model, evidence));
@@ -162,7 +162,7 @@ describe('Candidate AF ambiguity-preserving MAP hidden-trajectory decoding', () 
   });
 
   it('hard-fails invalid MAP options and an oversized co-MAP set rather than truncating it', () => {
-    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], transitions: [] };
+    const model: DefinitionModel = { startState: 'a', states: [{ id: 'a', terminal: true }, { id: 'b', terminal: true }, { id: 'c', terminal: true }], transitions: [] };
     const invalid = oneMonitorRequest(model, [{ stateId: 'a', probability: 1 }, { stateId: 'b', probability: 0 }, { stateId: 'c', probability: 0 }], 0);
     invalid.mapScoreTolerance = -1;
     const bad = decodeFiniteMapHiddenTrajectoriesUnderMonitorCoupledCalibratedEvidence(model, invalid);
@@ -177,7 +177,7 @@ describe('Candidate AF ambiguity-preserving MAP hidden-trajectory decoding', () 
   });
 
   it('uses checked deterministic serializers and rejects forged non-finite values', () => {
-    const model: DefinitionModel = { startState: 's', states: [{ id: 's' }], transitions: [] };
+    const model: DefinitionModel = { startState: 's', states: [{ id: 's', terminal: true }], transitions: [] };
     const request = oneMonitorRequest(model, [{ stateId: 's', probability: 1 }], 0);
     const decoded = requireMap(decodeFiniteMapHiddenTrajectoriesUnderMonitorCoupledCalibratedEvidence(model, request));
     expect(finiteMapHiddenTrajectoryDecodingResultToJson(decoded)).toBe(JSON.stringify(decoded));
