@@ -186,7 +186,7 @@ export function oneStateMonitorRecord(
   const monitorPairs = effectivePairs(model);
   const evidencePairs = cartesianPairs(model);
   const initialLikelihoods = options.initialLikelihoods ?? Object.fromEntries(stateIds(model).map((stateId) => [stateId, 1]));
-  const stepLikelihoods = options.stepLikelihoods ?? Array.from({ length: horizon }, () => ({}));
+  const stepLikelihoods: Array<Record<string, number>> = options.stepLikelihoods ?? Array.from({ length: horizon }, () => ({}));
   return {
     ...(options.recordId === undefined ? {} : { recordId: options.recordId }),
     horizon,
