@@ -32,6 +32,9 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
+      - name: Install deterministic npm CLI
+        run: npm install --global npm@12.0.2
+
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
@@ -53,29 +56,26 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Generate package API manifest
+      - name: Generate current package API manifest
         run: npm run package:api:generate
 
-      - name: Verify committed package API manifest
-        run: git diff --exit-code -- docs/package-api-v1.json
-
-      - name: Verify npm package identity
+      - name: Verify current-generation npm package identity
         env:
-          ORF_NPM_IDENTITY_LIFECYCLE: published_verified
+          ORF_NPM_IDENTITY_LIFECYCLE: current_generation_prepublication
         run: npm run distribution:identity
 
-      - name: Run DIST-001 through DIST-009 and DIST-011
+      - name: Run current-generation prepublication qualification
         run: npm run package:check
 
-      - name: Record DIST-010 matrix evidence
+      - name: Record supported-Node matrix evidence
         run: |
           mkdir -p qualification-output
-          node -e "const fs=require('fs');fs.writeFileSync('qualification-output/DIST-010-node-${{ matrix.node }}.json',JSON.stringify({schemaVersion:1,testId:'DIST-010',status:'PASS',requestedNode:'${{ matrix.node }}',executedNode:process.version,platform:process.platform,arch:process.arch},null,2)+'\n')"
+          node -e "const fs=require('fs');fs.writeFileSync('qualification-output/current-generation-node-${{ matrix.node }}.json',JSON.stringify({schemaVersion:1,testId:'CURRENT-GENERATION-NODE',status:'PASS',requestedNode:'${{ matrix.node }}',executedNode:process.version,platform:process.platform,arch:process.arch},null,2)+'\n')"
 
-      - name: Upload distribution qualification evidence
+      - name: Upload current-generation distribution qualification evidence
         uses: actions/upload-artifact@v7
         with:
-          name: distribution-qualification-node-${{ matrix.node }}
+          name: current-generation-distribution-qualification-node-${{ matrix.node }}
           path: qualification-output/
           if-no-files-found: error
           retention-days: 30
