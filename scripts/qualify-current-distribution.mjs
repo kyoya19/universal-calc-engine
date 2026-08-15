@@ -356,7 +356,7 @@ async function validateDocumentationAndWorkflow() {
     'id-token: write',
     'actions/checkout@v6',
     'actions/setup-node@v6',
-    'npm publish qualification-output/universal-calc-engine-1.1.0.tgz --provenance',
+    'npm publish ./qualification-output/universal-calc-engine-1.1.0.tgz --provenance',
     'https://registry.npmjs.org'
   ]) {
     assert(workflow.includes(text), 'consumer_documentation_contract_failure', `release workflow missing: ${text}`);
