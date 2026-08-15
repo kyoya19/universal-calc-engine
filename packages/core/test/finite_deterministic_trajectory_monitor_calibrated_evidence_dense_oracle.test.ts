@@ -152,7 +152,7 @@ describe('Candidate AC independent raw-probability dense X-by-Q oracle', () => {
     for (let step = 0; step <= req.horizon; step += 1) {
       for (const stateId of dense.hidden) {
         for (const q of dense.monitor) {
-          const expected = dense.forward[step]![dense.hIndex.get(stateId)!]![dense.qIndex.get(q)]! * beta[step]![dense.hIndex.get(stateId)!]![dense.qIndex.get(q)]! / joint;
+          const expected = dense.forward[step]![dense.hIndex.get(stateId)!]![dense.qIndex.get(q)!]! * beta[step]![dense.hIndex.get(stateId)!]![dense.qIndex.get(q)!]! / joint;
           const actual = conditioned.smoothingSteps![step]!.jointHiddenMonitorDistribution.find((entry) => entry.stateId === stateId && entry.monitorStateId === q)!.probability;
           expect(actual).toBeCloseTo(expected, 12);
         }
