@@ -52,11 +52,10 @@ describe('Candidate AG core ranked K-best contract', () => {
       )
     );
     expect(hiddenRanks(result)).toEqual([[['a', 'a']], [['a', 'b']], [['b', 'a']]]);
-    expect(result.rankStrata!.map((entry) => entry.anchorJointProbability)).toEqual([
-      0.4,
-      0.3,
-      0.2
-    ]);
+    const anchors = result.rankStrata!.map((entry) => entry.anchorJointProbability);
+    expect(anchors[0]).toBeCloseTo(0.4, 14);
+    expect(anchors[1]).toBeCloseTo(0.3, 14);
+    expect(anchors[2]).toBeCloseTo(0.2, 14);
     expect(result.allRankedTrajectoriesExhausted).toBe(false);
   });
 
