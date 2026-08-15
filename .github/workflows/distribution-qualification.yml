@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   qualify:
@@ -33,30 +33,6 @@ jobs:
           node-version: ${{ matrix.node }}
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
-
-      - name: Bind candidate evidence to checked-out commit on PR head
-        if: github.event_name == 'pull_request' && matrix.node == '24.18.1'
-        shell: bash
-        run: |
-          node <<'NODE'
-          const fs = require('fs');
-          const path = 'scripts/qualify-current-distribution.mjs';
-          const source = fs.readFileSync(path, 'utf8');
-          const before = "  const candidateCommit = process.env.GITHUB_SHA ?? null;";
-          const after = "  const candidateCommit = run('git', ['rev-parse', 'HEAD'], rootDir, true).stdout.trim();";
-          const count = source.split(before).length - 1;
-          if (count === 0 && source.includes(after)) process.exit(0);
-          if (count !== 1) throw new Error(`unexpected candidateCommit binding count: ${count}`);
-          fs.writeFileSync(path, source.replace(before, after));
-          NODE
-          if git diff --quiet -- scripts/qualify-current-distribution.mjs; then
-            exit 0
-          fi
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add scripts/qualify-current-distribution.mjs
-          git commit -m 'Bind distribution evidence to checked-out commit'
-          git push origin "HEAD:${GITHUB_HEAD_REF}"
 
       - name: Install deterministic npm CLI
         run: npm install --global npm@11.16.0
