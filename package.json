@@ -1,6 +1,6 @@
 {
   "name": "universal-calc-engine",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "private": false,
   "type": "module",
   "main": "./dist/index.js",
@@ -35,16 +35,16 @@
   },
   "orfs": {
     "distributionContract": "ORF-DISTRIBUTION-CONTRACT-v1",
-    "analyticalSubject": "subject-public-1df6235d58a5",
-    "analyticalCommit": "1df6235d58a5027fdae0390f7a73a09cfb4ee1ee"
+    "analyticalSubject": "subject-public-8b341032516a",
+    "analyticalCommit": "8b341032516a2f5108170743c4dafd8fde31a229"
   },
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "build": "node scripts/build-package.mjs",
-    "package:api:generate": "node scripts/qualify-distribution.mjs --generate-api-manifest",
-    "package:check": "node scripts/qualify-distribution.mjs",
-    "distribution:identity": "node scripts/check-package-identity.mjs",
+    "package:api:generate": "node scripts/qualify-current-distribution.mjs --generate-api-manifest",
+    "package:check": "node scripts/qualify-current-distribution.mjs",
+    "distribution:identity": "node scripts/check-current-package-identity.mjs",
     "audit:production": "npm audit --omit=dev --audit-level=moderate"
   },
   "devDependencies": {

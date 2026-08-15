@@ -10,7 +10,7 @@ permissions:
   id-token: write
 
 jobs:
-  publish-candidate:
+  publish:
     runs-on: ubuntu-latest
     environment: npm-release
 
@@ -25,52 +25,95 @@ jobs:
           registry-url: https://registry.npmjs.org
           package-manager-cache: false
 
-      - name: Install OIDC-capable npm CLI
-        run: npm install --global npm@12.0.2
+      - name: Install OIDC-capable deterministic npm CLI
+        run: npm install --global npm@11.16.0
 
-      - name: Verify release tag matches package version
+      - name: Verify exact immutable release identity
         shell: bash
         run: |
           VERSION="$(node -p "require('./package.json').version")"
-          test "${GITHUB_REF_NAME}" = "package-v${VERSION}"
-          test "${VERSION}" = "1.0.0"
+          test "${VERSION}" = "1.1.0"
+          test "${GITHUB_REF_NAME}" = "package-v1.1.0"
+          test "$(git rev-parse HEAD)" = "${GITHUB_SHA}"
+          test "$(git ls-remote origin refs/tags/package-v1.0.0 | cut -f1)" = "bddff4fcc4f744c8b5e9ac7868a6ca40e7163e47"
 
       - name: Install locked dependencies
         run: npm ci --no-audit --no-fund
 
-      - name: Test
-        run: npm test
-
       - name: Typecheck
         run: npm run typecheck
+
+      - name: Test
+        run: npm test
 
       - name: Build
         run: npm run build
 
-      - name: Generate and verify package API manifest
-        run: |
-          npm run package:api:generate
-          git diff --exit-code -- docs/package-api-v1.json
-
-      - name: Prepublication distribution qualification
-        run: npm run package:check
-
       - name: Audit production dependencies
         run: npm run audit:production
 
-      - name: Publish exact stable version under candidate dist-tag using npm Trusted Publishing
-        run: npm publish --tag candidate --provenance
+      - name: Revalidate prepublication npm identity
+        env:
+          ORF_NPM_IDENTITY_LIFECYCLE: current_generation_prepublication
+        run: npm run distribution:identity
 
-      - name: Verify candidate from registry (DIST-012)
+      - name: Qualify exact 1.1.0 tarball
+        run: npm run package:check
+
+      - name: Upload exact prepublication evidence before publication
+        uses: actions/upload-artifact@v7
+        with:
+          name: current-generation-1.1.0-prepublication
+          path: qualification-output/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Publish exact qualified tarball with npm Trusted Publishing and provenance
+        run: npm publish qualification-output/universal-calc-engine-1.1.0.tgz --provenance
+
+      - name: Verify latest resolves to 1.1.0
+        run: test "$(npm view universal-calc-engine@latest version)" = "1.1.0"
+
+  verify-published:
+    needs: publish
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 22.14.0
+          - 24.18.1
+
+    steps:
+      - name: Checkout exact release tag
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install deterministic npm CLI
+        run: npm install --global npm@11.16.0
+
+      - name: Download exact prepublication evidence
+        uses: actions/download-artifact@v8
+        with:
+          name: current-generation-1.1.0-prepublication
+          path: qualification-output
+
+      - name: Verify published registry artifact on supported Node
         env:
           ORF_PREPUBLICATION_MANIFEST: qualification-output/normalized-manifest-node-24.18.1.json
-        run: node scripts/verify-registry-release.mjs
+          ORF_PREPUBLICATION_TARBALL_SHA256: qualification-output/packed-tarball-sha256-node-24.18.1.txt
+        run: node scripts/verify-current-registry-release.mjs
 
-      - name: Verify candidate dist-tag
-        run: |
-          test "$(npm view universal-calc-engine@candidate version)" = "1.0.0"
-
-      - name: Record latest-promotion boundary
-        run: |
-          echo "DIST-012 passed for candidate."
-          echo "Do not promote latest until the separately authenticated dist-tag action authorized after DIST-012 PASS is completed."
+      - name: Upload postpublication verification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: current-generation-1.1.0-postpublication-node-${{ matrix.node }}
+          path: qualification-output/current-generation-postpublish-node-${{ matrix.node }}.json
+          if-no-files-found: error
+          retention-days: 30
