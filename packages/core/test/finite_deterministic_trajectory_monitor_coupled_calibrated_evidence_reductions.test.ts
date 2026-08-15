@@ -425,7 +425,7 @@ describe('Candidate AE reductions to already-qualified capabilities', () => {
     expect(ae.ok).toBe(true);
     if (!ae.ok) throw new Error(ae.failure.message);
     const firstPassageByStep = new Map(
-      firstPassage.firstPassageDistribution.map((entry) => [entry.step, entry.probability] as const)
+      firstPassage.steps.map((entry) => [entry.step, entry.firstHitProbability] as const)
     );
     expect(
       ae.finalEvidenceConditionedMonitorDistribution!.find((entry) => entry.monitorStateId === 'hit_0')
