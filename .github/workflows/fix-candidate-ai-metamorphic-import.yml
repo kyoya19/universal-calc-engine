@@ -1,0 +1,35 @@
+name: Fix Candidate AI metamorphic import
+
+on:
+  push:
+    paths:
+      - .github/workflows/fix-candidate-ai-metamorphic-import.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/abc-finite-observed-monitor-coupled-evidence-joint-parameter-reestimation
+      - name: Repair import and remove one-shot workflow
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('packages/core/test/finite_observed_monitor_coupled_evidence_multi_trajectory_joint_parameter_reestimation.metamorphic.test.ts')
+          s = p.read_text()
+          old = "  oneStateMonitorRecord,\n  parallelModel,"
+          new = "  oneStateMonitorRecord,\n  pairKey,\n  parallelModel,"
+          if s.count(old) != 1:
+              raise SystemExit(f'expected one import target, found {s.count(old)}')
+          p.write_text(s.replace(old, new))
+          PY
+          git rm .github/workflows/fix-candidate-ai-metamorphic-import.yml
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add packages/core/test/finite_observed_monitor_coupled_evidence_multi_trajectory_joint_parameter_reestimation.metamorphic.test.ts
+          git commit -m 'Fix Candidate AI metamorphic helper import'
+          git push origin HEAD:agent/abc-finite-observed-monitor-coupled-evidence-joint-parameter-reestimation
