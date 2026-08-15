@@ -300,6 +300,11 @@ export function effectivePairs(model: DefinitionModel): Array<[StateId, StateId]
   return [...keys.values()].sort((left, right) => pairKey(...left).localeCompare(pairKey(...right)));
 }
 
+function candidateAeTablePairs(model: DefinitionModel): Array<[StateId, StateId]> {
+  const states = stateIds(model);
+  return states.flatMap((fromStateId) => states.map((toStateId) => [fromStateId, toStateId] as [StateId, StateId]));
+}
+
 export function oneStateMonitorRecord(
   model: DefinitionModel,
   options: {
@@ -309,7 +314,7 @@ export function oneStateMonitorRecord(
     targetMonitorStates?: string[];
   }
 ): FiniteMonitorCoupledEvidenceReestimationRecord {
-  const pairs = effectivePairs(model);
+  const pairs = candidateAeTablePairs(model);
   const record: FiniteMonitorCoupledEvidenceReestimationRecord = {
     ...(options.recordId === undefined ? {} : { recordId: options.recordId }),
     horizon: options.stepLikelihoods.length,
