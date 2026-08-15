@@ -1,0 +1,43 @@
+name: Current Generation Tag Create
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  create-exact-tag:
+    if: github.event.pull_request.head.ref == 'agent/current-generation-distribution-1.1.0'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout exact distribution subject
+        uses: actions/checkout@v6
+        with:
+          ref: 76e7ace7e06ab33753d573b7e6d42abc717c178f
+          fetch-depth: 1
+
+      - name: Verify immutable release boundary and create tag once
+        shell: bash
+        env:
+          TARGET_SHA: 76e7ace7e06ab33753d573b7e6d42abc717c178f
+          TARGET_TAG: package-v1.1.0
+          HISTORICAL_SHA: bddff4fcc4f744c8b5e9ac7868a6ca40e7163e47
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "${TARGET_SHA}"
+          test "${{ github.event.pull_request.base.sha }}" = "${TARGET_SHA}"
+          test "$(git ls-remote origin refs/heads/main | cut -f1)" = "${TARGET_SHA}"
+          test "$(git ls-remote origin refs/tags/package-v1.0.0 | cut -f1)" = "${HISTORICAL_SHA}"
+
+          EXISTING="$(git ls-remote origin "refs/tags/${TARGET_TAG}" | cut -f1)"
+          if [ -n "${EXISTING}" ]; then
+            test "${EXISTING}" = "${TARGET_SHA}"
+            echo "${TARGET_TAG} already exists at the exact authorized target; no second tag write performed."
+            exit 0
+          fi
+
+          git tag "${TARGET_TAG}" "${TARGET_SHA}"
+          git push origin "refs/tags/${TARGET_TAG}"
