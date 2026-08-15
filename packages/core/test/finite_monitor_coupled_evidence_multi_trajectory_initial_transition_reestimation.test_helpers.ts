@@ -347,7 +347,7 @@ export function standardHmmRecord(
     kernel.find((entry) => entry.stateId === stateId && entry.symbol === symbol)?.probability ?? 0;
   return oneStateMonitorRecord(model, {
     ...(recordId === undefined ? {} : { recordId }),
-    initialLikelihoods: Object.fromEntries(stateIds(model).map((stateId) => [stateId, likelihood(stateId, observations[0]!])),
+    initialLikelihoods: Object.fromEntries(stateIds(model).map((stateId) => [stateId, likelihood(stateId, observations[0]!)])),
     stepLikelihoods: observations.slice(1).map((symbol) =>
       Object.fromEntries(effectivePairs(model).map(([from, to]) => [pairKey(from, to), likelihood(to, symbol)]))
     )
