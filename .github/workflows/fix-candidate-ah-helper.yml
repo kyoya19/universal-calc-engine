@@ -1,0 +1,34 @@
+name: Temporary Candidate AH helper typo fix
+on:
+  push:
+    branches:
+      - agent/abc-finite-monitor-coupled-evidence-multi-trajectory-initial-transition-reestimation
+permissions:
+  contents: write
+jobs:
+  fix:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: agent/abc-finite-monitor-coupled-evidence-multi-trajectory-initial-transition-reestimation
+      - name: Fix one missing parenthesis
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('packages/core/test/finite_monitor_coupled_evidence_multi_trajectory_initial_transition_reestimation.test_helpers.ts')
+          s = p.read_text()
+          old = 'likelihood(stateId, observations[0]!]'
+          new = 'likelihood(stateId, observations[0]!)]'
+          if s.count(old) != 1:
+              raise SystemExit(f'expected exactly one occurrence, found {s.count(old)}')
+          p.write_text(s.replace(old, new))
+          PY
+      - name: Commit test-only fix
+        run: |
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add packages/core/test/finite_monitor_coupled_evidence_multi_trajectory_initial_transition_reestimation.test_helpers.ts
+          git commit -m 'Fix Candidate AH helper tuple syntax'
+          git push origin HEAD:agent/abc-finite-monitor-coupled-evidence-multi-trajectory-initial-transition-reestimation
