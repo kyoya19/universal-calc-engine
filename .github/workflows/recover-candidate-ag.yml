@@ -28,8 +28,11 @@ jobs:
           const bodyStart = start + startMarker.length;
           const end = source.indexOf(endMarker, bodyStart);
           if (end < 0) throw new Error('AG payload end marker not found');
-          const payload = source.slice(bodyStart, end).trim();
-          if (!/^[A-Za-z0-9+/=]+$/.test(payload)) throw new Error('AG payload is not base64');
+          const payload = source.slice(bodyStart, end).replace(/\s+/g, '');
+          if (!/^[A-Za-z0-9+/=]+$/.test(payload)) {
+            const invalid = [...payload].find((character) => !/[A-Za-z0-9+/=]/.test(character));
+            throw new Error(`AG payload contains invalid character ${JSON.stringify(invalid)}`);
+          }
           fs.writeFileSync('/tmp/agfiles.tgz', Buffer.from(payload, 'base64'));
           NODE
           tar -xzf /tmp/agfiles.tgz -C .
