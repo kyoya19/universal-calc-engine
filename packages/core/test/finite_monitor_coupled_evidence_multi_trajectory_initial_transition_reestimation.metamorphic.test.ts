@@ -69,20 +69,20 @@ describe('Candidate AH structural metamorphic qualification', () => {
       startState: 'a',
       states: [{ id: 'a' }, { id: 'b' }],
       transitions: [
-        { id: 'aa', from: 'a', to: 'a', probability: 0.7 },
-        { id: 'ab1', from: 'a', to: 'b', probability: 0.1 },
-        { id: 'ab2', from: 'a', to: 'b', probability: 0.2 },
-        { id: 'ba', from: 'b', to: 'a', probability: 0.4 },
-        { id: 'bb', from: 'b', to: 'b', probability: 0.6 }
+        { from: 'a', to: 'a', probability: 0.7 },
+        { from: 'a', to: 'b', probability: 0.1 },
+        { from: 'a', to: 'b', probability: 0.2 },
+        { from: 'b', to: 'a', probability: 0.4 },
+        { from: 'b', to: 'b', probability: 0.6 }
       ]
     };
     const merged: DefinitionModel = {
       ...split,
       transitions: [
-        { id: 'aa', from: 'a', to: 'a', probability: 0.7 },
-        { id: 'ab', from: 'a', to: 'b', probability: 0.3 },
-        { id: 'ba', from: 'b', to: 'a', probability: 0.4 },
-        { id: 'bb', from: 'b', to: 'b', probability: 0.6 }
+        { from: 'a', to: 'a', probability: 0.7 },
+        { from: 'a', to: 'b', probability: 0.3 },
+        { from: 'b', to: 'a', probability: 0.4 },
+        { from: 'b', to: 'b', probability: 0.6 }
       ]
     };
     const make = (model: DefinitionModel) => ({

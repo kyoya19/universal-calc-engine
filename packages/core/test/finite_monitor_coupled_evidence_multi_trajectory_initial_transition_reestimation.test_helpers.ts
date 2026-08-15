@@ -140,7 +140,7 @@ export function completeRecordOracle(
   }
 
   const eventProbability = atoms.reduce((sum, atom) => sum + atom.mass, 0);
-  const initial = new Map(states.map((stateId) => [stateId, 0] as const));
+  const initial = new Map<StateId, number>(states.map((stateId) => [stateId, 0]));
   const transitions = new Map<string, number>();
   if (eventProbability === 0) {
     return { possible: false, eventProbability: 0, logEventProbability: null, initial, transitions };
@@ -221,7 +221,7 @@ export function completeBatchOracle(
   request: FiniteMonitorCoupledEvidenceMultiTrajectoryInitialTransitionReestimationRequest
 ): BatchOracle {
   const states = stateIds(model);
-  const initialCounts = new Map(states.map((stateId) => [stateId, 0] as const));
+  const initialCounts = new Map<StateId, number>(states.map((stateId) => [stateId, 0]));
   const transitions = new Map<string, number>();
   const records: RecordOracle[] = [];
   let currentTotalLogLikelihood = 0;
