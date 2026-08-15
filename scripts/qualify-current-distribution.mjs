@@ -398,7 +398,7 @@ async function main() {
   await validateDocumentationAndWorkflow();
   const { runtimeExports, declarationExports } = await runtimeAndDeclarationSurfaces();
   const nodeVersion = process.version.replace(/^v/, '');
-  const candidateCommit = process.env.GITHUB_SHA ?? null;
+  const candidateCommit = run('git', ['rev-parse', 'HEAD'], rootDir, true).stdout.trim();
   const qualification = {
     schemaVersion: 1,
     gate: 'CURRENT_GENERATION_PREPUBLICATION_1_1_0',
