@@ -20,6 +20,7 @@ jobs:
           node-version: 22.14.0
           package-manager-cache: false
       - run: npm ci --no-audit --no-fund
+      - run: npm run build
       - name: Generate and commit exact package API manifest
         run: |
           npm run package:api:generate
