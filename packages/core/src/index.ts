@@ -97,3 +97,4 @@ export * from './boundary_report_checks';
 export * from './boundary_report_check_result';
 export * from './number_text';
 export * from './finite_monitor_coupled_evidence_ambiguity_preserving_map_hidden_trajectory_decoding';
+export * from './finite_monitor_coupled_evidence_ambiguity_preserving_ranked_k_best_hidden_trajectory_decoding';
