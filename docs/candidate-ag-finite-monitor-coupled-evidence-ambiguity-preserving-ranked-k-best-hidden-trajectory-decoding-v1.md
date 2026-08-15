@@ -37,6 +37,8 @@ The dedicated request adds `rankDepth`, `kBestScoreTolerance`, and `maxReturnedK
 
 Qualification uses four independent perspectives: complete concrete-transition path enumeration with hidden-path aggregation, direct raw-probability hidden-path enumeration, a structurally separate dense raw-probability `X×Q` ranked dynamic program, and positive-probability underflow fixtures. Markov/HMM reductions, Candidate AE denominator consistency, tie-boundary and anchor-tolerance discriminators, relabel/order invariance, parallel split/merge, terminal behavior, resource honesty, checked serialization, and historical Candidate A–AF regression are also required.
 
+The generated package API manifest is synchronized and verified as part of the exact-head distribution qualification so the four Candidate AG runtime entry points and their declarations remain externally discoverable.
+
 ## Honesty boundary
 
 Positive path probabilities may underflow direct Float64 representation while finite log scores remain authoritative. Evidence, monitor-event, and joint-event impossibility never fabricate ranked paths. If complete provenance for a selected score stratum exceeds a declared finite guard, the decoder fails rather than truncating the tie, lowering `rankDepth`, switching to beam search, sampling, or another approximate method.
