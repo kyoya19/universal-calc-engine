@@ -25,5 +25,7 @@ jobs:
         run: npm run typecheck
       - name: Candidate AI tests
         run: npx vitest run packages/core/test/finite_observed_monitor_coupled_evidence_multi_trajectory_joint_parameter_reestimation*.test.ts
+      - name: Full historical regression
+        run: npm test
       - name: Build
         run: npm run build
