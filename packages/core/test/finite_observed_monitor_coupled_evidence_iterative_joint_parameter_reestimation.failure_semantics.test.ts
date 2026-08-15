@@ -90,20 +90,24 @@ describe('Candidate AJ iterative failure and bounded-status semantics', () => {
       states: [{ id: 'only' }],
       transitions: [{ from: 'only', to: 'only', probability: 1 }]
     };
-    const observations = Array.from({ length: 1100 }, () => 'x');
+    const observations = Array.from({ length: 401 }, () => 'x');
+    const record = oneStateMonitorRecord(model, observations, { recordId: 'underflow' });
+    const underflowRecord = {
+      ...record,
+      monitorCoupledTransitionEvidenceLikelihoodsByStep: record.monitorCoupledTransitionEvidenceLikelihoodsByStep.map((layer) =>
+        layer.map((entry) => ({ ...entry, likelihood: 0.1 }))
+      )
+    };
     const request = iterativeRequest({
       initialDistribution: [{ stateId: 'only', probability: 1 }],
-      alphabet: ['x', 'y'],
-      kernel: [
-        { stateId: 'only', symbol: 'x', probability: 0.5 },
-        { stateId: 'only', symbol: 'y', probability: 0.5 }
-      ],
-      evidenceRecords: [oneStateMonitorRecord(model, observations, { recordId: 'underflow' })],
+      alphabet: ['x'],
+      kernel: [{ stateId: 'only', symbol: 'x', probability: 1 }],
+      evidenceRecords: [underflowRecord],
       maxIterations: 1,
       parameterConvergenceTolerance: 0,
       logLikelihoodConvergenceTolerance: 0,
       likelihoodNonDecreaseTolerance: 1e-9,
-      maxObservations: 2000
+      maxObservations: 500
     });
     const result = requireSuccess(
       reestimateFiniteHiddenStateParametersIterativelyFromObservedAndMonitorCoupledEvidenceTrajectories(model, request)
