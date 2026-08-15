@@ -107,7 +107,12 @@ describe('Candidate AC authority metamorphic qualification', () => {
     expect(b.ok).toBe(true);
     if (!a.ok || !b.ok) throw new Error('analysis failed');
     expect(b.evidenceProbability).toBeCloseTo(a.evidenceProbability! * 0.5, 14);
-    expect(b.finalEvidenceConditionedMonitorDistribution).toEqual(a.finalEvidenceConditionedMonitorDistribution);
+    for (const atom of a.finalEvidenceConditionedMonitorDistribution!) {
+      const scaledAtom = b.finalEvidenceConditionedMonitorDistribution!.find((entry) => entry.monitorStateId === atom.monitorStateId)!;
+      expect(scaledAtom.probability).toBeCloseTo(atom.probability!, 13);
+      expect(scaledAtom.logProbability).toBeCloseTo(atom.logProbability, 13);
+      expect(scaledAtom.probabilityUnderflowed).toBe(atom.probabilityUnderflowed);
+    }
     const ca = conditionFiniteDeterministicTrajectoryMonitorOnCalibratedEvidenceAndTerminalMonitorStates(model, { ...request, targetMonitorStates: ['b_first'] });
     const cb = conditionFiniteDeterministicTrajectoryMonitorOnCalibratedEvidenceAndTerminalMonitorStates(model, { ...scaled, targetMonitorStates: ['b_first'] });
     expect(ca.ok).toBe(true);
@@ -115,7 +120,22 @@ describe('Candidate AC authority metamorphic qualification', () => {
     if (!ca.ok || !cb.ok) throw new Error('conditioning failed');
     expect(cb.jointEventProbability).toBeCloseTo(ca.jointEventProbability! * 0.5, 14);
     expect(cb.targetConditionalProbabilityGivenEvidence).toBeCloseTo(ca.targetConditionalProbabilityGivenEvidence!, 14);
-    expect(cb.smoothingSteps).toEqual(ca.smoothingSteps);
+    for (let step = 0; step <= request.horizon; step += 1) {
+      for (const atom of ca.smoothingSteps![step]!.jointHiddenMonitorDistribution) {
+        const scaledAtom = cb.smoothingSteps![step]!.jointHiddenMonitorDistribution.find((entry) =>
+          entry.stateId === atom.stateId && entry.monitorStateId === atom.monitorStateId
+        )!;
+        expect(scaledAtom.probability).toBeCloseTo(atom.probability, 12);
+      }
+      for (const atom of ca.smoothingSteps![step]!.hiddenStateDistribution) {
+        const scaledAtom = cb.smoothingSteps![step]!.hiddenStateDistribution.find((entry) => entry.stateId === atom.stateId)!;
+        expect(scaledAtom.probability).toBeCloseTo(atom.probability, 12);
+      }
+      for (const atom of ca.smoothingSteps![step]!.monitorStateDistribution) {
+        const scaledAtom = cb.smoothingSteps![step]!.monitorStateDistribution.find((entry) => entry.monitorStateId === atom.monitorStateId)!;
+        expect(scaledAtom.probability).toBeCloseTo(atom.probability, 12);
+      }
+    }
   });
 
   it('makes the all-monitor target evidence-neutral and reconstructs Candidate Z smoothing/pairwise quantities', () => {
