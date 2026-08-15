@@ -76,6 +76,8 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: current-generation-distribution-qualification-node-${{ matrix.node }}
-          path: qualification-output/
+          path: |
+            qualification-output/
+            package-lock.json
           if-no-files-found: error
           retention-days: 30
