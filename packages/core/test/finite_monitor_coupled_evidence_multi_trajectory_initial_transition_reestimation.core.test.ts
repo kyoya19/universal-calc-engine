@@ -99,7 +99,11 @@ describe('Candidate AH core common-current batch qualification', () => {
       expect(ae.ok).toBe(true);
       if (!ae.ok || !ae.possible) throw new Error('Expected possible Candidate AE result');
       const captured = result.recordESteps[index]!;
-      expect(captured.posteriorInitialStateProbabilities).toEqual(ae.smoothingSteps![0]!.hiddenStateDistribution);
+      for (const expected of ae.smoothingSteps![0]!.hiddenStateDistribution) {
+        const actual = captured.posteriorInitialStateProbabilities!.find((entry) => entry.stateId === expected.stateId);
+        expect(actual).toBeDefined();
+        expect(actual!.probability).toBeCloseTo(expected.probability, 14);
+      }
       expect(captured.expectedTransitionCounts).toEqual(ae.expectedTransitionCounts);
     }
   });

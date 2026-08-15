@@ -15,8 +15,9 @@ import {
 } from './finite_monitor_coupled_evidence_multi_trajectory_initial_transition_reestimation.test_helpers';
 
 function requireSuccess(result: ReturnType<typeof reestimateFiniteHiddenStateInitialAndTransitionsOneStepFromMonitorCoupledCalibratedEvidenceTrajectories>) {
-  expect(result.ok).toBe(true);
-  if (!result.ok || !result.possible) throw new Error(result.ok ? 'expected possible result' : result.failure.message);
+  if (!result.ok) throw new Error(`${result.failure.code}: ${result.failure.message}`);
+  expect(result.possible).toBe(true);
+  if (!result.possible) throw new Error('expected possible result');
   return result;
 }
 

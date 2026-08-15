@@ -96,8 +96,9 @@ describe('Candidate AH independent expected-complete-data objective oracle', () 
       initialDistribution: [{ stateId: 'a', probability: 1 }, { stateId: 'b', probability: 0 }],
       evidenceRecords: [oneStateMonitorRecord(model, { initialLikelihoods: { a: 1, b: 1 }, stepLikelihoods: [allOne, allOne] })]
     });
-    expect(result.ok).toBe(true);
-    if (!result.ok || !result.possible) throw new Error(result.ok ? 'expected possible result' : result.failure.message);
+    if (!result.ok) throw new Error(`${result.failure.code}: ${result.failure.message}`);
+    expect(result.possible).toBe(true);
+    if (!result.possible) throw new Error('expected possible result');
     const row = result.transitionRows!.find((entry) => entry.stateId === 'b')!;
     expect(row.expectedDepartureMass).toBeCloseTo(0, 12);
     expect(row.status).toBe('retained_zero_expected_departure');
