@@ -1,4 +1,4 @@
-name: Synchronize Candidate AG API manifest
+name: Cleanup Candidate AG API manifest workflow
 
 on:
   push:
@@ -9,27 +9,16 @@ permissions:
   contents: write
 
 jobs:
-  sync:
+  cleanup:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
         with:
           ref: agent/abc-finite-monitor-coupled-evidence-ambiguity-preserving-ranked-k-best-hidden-trajectory-decoding
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22.14.0
-          package-manager-cache: false
-      - run: npm ci --no-audit --no-fund
-      - run: npm run build
-      - name: Generate and commit exact package API manifest
+      - name: Remove this temporary workflow
         run: |
-          npm run package:api:generate
-          git diff --check -- docs/package-api-v1.json
-          if git diff --quiet -- docs/package-api-v1.json; then
-            exit 0
-          fi
+          git rm .github/workflows/sync-candidate-ag-api-manifest.yml
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add docs/package-api-v1.json
-          git commit -m "Synchronize Candidate AG package API manifest"
+          git commit -m "Remove temporary Candidate AG API manifest workflow"
           git push
