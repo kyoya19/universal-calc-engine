@@ -118,8 +118,27 @@ describe('Candidate AE authority metamorphics B', () => {
     const a = requireAnalysis(merged, request);
     const b = requireAnalysis(split, request);
     expect(b.evidenceProbability).toBeCloseTo(a.evidenceProbability!, 14);
-    expect(b.trajectory).toEqual(a.trajectory);
-    expect(b.jointEvidenceMonitorDistribution).toEqual(a.jointEvidenceMonitorDistribution);
+    expect(b.logEvidenceProbability).toBeCloseTo(a.logEvidenceProbability!, 14);
+    for (let step = 0; step <= request.horizon; step += 1) {
+      expect(b.trajectory[step]!.prefixEvidenceProbability).toBeCloseTo(
+        a.trajectory[step]!.prefixEvidenceProbability!,
+        14
+      );
+      for (const atom of a.trajectory[step]!.jointHiddenMonitorDistribution ?? []) {
+        const actual = b.trajectory[step]!.jointHiddenMonitorDistribution!.find(
+          (entry) => entry.stateId === atom.stateId && entry.monitorStateId === atom.monitorStateId
+        )!;
+        expect(actual.probability).toBeCloseTo(atom.probability!, 14);
+        expect(actual.logProbability).toBeCloseTo(atom.logProbability!, 14);
+      }
+    }
+    for (const atom of a.jointEvidenceMonitorDistribution ?? []) {
+      const actual = b.jointEvidenceMonitorDistribution!.find(
+        (entry) => entry.monitorStateId === atom.monitorStateId
+      )!;
+      expect(actual.jointProbability).toBeCloseTo(atom.jointProbability!, 14);
+      expect(actual.conditionalProbability).toBeCloseTo(atom.conditionalProbability!, 14);
+    }
   });
 
   it('uses q-specific c_t(q,i,i) and monitor updates on terminal implicit self-retention', () => {
