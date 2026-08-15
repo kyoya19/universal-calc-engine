@@ -90,7 +90,10 @@ function denseOracle(req: FiniteDeterministicTrajectoryMonitorCalibratedEvidence
         if (mass === 0) continue;
         for (const edge of transition.filter((entry) => entry.from === fromStateId)) {
           const qNext = delta[step]!.get(`${q}:${fromStateId}:${edge.to}`)!;
-          next[hIndex.get(edge.to)!]![qIndex.get(qNext)!] += mass * edge.probability * (evidence[step + 1]!.get(edge.to) ?? 0);
+          const hiddenIndex = hIndex.get(edge.to)!;
+          const monitorIndex = qIndex.get(qNext)!;
+          const targetRow = next[hiddenIndex]!;
+          targetRow[monitorIndex] = (targetRow[monitorIndex] ?? 0) + mass * edge.probability * (evidence[step + 1]!.get(edge.to) ?? 0);
         }
       }
     }
