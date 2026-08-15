@@ -296,7 +296,10 @@ export function effectivePairs(model: DefinitionModel): Array<[StateId, StateId]
   for (const state of model.states) {
     if (isTerminalState(state)) keys.set(pairKey(state.id, state.id), [state.id, state.id]);
   }
-  for (const transition of model.transitions) keys.set(pairKey(transition.from, transition.to), [transition.from, transition.to]);
+  for (const transition of model.transitions) {
+    if (evaluateProbabilitySpec(transition.probability) <= 0) continue;
+    keys.set(pairKey(transition.from, transition.to), [transition.from, transition.to]);
+  }
   return [...keys.values()].sort((left, right) => pairKey(...left).localeCompare(pairKey(...right)));
 }
 
@@ -314,14 +317,15 @@ export function oneStateMonitorRecord(
     targetMonitorStates?: string[];
   }
 ): FiniteMonitorCoupledEvidenceReestimationRecord {
-  const pairs = candidateAeTablePairs(model);
+  const monitorPairs = effectivePairs(model);
+  const evidencePairs = candidateAeTablePairs(model);
   const record: FiniteMonitorCoupledEvidenceReestimationRecord = {
     ...(options.recordId === undefined ? {} : { recordId: options.recordId }),
     horizon: options.stepLikelihoods.length,
     monitorStates: ['q'],
     initialMonitorStateByHiddenState: stateIds(model).map((stateId) => ({ stateId, monitorStateId: 'q' })),
     monitorTransitionByStep: options.stepLikelihoods.map(() =>
-      pairs.map(([fromStateId, toStateId]) => ({
+      monitorPairs.map(([fromStateId, toStateId]) => ({
         monitorStateId: 'q',
         fromStateId,
         toStateId,
@@ -330,7 +334,7 @@ export function oneStateMonitorRecord(
     ),
     initialEvidenceLikelihoods: stateIds(model).map((stateId) => ({ stateId, likelihood: options.initialLikelihoods[stateId] ?? 0 })),
     monitorCoupledTransitionEvidenceLikelihoodsByStep: options.stepLikelihoods.map((layer) =>
-      pairs.map(([fromStateId, toStateId]) => ({
+      evidencePairs.map(([fromStateId, toStateId]) => ({
         monitorStateId: 'q',
         fromStateId,
         toStateId,
