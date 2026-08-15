@@ -157,6 +157,7 @@
         "model": {
           "startState": "s0",
           "states": [{ "id": "s0" }, { "id": "s1" }],
+          "parameters": [],
           "transitions": [
             { "from": "s0", "to": "s0", "probability": 0.8 },
             { "from": "s0", "to": "s1", "probability": 0.2 },
@@ -170,6 +171,7 @@
         "model": {
           "startState": "s0",
           "states": [{ "id": "s0" }, { "id": "s1" }],
+          "parameters": [],
           "transitions": [
             { "from": "s0", "to": "s0", "probability": 0.2 },
             { "from": "s0", "to": "s1", "probability": 0.8 },
