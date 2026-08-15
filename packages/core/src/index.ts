@@ -55,6 +55,12 @@ export {
   finiteDeterministicTrajectoryMonitorTransitionCalibratedEvidenceResultToJson,
   finiteDeterministicTrajectoryMonitorTransitionCalibratedEvidenceConditioningResultToJson
 } from './finite_deterministic_trajectory_monitor_transition_calibrated_evidence';
+export {
+  analyzeFiniteDeterministicTrajectoryMonitorUnderMonitorCoupledCalibratedEvidence,
+  conditionFiniteDeterministicTrajectoryMonitorOnMonitorCoupledCalibratedEvidenceAndTerminalMonitorStates,
+  finiteDeterministicTrajectoryMonitorCoupledCalibratedEvidenceResultToJson,
+  finiteDeterministicTrajectoryMonitorCoupledCalibratedEvidenceConditioningResultToJson
+} from './finite_deterministic_trajectory_monitor_coupled_calibrated_evidence';
 export * from './hidden_state_transition_reestimation';
 export * from './hidden_state_observation_kernel_reestimation';
 export * from './hidden_state_initial_distribution_reestimation';
