@@ -1,0 +1,49 @@
+:root {
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #1c2430;
+  background: #f4f6f8;
+}
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { width: min(1120px, calc(100% - 32px)); margin: 32px auto 56px; }
+header, footer { max-width: 900px; }
+h1 { margin: 0.25rem 0 0.75rem; font-size: clamp(2rem, 4vw, 3.4rem); }
+h2 { margin-top: 0; font-size: 1.05rem; }
+.eyebrow { letter-spacing: 0.14em; font-size: 0.75rem; font-weight: 700; }
+.panel {
+  margin-top: 18px;
+  padding: 20px;
+  background: white;
+  border: 1px solid #d7dde5;
+  border-radius: 12px;
+}
+.row, .three-column { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.three-column { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+label { display: grid; gap: 7px; font-weight: 650; }
+textarea, select, button {
+  width: 100%;
+  font: inherit;
+  border: 1px solid #aeb8c4;
+  border-radius: 7px;
+}
+textarea { padding: 10px; font-family: ui-monospace, SFMono-Regular, Consolas, monospace; resize: vertical; }
+select, button { padding: 10px 12px; }
+button { margin-top: 12px; font-weight: 700; cursor: pointer; }
+.summary { display: grid; gap: 10px; margin: 0; }
+.summary div { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 12px; }
+dt { font-weight: 700; }
+dd { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+pre {
+  margin: 0;
+  padding: 14px;
+  overflow: auto;
+  max-height: 620px;
+  background: #f7f8fa;
+  border-radius: 8px;
+}
+.feedback { min-height: 1.4em; }
+code { overflow-wrap: anywhere; }
+@media (max-width: 760px) {
+  .row, .three-column { grid-template-columns: 1fr; }
+  .summary div { grid-template-columns: 1fr; }
+}
