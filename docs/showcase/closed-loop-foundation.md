@@ -32,6 +32,8 @@ The runtime path is deliberately Public-only:
 
 The runner imports only existing exports from `dist/index.js`. It has no Private research repository dependency and adds no package/runtime dependency.
 
+The current verified npm distribution `universal-calc-engine@1.1.0` contains the qualified root API surface used by the Showcase. The repository reproduction path remains appropriate because the Showcase fixture, runner, and independently fixed expected result are repository example artifacts rather than files shipped in the npm package.
+
 ## Primary lane: Seikatan to Kiyotan
 
 The primary deterministic fixture uses a two-state finite model, one realized categorical sequence, fixed monitor dynamics, fixed initial calibrated evidence, and fixed monitor-coupled transition evidence.
@@ -148,13 +150,25 @@ CI additionally builds `dist/` and runs the Public executable with `--verify`, s
 
 ## Showcase-specific gap disposition
 
-After successful Public implementation validation:
+At the time the Showcase implementation was first qualified, the recorded disposition was:
 
 - `C-SHOW-001` — closed: executable closed-loop orchestration/example exists;
 - `C-SHOW-002` — closed: current foundation capability is explained through README, structured output, fixture, expected result, and this technical provenance document;
-- `C-SHOW-003` — remains: published npm `universal-calc-engine@1.0.0` predates the current Candidate A-through-AJ root APIs.
+- `C-SHOW-003` — then remained open because published npm `universal-calc-engine@1.0.0` predated the current Candidate A-through-AJ root APIs.
 
-`C-SHOW-003` is a distribution boundary, not evidence for a new generalized analytical capability. This authority does not change npm version, publish, release, or tags.
+That historical implementation-time record is not rewritten.
+
+The current-generation distribution subsequently closed the remaining distribution gap. Current status is:
+
+```text
+C-SHOW-003:
+CLOSED_BY_VERIFIED_CURRENT_GENERATION_NPM_DISTRIBUTION
+
+current package:
+universal-calc-engine@1.1.0
+```
+
+This closure is a distribution/onboarding fact. It does not create a generalized analytical capability or change the Showcase expected-result commitment.
 
 ## Claim boundary
 
@@ -186,8 +200,31 @@ This implementation does not claim:
 
 ## Distribution distinction
 
-Published npm package: `universal-calc-engine@1.0.0`.
+Current verified public package:
 
-Canonical historical release target: `bddff4fcc4f744c8b5e9ac7868a6ca40e7163e47`.
+```text
+universal-calc-engine@1.1.0
+```
 
-That published package does not contain the current Candidate A-through-AJ surface. The Showcase must therefore be reproduced from the Public source tree at/after the analytical baseline rather than represented as an npm-1.0.0 consumer example.
+Current-generation package tag target:
+
+```text
+package-v1.1.0
+76e7ace7e06ab33753d573b7e6d42abc717c178f
+```
+
+Package `1.1.0` contains the qualified current root API surface used by the Showcase. Its package-name consumer path is documented in [Current-generation consumer quickstart](../current-generation-consumer-quickstart.md).
+
+Historical immutable public package:
+
+```text
+universal-calc-engine@1.0.0
+```
+
+Canonical historical release target:
+
+```text
+bddff4fcc4f744c8b5e9ac7868a6ca40e7163e47
+```
+
+Package `1.0.0` predates the current Candidate A-through-AJ surface. That historical fact explains the original implementation-time C-SHOW-003 state but must not be projected onto package `1.1.0`.
