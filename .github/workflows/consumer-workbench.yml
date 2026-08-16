@@ -1,0 +1,47 @@
+name: Consumer Workbench
+
+on:
+  pull_request:
+    paths:
+      - 'examples/qualified-api-consumer-workbench/**'
+      - '.github/workflows/consumer-workbench.yml'
+      - 'docs/current-generation-consumer-quickstart.md'
+  push:
+    branches:
+      - main
+    paths:
+      - 'examples/qualified-api-consumer-workbench/**'
+      - '.github/workflows/consumer-workbench.yml'
+      - 'docs/current-generation-consumer-quickstart.md'
+
+permissions:
+  contents: read
+
+jobs:
+  consumer-workbench:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: examples/qualified-api-consumer-workbench
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22.14.0
+          package-manager-cache: false
+
+      - name: Verify consumer boundary before install
+        run: node scripts/check-boundary.mjs
+
+      - name: Install exact qualified package
+        run: npm install --package-lock=false --ignore-scripts --no-audit --no-fund
+
+      - name: Verify exact qualified dependency
+        run: npm ls universal-calc-engine@1.1.0 --depth=0
+
+      - name: Run deterministic consumer regression
+        run: npm test

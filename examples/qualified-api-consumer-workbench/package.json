@@ -1,0 +1,17 @@
+{
+  "name": "@orf/qualified-api-consumer-workbench",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.14.0 <23 || >=24.0.0 <25"
+  },
+  "scripts": {
+    "start": "node server.mjs",
+    "test": "node --test test/*.test.mjs",
+    "check:boundary": "node scripts/check-boundary.mjs",
+    "validate": "npm run check:boundary && npm test"
+  },
+  "dependencies": {
+    "universal-calc-engine": "1.1.0"
+  }
+}
