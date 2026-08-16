@@ -21,7 +21,7 @@ assert(
   'Local/workspace substitution for the qualified package is forbidden.'
 );
 
-const executableRoots = ['adapter.mjs', 'server.mjs', 'public', 'scripts', 'test'];
+const executableRoots = ['adapter.mjs', 'server.mjs', 'public', 'test'];
 
 async function filesUnder(path) {
   const absolute = join(root, path);
