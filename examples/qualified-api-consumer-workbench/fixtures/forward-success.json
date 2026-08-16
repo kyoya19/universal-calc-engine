@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "modelKind": "base",
+  "parameterValues": {},
+  "model": {
+    "startState": "start",
+    "states": [
+      { "id": "start" },
+      { "id": "done", "terminal": true }
+    ],
+    "parameters": [],
+    "transitions": [
+      {
+        "from": "start",
+        "to": "done",
+        "probability": 1,
+        "reward": 2,
+        "elapsedTime": { "value": 1, "unit": "seconds" }
+      }
+    ]
+  }
+}
