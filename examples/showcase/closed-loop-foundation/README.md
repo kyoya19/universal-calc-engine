@@ -44,6 +44,8 @@ Files:
 - `expected-result.json` — independently fixed machine-readable expected result
 - `../../../docs/showcase/closed-loop-foundation.md` — technical provenance and claim boundary
 
+For the package-name consumer path, see `../../../docs/current-generation-consumer-quickstart.md`.
+
 ## Inputs shown in the output
 
 The runner prints JSON containing:
@@ -71,9 +73,13 @@ The commit that contains the Showcase files is a later presentation/implementati
 
 ## npm distribution boundary
 
-The published `universal-calc-engine@1.0.0` corresponds to an earlier distribution and does **not** contain the current Candidate A-through-AJ root API surface used here. This Showcase therefore executes from the current Public source tree after `npm run build`; it does not claim that installing npm `1.0.0` alone reproduces this example.
+The current verified distribution is `universal-calc-engine@1.1.0`. It contains the qualified root API surface used by this Showcase.
 
-No npm version, publish, release, or tag operation is part of this Showcase implementation.
+The checked-in Showcase runner still executes from the repository build because the fixture, runner, and independently fixed `expected-result.json` are repository example artifacts and are not shipped inside the npm package. That repository reproduction path is not an API-surface limitation of package `1.1.0`; third-party consumer code can use the corresponding qualified APIs through package-name ESM imports from `universal-calc-engine@1.1.0`.
+
+The historical `universal-calc-engine@1.0.0` remains an immutable earlier distribution identity and predates the current Candidate A-through-AJ root API surface used here.
+
+This documentation update does not modify an npm version, publication, release tag, distribution subject, analytical API, or expected result.
 
 ## Claim boundary
 
