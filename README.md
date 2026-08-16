@@ -21,6 +21,7 @@ subject-public-8b341032516a
 
 Authoritative completion / distribution review:
 
+- [Current-generation consumer quickstart](docs/current-generation-consumer-quickstart.md)
 - [Qualified scope status](docs/qualified-scope-status.md)
 - [Promoted Showcase guide](docs/promoted-showcases.md)
 - [External distribution contract v1](docs/distribution-contract-v1.md)
@@ -43,10 +44,10 @@ analytical subject: subject-public-8b341032516a
 
 The historical package 1.0.0 remains an immutable earlier distribution identity. The 1.1.0 release is a compatible additive distribution of the already-qualified current Public API generation; it does not redefine analytical semantics or rewrite the historical 1.0.0 artifact.
 
-Install from the public registry:
+Install the exact current qualified version from the public registry:
 
 ```bash
-npm install universal-calc-engine
+npm install universal-calc-engine@1.1.0
 ```
 
 Package-name ESM import:
@@ -69,11 +70,27 @@ The current distribution qualifies Linux x64 consumer execution on these Node li
 
 The package ships TypeScript declarations through `./dist/index.d.ts` and the root `exports` map. CommonJS `require` and undocumented deep imports are unsupported.
 
+For external JSON or otherwise untrusted input, use the checked facade rather than treating parsing as validation. For third-party output, prefer the versioned forward/reverse handoff helpers and preserve `status`, validation issues, warnings, limitations, ambiguity, and convergence state.
+
+A successful forward evaluation can still report `converged: false`; its last approximation must not be presented as converged. Reverse ties must remain ties, and `relativeLikelihoodToBest` is not posterior probability.
+
+See [Current-generation consumer quickstart](docs/current-generation-consumer-quickstart.md) for the concise package-name consumer path.
+
 The package is qualified from an independently installed exact packed artifact: clean consumer install, package-name runtime import, TypeScript declaration compile, current Showcase-required API availability, root export/declaration consistency, normalized artifact reproducibility, and publication provenance linkage.
 
 The current package API manifest and root runtime/declaration manifests are regenerated as qualification evidence for 1.1.0. The committed `docs/package-api-v1.json` remains the historical package 1.0.0 compatibility snapshot.
 
 See [External distribution contract v1](docs/distribution-contract-v1.md) for the distribution boundary and Gate DIST-v1 rules.
+
+## Current Closed-Loop Showcase and npm 1.1.0
+
+The ORF Closed-Loop Foundation Showcase uses already-qualified Public APIs that are present in `universal-calc-engine@1.1.0`.
+
+The checked-in Showcase still runs its repository fixture, runner, and independently fixed expected result from the source-tree build because those example artifacts are not shipped inside the npm package. This repository execution path is not an API-surface limitation of package 1.1.0.
+
+The earlier package `1.0.0` predates the current Candidate A-through-AJ root API surface. That historical limitation must not be projected onto the current 1.1.0 distribution.
+
+See [Closed-Loop Foundation Showcase](examples/showcase/closed-loop-foundation/README.md).
 
 ## License / Commercial Use
 
@@ -269,7 +286,7 @@ Representative complete example:
 packages/core/examples/multi_parameter_composite_external_handoff.ts
 ```
 
-## Current reverse kinds
+## Current generic checked reverse kinds
 
 ```text
 discrete_parameter_candidates
@@ -278,6 +295,8 @@ composite_parameter_candidates
 multi_parameter_transition_grid
 multi_parameter_composite_grid
 ```
+
+These are the generic checked-dispatcher methods, not an exhaustive list of every qualified current-generation finite hidden-state/trajectory API exported at the package root.
 
 ### Transition-count likelihood
 
@@ -413,11 +432,17 @@ The historical package 1.0.0 root compatibility snapshot remains machine-readabl
 
 ## Primary docs
 
-### v1 authority / distribution
+### Current consumer / distribution
 
+- [Current-generation consumer quickstart](docs/current-generation-consumer-quickstart.md)
 - [Qualified scope status](docs/qualified-scope-status.md)
-- [Promoted Showcase guide](docs/promoted-showcases.md)
 - [External distribution contract v1](docs/distribution-contract-v1.md)
+- [Closed-Loop Foundation Showcase](examples/showcase/closed-loop-foundation/README.md)
+- [Closed-Loop Foundation technical provenance](docs/showcase/closed-loop-foundation.md)
+
+### v1 authority / historical compatibility
+
+- [Promoted Showcase guide](docs/promoted-showcases.md)
 - [Historical package 1.0.0 API manifest](docs/package-api-v1.json)
 - [v1 completion boundary](docs/v1-completion-boundary.md)
 - [v1 support matrix and handoff map](docs/forward-v1-support-matrix.md)
@@ -477,13 +502,13 @@ continuous/adaptive optimization
 Bayesian prior/posterior
 MCMC / variational inference
 confidence / credible intervals
-hidden-state inference
+hidden-state inference outside the documented qualified finite hidden-state contracts
 causal inference / undefined Shapley attribution
 GUI / web product layer
 large digipachi / Juoh core models
 ```
 
-These are not silent omissions; they are explicit partial or post-v1 boundaries.
+These are not silent omissions; they are explicit partial or post-v1 boundaries. Qualified finite hidden-state APIs do not imply unrestricted hidden-state inference over arbitrary model classes.
 
 Package publication does not change these boundaries.
 
