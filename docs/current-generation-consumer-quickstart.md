@@ -126,6 +126,16 @@ Current checked reverse methods are finite-candidate or finite-grid methods. Res
 - `relativeLikelihoodToBest` as a likelihood ratio, not a posterior probability;
 - scalar-prediction non-convergence as a failed evidence path rather than successful likelihood evidence.
 
+## Local Browser Workbench
+
+A bounded local consumer interface is available at:
+
+- [ORF Qualified API Consumer Workbench](../examples/qualified-api-consumer-workbench/README.md)
+
+The Workbench keeps analytical execution in a local Node adapter that installs exact `universal-calc-engine@1.1.0` and imports the checked APIs above from the package-name ESM root. Its Browser is input/presentation only.
+
+This consumer layer adds no analytical API or package generation and does not qualify Browser-direct execution. Its response envelope keeps consumer/integration errors distinct from qualified API failures while preserving the original structured handoff, warnings, limitations, ties, and convergence status.
+
 ## Closed-Loop Foundation Showcase and npm 1.1.0
 
 `universal-calc-engine@1.1.0` contains the current qualified root API surface used by the ORF Closed-Loop Foundation Showcase.
