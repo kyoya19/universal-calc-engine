@@ -1,0 +1,77 @@
+name: Current Generation Postpublication Verify
+
+on:
+  push:
+    branches:
+      - 'agent/current-generation-postpublication-verification-1.1.0'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  verify-published:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node:
+          - 22.14.0
+          - 24.18.1
+
+    steps:
+      - name: Checkout exact immutable release tag
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/package-v1.1.0
+          fetch-depth: 0
+
+      - name: Verify immutable release identities
+        shell: bash
+        run: |
+          set -euo pipefail
+          EXPECTED_SUBJECT="76e7ace7e06ab33753d573b7e6d42abc717c178f"
+          EXPECTED_HISTORICAL_TAG_TARGET="bddff4fcc4f744c8b5e9ac7868a6ca40e7163e47"
+          test "$(git rev-parse HEAD)" = "${EXPECTED_SUBJECT}"
+          test "$(git ls-remote origin refs/tags/package-v1.1.0 | cut -f1)" = "${EXPECTED_SUBJECT}"
+          test "$(git ls-remote origin refs/tags/package-v1.0.0 | cut -f1)" = "${EXPECTED_HISTORICAL_TAG_TARGET}"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ matrix.node }}
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Install deterministic npm CLI
+        run: npm install --global npm@11.16.0
+
+      - name: Download exact prepublication evidence from publication run
+        uses: actions/download-artifact@v8
+        with:
+          name: current-generation-1.1.0-prepublication
+          path: qualification-output
+          github-token: ${{ github.token }}
+          repository: kyoya19/universal-calc-engine
+          run-id: 31916134408
+
+      - name: Verify qualified tarball evidence identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(tr -d '\r\n' < qualification-output/packed-tarball-sha256-node-24.18.1.txt)" = "b7259abcdfac9b1c0ac70103597f97d88cae17d7d0a37f1b18ce717dd4615537"
+          test -f qualification-output/normalized-manifest-node-24.18.1.json
+
+      - name: Verify published registry artifact on supported Node
+        env:
+          ORF_PREPUBLICATION_MANIFEST: qualification-output/normalized-manifest-node-24.18.1.json
+          ORF_PREPUBLICATION_TARBALL_SHA256: qualification-output/packed-tarball-sha256-node-24.18.1.txt
+        run: node scripts/verify-current-registry-release.mjs
+
+      - name: Upload postpublication verification evidence
+        uses: actions/upload-artifact@v7
+        with:
+          name: current-generation-1.1.0-postpublication-node-${{ matrix.node }}
+          path: qualification-output/current-generation-postpublish-node-${{ matrix.node }}.json
+          if-no-files-found: error
+          retention-days: 30
