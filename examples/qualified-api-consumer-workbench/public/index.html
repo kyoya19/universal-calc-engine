@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>ORF Qualified API Consumer Workbench</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <main>
+    <header>
+      <p class="eyebrow">LOCAL CONSUMER LAYER</p>
+      <h1>ORF Qualified API Consumer Workbench</h1>
+      <p>
+        Browser input/presentation only. Analytical execution occurs in the local Node adapter
+        through the exact <code>universal-calc-engine@1.1.0</code> package-name ESM root.
+      </p>
+    </header>
+
+    <section class="panel controls" aria-labelledby="input-heading">
+      <h2 id="input-heading">Input</h2>
+      <div class="row">
+        <label>
+          Operation
+          <select id="operation">
+            <option value="forward">Forward checked evaluation</option>
+            <option value="reverse">Reverse checked estimation</option>
+          </select>
+        </label>
+        <label>
+          Deterministic example
+          <select id="example">
+            <option value="forward-success">Forward success</option>
+            <option value="forward-nonconverged">Forward bounded non-convergence</option>
+            <option value="reverse-tie">Reverse tied candidates</option>
+          </select>
+        </label>
+      </div>
+
+      <label>
+        Checked analytical JSON
+        <textarea id="document-text" rows="22" spellcheck="false"></textarea>
+      </label>
+
+      <label>
+        Forward options JSON
+        <textarea id="options-text" rows="5" spellcheck="false">{}</textarea>
+      </label>
+
+      <button id="run" type="button">Run through local Node adapter</button>
+      <p id="browser-feedback" class="feedback" aria-live="polite"></p>
+    </section>
+
+    <section class="panel" aria-labelledby="summary-heading">
+      <h2 id="summary-heading">Structured outcome</h2>
+      <dl class="summary">
+        <div><dt>Consumer outcome</dt><dd id="outcome-value">—</dd></div>
+        <div><dt>Qualified API status</dt><dd id="api-status-value">—</dd></div>
+        <div><dt>Failure stage</dt><dd id="failure-stage-value">—</dd></div>
+        <div><dt>Convergence</dt><dd id="convergence-value">—</dd></div>
+        <div><dt>Ambiguity / tie</dt><dd id="ambiguity-value">—</dd></div>
+      </dl>
+    </section>
+
+    <section class="panel three-column">
+      <div>
+        <h2>Issues</h2>
+        <ul id="issues"><li>none</li></ul>
+      </div>
+      <div>
+        <h2>Warnings</h2>
+        <ul id="warnings"><li>none</li></ul>
+      </div>
+      <div>
+        <h2>Limitations</h2>
+        <ul id="limitations"><li>none</li></ul>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="raw-heading">
+      <h2 id="raw-heading">Original structured response</h2>
+      <pre id="raw-response">Run an example to inspect the complete response.</pre>
+    </section>
+
+    <footer>
+      <p>
+        This Workbench does not qualify Browser execution, create a hosted service, add an
+        analytical API, change solver/statistical semantics, or expand the qualified scope.
+        Ties remain set-valued, likelihood ratios remain likelihood ratios, and bounded
+        non-convergence remains non-convergence.
+      </p>
+    </footer>
+  </main>
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
