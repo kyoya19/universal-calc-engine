@@ -1,0 +1,6 @@
+{
+  "solver": {
+    "maxIterations": 1,
+    "tolerance": 1e-12
+  }
+}
