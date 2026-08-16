@@ -61,9 +61,9 @@ jobs:
       - name: Generate current package API manifest
         run: npm run package:api:generate
 
-      - name: Verify current-generation npm package identity
+      - name: Verify published current-generation npm package identity
         env:
-          ORF_NPM_IDENTITY_LIFECYCLE: current_generation_prepublication
+          ORF_NPM_IDENTITY_LIFECYCLE: current_generation_published_verified
         run: npm run distribution:identity
 
       - name: Run current-generation prepublication qualification
