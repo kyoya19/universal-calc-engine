@@ -22,14 +22,14 @@ The Browser is input and presentation only. The local Node process is the qualif
 
 ## Selected existing qualified APIs
 
-The first generation intentionally exposes only the checked forward/reverse facade used by the current consumer quickstart:
+The Workbench intentionally exposes only the checked forward/reverse facade used by the current consumer quickstart:
 
 - `evaluateExternalModelJson`
 - `toForwardResultHandoff`
 - `estimateExternalReverseJson`
 - `toReverseResultHandoff`
 
-All four are imported from the package root. There are no deep imports, repository source imports, workspace links, or `npm link` substitutions.
+All four are imported from the package root. There are no deep imports, repository source imports, workspace links, or local package substitutions.
 
 ## Prerequisites
 
@@ -56,15 +56,32 @@ http://127.0.0.1:4173
 
 The server binds only to loopback by default. This authority does not establish a public production HTTP service.
 
-## Supported deterministic examples
+## Guided representative input
 
-The selector loads three checked fixtures:
+The default Browser path no longer requires a third-party consumer to write analytical JSON for the two smallest representative cases.
+
+For forward checked evaluation, guided controls construct a one-transition finite model from:
+
+- transition reward;
+- elapsed seconds.
+
+For reverse checked estimation, guided controls construct the existing two-outcome finite-candidate example from:
+
+- two candidate values for parameter `p`;
+- observed transition count to `a`;
+- observed transition count to `b`.
+
+The departure count is derived from the two displayed observed counts. These controls are document-construction assistance only. They do not reproduce or replace analytical validation, estimation, solver, convergence, likelihood, ambiguity, or failure semantics. The generated JSON remains inspectable in the advanced section and is sent unchanged through the local Node adapter to the existing checked qualified API.
+
+## Deterministic fixture / JSON mode
+
+The fixture selector remains available for regression-oriented or advanced inspection and loads three checked fixtures:
 
 1. `forward-success.json` — successful checked forward evaluation.
 2. `forward-nonconverged.json` plus its options file — bounded iterative stop with `converged: false`.
 3. `reverse-tie.json` — an exact two-candidate likelihood tie that must remain set-valued.
 
-The JSON editor may also be modified directly. Browser parsing provides syntax guidance only. The raw analytical JSON text is sent to Node and then to the existing checked qualified API; Browser code does not duplicate analytical validation semantics.
+The advanced JSON editor may also be modified directly. Browser parsing provides syntax guidance only. The raw analytical JSON text is sent to Node and then to the existing checked qualified API; Browser code does not duplicate analytical validation semantics.
 
 ## Consumer response contract
 
@@ -84,7 +101,7 @@ The complete original qualified handoff is retained under `analyticalResult`. Pr
 - qualified warnings;
 - qualified limitations.
 
-The envelope deliberately does not reduce all states to a Boolean success flag.
+The Browser adds a prominent outcome banner but deliberately does not reduce all states to a Boolean success flag. The complete structured response remains visible below the summary.
 
 ## Semantic display rules
 
@@ -103,7 +120,7 @@ The raw structured response is displayed below the summary so the Browser summar
 
 ## Validation boundary
 
-Browser-side validation is restricted to UI syntax/shape assistance. The adapter validates only its own consumer request envelope. Analytical model, observation, parameter, solver, and estimation validation is delegated to the existing checked APIs in `universal-calc-engine@1.1.0`.
+Browser-side validation is restricted to UI syntax/shape and document-construction assistance. The adapter validates only its own consumer request envelope. Analytical model, observation, parameter, solver, and estimation validation is delegated to the existing checked APIs in `universal-calc-engine@1.1.0`.
 
 ## Regression
 
@@ -121,7 +138,10 @@ Regression covers:
 - consumer-envelope rejection as a distinct state;
 - exact reverse tie preservation;
 - bounded forward non-convergence preservation;
-- presentation-model propagation of structured state.
+- guided forward document construction consumed by the checked API;
+- guided reverse construction with derived departure count and preserved tied result;
+- presentation-model propagation of structured state;
+- Browser shell visibility of guided input, advanced JSON, and the original structured response.
 
 These are consumer-integration checks, not a new analytical qualification campaign.
 
@@ -137,9 +157,10 @@ The repository's existing analytical/distribution CI remains separate.
 
 ## Current limitations
 
-This first generation deliberately does not:
+This Workbench deliberately does not:
 
 - expose every qualified root API;
+- provide a general-purpose no-code model designer;
 - execute the analytical package directly in the Browser;
 - create a hosted or production service;
 - add authentication, persistence, remote access, or multi-user behavior;

@@ -28,6 +28,58 @@
           </select>
         </label>
         <label>
+          Input mode
+          <select id="input-mode">
+            <option value="guided">Guided representative input</option>
+            <option value="fixture">Deterministic fixture / JSON</option>
+          </select>
+        </label>
+      </div>
+
+      <section id="guided-input" class="guided-input" aria-labelledby="guided-heading">
+        <div class="section-heading">
+          <div>
+            <h3 id="guided-heading">Guided representative input</h3>
+            <p>
+              These controls only construct a bounded example document. Analytical validation
+              and execution remain delegated to the qualified checked API.
+            </p>
+          </div>
+        </div>
+
+        <div id="guided-forward" class="guided-fields row">
+          <label>
+            Transition reward
+            <input id="forward-reward" type="number" step="any" value="2">
+          </label>
+          <label>
+            Elapsed seconds
+            <input id="forward-elapsed" type="number" step="any" value="1">
+          </label>
+        </div>
+
+        <div id="guided-reverse" class="guided-fields four-column" hidden>
+          <label>
+            Candidate p — A
+            <input id="reverse-candidate-a" type="number" step="any" value="0.25">
+          </label>
+          <label>
+            Candidate p — B
+            <input id="reverse-candidate-b" type="number" step="any" value="0.75">
+          </label>
+          <label>
+            Observed transitions to a
+            <input id="reverse-count-a" type="number" step="1" min="0" value="1">
+          </label>
+          <label>
+            Observed transitions to b
+            <input id="reverse-count-b" type="number" step="1" min="0" value="1">
+          </label>
+        </div>
+      </section>
+
+      <section id="fixture-input" class="fixture-input" hidden>
+        <label>
           Deterministic example
           <select id="example">
             <option value="forward-success">Forward success</option>
@@ -35,23 +87,34 @@
             <option value="reverse-tie">Reverse tied candidates</option>
           </select>
         </label>
-      </div>
+      </section>
 
-      <label>
-        Checked analytical JSON
-        <textarea id="document-text" rows="22" spellcheck="false"></textarea>
-      </label>
+      <details id="advanced-json" class="advanced-json">
+        <summary>Advanced: inspect or edit checked analytical JSON</summary>
+        <p>
+          The guided controls generate this JSON for inspection. Editing here is an advanced
+          path; the Browser does not replace qualified analytical validation.
+        </p>
+        <label>
+          Checked analytical JSON
+          <textarea id="document-text" rows="22" spellcheck="false"></textarea>
+        </label>
 
-      <label>
-        Forward options JSON
-        <textarea id="options-text" rows="5" spellcheck="false">{}</textarea>
-      </label>
+        <label id="options-label">
+          Forward options JSON
+          <textarea id="options-text" rows="5" spellcheck="false">{}</textarea>
+        </label>
+      </details>
 
       <button id="run" type="button">Run through local Node adapter</button>
       <p id="browser-feedback" class="feedback" aria-live="polite"></p>
     </section>
 
-    <section class="panel" aria-labelledby="summary-heading">
+    <section class="panel outcome-panel" aria-labelledby="summary-heading">
+      <div id="outcome-banner" class="outcome-banner" data-outcome="not_run" aria-live="polite">
+        <span class="outcome-label">Outcome</span>
+        <strong id="outcome-banner-value">Not run</strong>
+      </div>
       <h2 id="summary-heading">Structured outcome</h2>
       <dl class="summary">
         <div><dt>Consumer outcome</dt><dd id="outcome-value">—</dd></div>
@@ -79,6 +142,7 @@
 
     <section class="panel" aria-labelledby="raw-heading">
       <h2 id="raw-heading">Original structured response</h2>
+      <p>The Browser summary never replaces this complete returned structure.</p>
       <pre id="raw-response">Run an example to inspect the complete response.</pre>
     </section>
 

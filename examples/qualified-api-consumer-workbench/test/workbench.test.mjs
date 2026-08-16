@@ -5,6 +5,11 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { executeConsumerRequest, QUALIFIED_PACKAGE } from '../adapter.mjs';
+import {
+  buildGuidedForward,
+  buildGuidedReverse,
+  toGuidedDocumentText
+} from '../public/guided-input.mjs';
 import { toPresentationModel } from '../public/presentation.mjs';
 
 const root = fileURLToPath(new URL('../', import.meta.url));
@@ -102,6 +107,44 @@ test('bounded forward non-convergence remains explicit success with converged=fa
   );
 });
 
+test('guided forward builder constructs a representative document consumed by the checked API', () => {
+  const document = buildGuidedForward({ reward: '3.5', elapsedSeconds: '2' });
+  assert.equal(document.model.transitions[0].reward, 3.5);
+  assert.equal(document.model.transitions[0].elapsedTime.value, 2);
+
+  const response = executeConsumerRequest({
+    schemaVersion: 1,
+    operation: 'forward',
+    documentText: toGuidedDocumentText('forward', { reward: '3.5', elapsedSeconds: '2' }),
+    options: {}
+  });
+
+  assert.equal(response.outcome, 'qualified_api_success');
+  assert.equal(response.analyticalResult.status, 'success');
+});
+
+test('guided reverse builder derives departures and preserves tied candidate semantics', () => {
+  const document = buildGuidedReverse({
+    candidateA: '0.25',
+    candidateB: '0.75',
+    observedA: '1',
+    observedB: '1'
+  });
+  assert.equal(document.observationDataset.observations[0].count, 2);
+  assert.deepEqual(document.request.candidates, [0.25, 0.75]);
+
+  const response = executeConsumerRequest({
+    schemaVersion: 1,
+    operation: 'reverse',
+    documentText: `${JSON.stringify(document, null, 2)}\n`
+  });
+
+  assert.equal(response.outcome, 'qualified_api_success');
+  assert.equal(response.analyticalResult.selection.status, 'tied_best_candidates');
+  assert.deepEqual(response.analyticalResult.selection.bestCandidateValues, [0.25, 0.75]);
+  assert.equal(response.analyticalResult.selection.estimatedValue, null);
+});
+
 test('presentation model exposes warnings, limitations, failure stage and ambiguity without rewriting them', async () => {
   const response = executeConsumerRequest({
     schemaVersion: 1,
@@ -117,9 +160,12 @@ test('presentation model exposes warnings, limitations, failure stage and ambigu
   assert.ok(view.limitations.length > 0);
 });
 
-test('browser shell states the runtime and package boundary', async () => {
+test('browser shell states runtime boundary and offers guided input without hiding raw response', async () => {
   const html = await readFile(join(root, 'public', 'index.html'), 'utf8');
   assert.match(html, /Browser input\/presentation only/);
   assert.match(html, /universal-calc-engine@1\.1\.0/);
   assert.match(html, /local Node adapter/);
+  assert.match(html, /Guided representative input/);
+  assert.match(html, /Advanced: inspect or edit checked analytical JSON/);
+  assert.match(html, /Original structured response/);
 });
