@@ -1,10 +1,25 @@
+import { toGuidedDocumentText } from './guided-input.mjs';
 import { toPresentationModel } from './presentation.mjs';
 
 const operationSelect = document.querySelector('#operation');
+const inputModeSelect = document.querySelector('#input-mode');
 const exampleSelect = document.querySelector('#example');
+const guidedInput = document.querySelector('#guided-input');
+const fixtureInput = document.querySelector('#fixture-input');
+const guidedForward = document.querySelector('#guided-forward');
+const guidedReverse = document.querySelector('#guided-reverse');
+const forwardReward = document.querySelector('#forward-reward');
+const forwardElapsed = document.querySelector('#forward-elapsed');
+const reverseCandidateA = document.querySelector('#reverse-candidate-a');
+const reverseCandidateB = document.querySelector('#reverse-candidate-b');
+const reverseCountA = document.querySelector('#reverse-count-a');
+const reverseCountB = document.querySelector('#reverse-count-b');
 const documentText = document.querySelector('#document-text');
 const optionsText = document.querySelector('#options-text');
+const optionsLabel = document.querySelector('#options-label');
 const runButton = document.querySelector('#run');
+const outcomeBanner = document.querySelector('#outcome-banner');
+const outcomeBannerValue = document.querySelector('#outcome-banner-value');
 const outcomeValue = document.querySelector('#outcome-value');
 const apiStatusValue = document.querySelector('#api-status-value');
 const failureStageValue = document.querySelector('#failure-stage-value');
@@ -34,6 +49,15 @@ const EXAMPLES = {
   }
 };
 
+const guidedControls = [
+  forwardReward,
+  forwardElapsed,
+  reverseCandidateA,
+  reverseCandidateB,
+  reverseCountA,
+  reverseCountB
+];
+
 function prettyText(value) {
   return value === null || value === undefined
     ? '—'
@@ -61,6 +85,8 @@ function renderList(element, items) {
 
 function render(response) {
   const view = toPresentationModel(response);
+  outcomeBanner.dataset.outcome = view.outcome;
+  outcomeBannerValue.textContent = view.outcome;
   outcomeValue.textContent = view.outcome;
   apiStatusValue.textContent = prettyText(view.apiStatus);
   failureStageValue.textContent = prettyText(view.failureStage);
@@ -96,12 +122,44 @@ function browserRejected(code, path, message) {
   };
 }
 
+function guidedValues() {
+  if (operationSelect.value === 'reverse') {
+    return {
+      candidateA: reverseCandidateA.value,
+      candidateB: reverseCandidateB.value,
+      observedA: reverseCountA.value,
+      observedB: reverseCountB.value
+    };
+  }
+  return {
+    reward: forwardReward.value,
+    elapsedSeconds: forwardElapsed.value
+  };
+}
+
+function syncOperationVisibility() {
+  const reverse = operationSelect.value === 'reverse';
+  guidedForward.hidden = reverse;
+  guidedReverse.hidden = !reverse;
+  optionsText.disabled = reverse;
+  optionsLabel.hidden = reverse;
+  if (reverse) optionsText.value = '{}';
+}
+
+function syncGuidedDocument() {
+  syncOperationVisibility();
+  documentText.value = toGuidedDocumentText(operationSelect.value, guidedValues());
+  optionsText.value = '{}';
+  browserFeedback.textContent =
+    'Guided controls updated the checked JSON. Execution has not started until Run is pressed.';
+}
+
 async function loadExample(name) {
   const example = EXAMPLES[name];
   if (!example) return;
 
   operationSelect.value = example.operation;
-  optionsText.disabled = example.operation === 'reverse';
+  syncOperationVisibility();
   const docResponse = await fetch(example.document, { cache: 'no-store' });
   documentText.value = await docResponse.text();
 
@@ -116,15 +174,36 @@ async function loadExample(name) {
     'Fixture loaded. Execution has not started until Run is pressed.';
 }
 
+function syncInputMode() {
+  const guided = inputModeSelect.value === 'guided';
+  guidedInput.hidden = !guided;
+  fixtureInput.hidden = guided;
+  if (guided) {
+    syncGuidedDocument();
+  } else {
+    void loadExample(exampleSelect.value);
+  }
+}
+
 exampleSelect.addEventListener('change', () => {
   void loadExample(exampleSelect.value);
 });
 
+inputModeSelect.addEventListener('change', syncInputMode);
+
 operationSelect.addEventListener('change', () => {
-  const reverse = operationSelect.value === 'reverse';
-  optionsText.disabled = reverse;
-  if (reverse) optionsText.value = '{}';
+  if (inputModeSelect.value === 'guided') {
+    syncGuidedDocument();
+  } else {
+    syncOperationVisibility();
+  }
 });
+
+for (const control of guidedControls) {
+  control.addEventListener('input', () => {
+    if (inputModeSelect.value === 'guided') syncGuidedDocument();
+  });
+}
 
 runButton.addEventListener('click', async () => {
   browserFeedback.textContent = '';
@@ -199,4 +278,4 @@ runButton.addEventListener('click', async () => {
   }
 });
 
-await loadExample('forward-success');
+syncInputMode();
